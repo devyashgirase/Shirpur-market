@@ -82,7 +82,7 @@ const DeliveryTasks = () => {
                 <Link to={`/delivery/task/${task.id}`} className="flex-1">
                   <Button className="w-full bg-gradient-primary">
                     <Navigation className="w-4 h-4 mr-2" />
-                    Start Delivery
+                    View Details
                   </Button>
                 </Link>
               </div>

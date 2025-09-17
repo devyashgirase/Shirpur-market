@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Link } from "react-router-dom";
 import { 
   BarChart3, 
   Package, 
@@ -204,19 +205,25 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Button className="bg-gradient-primary">
-                <Package className="w-4 h-4 mr-2" />
-                Add Product
-              </Button>
-              <Button variant="outline">
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                View All Orders
-              </Button>
-              <Button variant="outline">
-                <Truck className="w-4 h-4 mr-2" />
-                Assign Delivery
-              </Button>
-              <Button variant="outline">
+              <Link to="/admin/products">
+                <Button className="bg-gradient-primary w-full">
+                  <Package className="w-4 h-4 mr-2" />
+                  Add Product
+                </Button>
+              </Link>
+              <Link to="/admin/orders">
+                <Button variant="outline" className="w-full">
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  View All Orders
+                </Button>
+              </Link>
+              <Link to="/admin/tracking">
+                <Button variant="outline" className="w-full">
+                  <Truck className="w-4 h-4 mr-2" />
+                  Live Tracking
+                </Button>
+              </Link>
+              <Button variant="outline" className="w-full">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 View Reports
               </Button>

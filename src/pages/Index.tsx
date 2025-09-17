@@ -10,7 +10,7 @@ const Index = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-white mb-6">
-            QuickDelivery
+            Shirpur Delivery 
           </h1>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
             Complete delivery management system for customers, administrators, and delivery personnel

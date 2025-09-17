@@ -14,10 +14,15 @@ import {
 } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import AddressForm, { type AddressData } from "@/components/AddressForm";
+
 
 const CustomerCart = () => {
   const { toast } = useToast();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
+
 
   useEffect(() => {
     setCart(getCartFromStorage());
@@ -40,15 +45,54 @@ const CustomerCart = () => {
   };
 
   const handleCheckout = () => {
-    // In real app, this would create an order
+    setShowAddressForm(true);
+  };
+
+  const handleAddressSubmit = (addressData: AddressData) => {
+    setCustomerAddress(addressData);
+    
+    // Store address in localStorage for delivery tracking
+    localStorage.setItem('customerAddress', JSON.stringify(addressData));
+    
+    // Proceed with payment
+    const options = {
+      key: 'rzp_test_1DP5mmOlF5G5ag',
+      amount: Math.round(getTotalAmount() * 100),
+      currency: 'INR',
+      name: 'Shirpur Delivery',
+      description: 'Order Payment',
+      handler: function (response: any) {
+        handlePaymentSuccess();
+      },
+      prefill: {
+        name: addressData.name,
+        email: 'customer@example.com',
+        contact: addressData.phone
+      },
+      theme: {
+        color: '#3B82F6'
+      }
+    };
+    
+    if ((window as any).Razorpay) {
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    }
+  };
+
+  const handlePaymentSuccess = () => {
     toast({
       title: "Order placed!",
-      description: `Your order for $${getCartTotal(cart).toFixed(2)} has been placed successfully.`,
+      description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully.`,
     });
     
     const clearedCart = clearCart();
     setCart(clearedCart);
     window.dispatchEvent(new CustomEvent('cartUpdated'));
+  };
+
+  const getTotalAmount = () => {
+    return getCartTotal(cart) + 4.99 + (getCartTotal(cart) * 0.08);
   };
 
   if (cart.length === 0) {
@@ -92,7 +136,7 @@ const CustomerCart = () => {
                         SKU: {item.product.sku} • Per {item.product.unit}
                       </p>
                       <p className="text-lg font-bold text-primary mt-1">
-                        ${item.product.price.toFixed(2)}
+                        ₹{item.product.price.toFixed(2)}
                       </p>
                     </div>
                     
@@ -127,7 +171,7 @@ const CustomerCart = () => {
                     
                     <div className="text-right">
                       <p className="text-lg font-bold">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        ₹{(item.product.price * item.quantity).toFixed(2)}
                       </p>
                       <Button
                         variant="ghost"
@@ -155,20 +199,20 @@ const CustomerCart = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                  <span>${getCartTotal(cart).toFixed(2)}</span>
+                  <span>₹{getCartTotal(cart).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
-                  <span>$4.99</span>
+                  <span>₹4.99</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax</span>
-                  <span>${(getCartTotal(cart) * 0.08).toFixed(2)}</span>
+                  <span>₹{(getCartTotal(cart) * 0.08).toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>${(getCartTotal(cart) + 4.99 + (getCartTotal(cart) * 0.08)).toFixed(2)}</span>
+                  <span>₹{getTotalAmount().toFixed(2)}</span>
                 </div>
               </div>
 
@@ -189,6 +233,13 @@ const CustomerCart = () => {
           </Card>
         </div>
       </div>
+
+      {/* Address Form */}
+      <AddressForm
+        isOpen={showAddressForm}
+        onClose={() => setShowAddressForm(false)}
+        onSubmit={handleAddressSubmit}
+      />
     </div>
   );
 };

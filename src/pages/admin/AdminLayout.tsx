@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Package, ShoppingCart, ArrowLeft, Users, Settings } from "lucide-react";
+import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin } from "lucide-react";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -48,6 +48,16 @@ const AdminLayout = () => {
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Orders
+                </Button>
+              </Link>
+              
+              <Link to="/admin/tracking">
+                <Button 
+                  variant={isActive('/admin/tracking') ? "default" : "ghost"} 
+                  className={!isActive('/admin/tracking') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Live Tracking
                 </Button>
               </Link>
             </nav>

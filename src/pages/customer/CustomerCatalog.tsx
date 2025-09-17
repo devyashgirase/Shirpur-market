@@ -54,8 +54,12 @@ const CustomerCatalog = () => {
         {filteredProducts.map(product => (
           <Card key={product.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-4">
-              <div className="aspect-square bg-muted rounded-md mb-4 flex items-center justify-center">
-                <Package className="w-12 h-12 text-muted-foreground" />
+              <div className="aspect-square bg-muted rounded-md mb-4 flex items-center justify-center overflow-hidden">
+                {product.image ? (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Package className="w-12 h-12 text-muted-foreground" />
+                )}
               </div>
               <CardTitle className="text-lg">{product.name}</CardTitle>
               <div className="flex items-center justify-between">
@@ -73,7 +77,7 @@ const CustomerCatalog = () => {
             <CardContent>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground">per {product.unit}</p>
                 </div>
                 <div className="text-right">

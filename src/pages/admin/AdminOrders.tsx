@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Clock, CheckCircle, Truck, XCircle, User } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, XCircle, User, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import { mockOrders } from "@/lib/mockData";
 
 const AdminOrders = () => {
@@ -75,6 +76,12 @@ const AdminOrders = () => {
                   </SelectContent>
                 </Select>
                 <Button variant="outline">Assign Delivery</Button>
+                <Link to="/admin/tracking">
+                  <Button variant="outline">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Track Delivery
+                  </Button>
+                </Link>
                 <Button variant="outline">View Details</Button>
               </div>
             </CardContent>

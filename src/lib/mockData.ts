@@ -90,8 +90,8 @@ export const mockOrders: Order[] = [
     total: 45.67,
     payment_status: 'paid',
     created_at: new Date().toISOString(),
-    customer_name: 'John Smith',
-    customer_address: '123 Main St, Springfield, IL 62701'
+    customer_name: 'yash',
+    customer_address: 'Krantinagar, Shirpur, Dhule, Maharashtra 425405, India'
   },
   {
     id: '1002',
@@ -123,7 +123,7 @@ export const mockDeliveryTasks: DeliveryTask[] = [
     assigned_to_user_id: 'delivery_1',
     verify_attempts: 0,
     customer_name: 'John Smith',
-    customer_address: '123 Main St, Springfield, IL 62701',
+    customer_address: 'Krantinagar, Shirpur, Dhule, Maharashtra 425405, India',
     total_amount: 45.67,
     delivery_lat: 39.7817,
     delivery_lng: -89.6501

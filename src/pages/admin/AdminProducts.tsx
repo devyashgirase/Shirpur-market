@@ -15,7 +15,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Edit, AlertTriangle, Search, Filter } from "lucide-react";
+import { Package, Plus, Edit, AlertTriangle, Search, Filter, Upload, Image } from "lucide-react";
 import { mockProducts, mockCategories, type Product } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,6 +25,7 @@ const AdminProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category_id === selectedCategory;
@@ -39,6 +40,17 @@ const AdminProducts = () => {
     return mockCategories.find(c => c.id === categoryId)?.name || 'Unknown';
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddProduct = (formData: FormData) => {
     const newProduct: Product = {
       id: (products.length + 1).toString(),
@@ -50,10 +62,12 @@ const AdminProducts = () => {
       stock_qty: parseInt(formData.get('stock') as string),
       is_age_restricted: formData.get('ageRestricted') === 'on',
       is_active: true,
+      image: imagePreview || undefined,
     };
 
     setProducts([...products, newProduct]);
     setIsAddDialogOpen(false);
+    setImagePreview(null);
     toast({
       title: "Product added",
       description: `${newProduct.name} has been added to the catalog`,
@@ -88,7 +102,7 @@ const AdminProducts = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
               <DialogDescription>
@@ -100,18 +114,50 @@ const AdminProducts = () => {
               handleAddProduct(new FormData(e.currentTarget));
             }}>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">Name</Label>
-                  <Input id="name" name="name" className="col-span-3" required />
+                {/* Image Upload */}
+                <div className="space-y-2">
+                  <Label>Product Image</Label>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-20 h-20 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center overflow-hidden">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Image className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <Label htmlFor="image-upload" className="cursor-pointer">
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground">
+                          <Upload className="w-4 h-4" />
+                          <span>Upload Image</span>
+                        </div>
+                      </Label>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sku" className="text-right">SKU</Label>
-                  <Input id="sku" name="sku" className="col-span-3" required />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Product Name</Label>
+                    <Input id="name" name="name" placeholder="e.g. Organic Bananas" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="sku">SKU</Label>
+                    <Input id="sku" name="sku" placeholder="e.g. BAN001" required />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">Category</Label>
+                
+                <div>
+                  <Label htmlFor="category">Category</Label>
                   <Select name="category" required>
-                    <SelectTrigger className="col-span-3">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -123,20 +169,32 @@ const AdminProducts = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">Price</Label>
-                  <Input id="price" name="price" type="number" step="0.01" className="col-span-3" required />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="price">Price (₹)</Label>
+                    <Input id="price" name="price" type="number" step="0.01" placeholder="0.00" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="unit">Unit</Label>
+                    <Input id="unit" name="unit" placeholder="e.g. kg, piece, liter" required />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="unit" className="text-right">Unit</Label>
-                  <Input id="unit" name="unit" className="col-span-3" required />
+                
+                <div>
+                  <Label htmlFor="stock">Initial Stock</Label>
+                  <Input id="stock" name="stock" type="number" placeholder="0" required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="stock" className="text-right">Stock</Label>
-                  <Input id="stock" name="stock" type="number" className="col-span-3" required />
+                
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" id="ageRestricted" name="ageRestricted" className="rounded" />
+                  <Label htmlFor="ageRestricted" className="text-sm">Age restricted (21+)</Label>
                 </div>
               </div>
               <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
                 <Button type="submit">Add Product</Button>
               </DialogFooter>
             </form>
@@ -205,8 +263,12 @@ const AdminProducts = () => {
         {filteredProducts.map(product => (
           <Card key={product.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-4">
-              <div className="aspect-square bg-muted rounded-md mb-4 flex items-center justify-center">
-                <Package className="w-12 h-12 text-muted-foreground" />
+              <div className="aspect-square bg-muted rounded-md mb-4 flex items-center justify-center overflow-hidden">
+                {product.image ? (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Package className="w-12 h-12 text-muted-foreground" />
+                )}
               </div>
               <div className="flex items-start justify-between">
                 <div>
@@ -232,7 +294,7 @@ const AdminProducts = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Price</p>
-                  <p className="font-semibold text-lg">${product.price.toFixed(2)}</p>
+                  <p className="font-semibold text-lg">₹{product.price.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Unit</p>
