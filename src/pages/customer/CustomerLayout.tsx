@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Package, Home, ArrowLeft, MapPin } from "lucide-react";
 import { getCartFromStorage } from "@/lib/mockData";
 import { useState, useEffect } from "react";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 const CustomerLayout = () => {
   const location = useLocation();
@@ -38,52 +39,56 @@ const CustomerLayout = () => {
               <h1 className="text-2xl font-bold">QuickDelivery</h1>
             </div>
             
-            <nav className="flex items-center space-x-6">
-              <Link to="/customer">
-                <Button 
-                  variant={isActive('/customer') ? "secondary" : "ghost"} 
-                  className={isActive('/customer') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
-                >
-                  <Home className="w-4 h-4 mr-2" />
-                  Catalog
-                </Button>
-              </Link>
+            <div className="flex items-center space-x-6">
+              <nav className="flex items-center space-x-6">
+                <Link to="/customer">
+                  <Button 
+                    variant={isActive('/customer') ? "secondary" : "ghost"} 
+                    className={isActive('/customer') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                  >
+                    <Home className="w-4 h-4 mr-2" />
+                    Catalog
+                  </Button>
+                </Link>
+                
+                <Link to="/customer/cart">
+                  <Button 
+                    variant={isActive('/customer/cart') ? "secondary" : "ghost"} 
+                    className={`relative ${isActive('/customer/cart') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}`}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Cart
+                    {cartItemCount > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-accent text-accent-foreground min-w-[20px] h-5 flex items-center justify-center text-xs">
+                        {cartItemCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </Link>
+                
+                <Link to="/customer/orders">
+                  <Button 
+                    variant={isActive('/customer/orders') ? "secondary" : "ghost"} 
+                    className={isActive('/customer/orders') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    My Orders
+                  </Button>
+                </Link>
+                
+                <Link to="/customer/track">
+                  <Button 
+                    variant={isActive('/customer/track') ? "secondary" : "ghost"} 
+                    className={isActive('/customer/track') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Track Order
+                  </Button>
+                </Link>
+              </nav>
               
-              <Link to="/customer/cart">
-                <Button 
-                  variant={isActive('/customer/cart') ? "secondary" : "ghost"} 
-                  className={`relative ${isActive('/customer/cart') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}`}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Cart
-                  {cartItemCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 bg-accent text-accent-foreground min-w-[20px] h-5 flex items-center justify-center text-xs">
-                      {cartItemCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-              
-              <Link to="/customer/orders">
-                <Button 
-                  variant={isActive('/customer/orders') ? "secondary" : "ghost"} 
-                  className={isActive('/customer/orders') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  My Orders
-                </Button>
-              </Link>
-              
-              <Link to="/customer/track">
-                <Button 
-                  variant={isActive('/customer/track') ? "secondary" : "ghost"} 
-                  className={isActive('/customer/track') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Track Order
-                </Button>
-              </Link>
-            </nav>
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </header>

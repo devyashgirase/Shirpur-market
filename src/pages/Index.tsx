@@ -31,9 +31,9 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Link to="/customer">
+              <Link to="/login">
                 <Button className="bg-white text-primary hover:bg-white/90 w-full">
-                  Shop Now
+                  Login to Shop
                 </Button>
               </Link>
             </CardContent>
@@ -51,9 +51,9 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Link to="/admin">
+              <Link to="/login">
                 <Button className="bg-secondary text-white hover:bg-secondary/90 w-full">
-                  Admin Access
+                  Admin Login
                 </Button>
               </Link>
             </CardContent>
@@ -71,9 +71,9 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Link to="/delivery">
+              <Link to="/login">
                 <Button className="bg-accent text-white hover:bg-accent/90 w-full">
-                  View Tasks
+                  Delivery Login
                 </Button>
               </Link>
             </CardContent>

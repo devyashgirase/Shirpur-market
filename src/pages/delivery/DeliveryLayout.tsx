@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Truck, List, ArrowLeft } from "lucide-react";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 const DeliveryLayout = () => {
   const location = useLocation();
@@ -19,17 +20,21 @@ const DeliveryLayout = () => {
               <h1 className="text-2xl font-bold">Delivery Portal</h1>
             </div>
             
-            <nav className="flex items-center space-x-6">
-              <Link to="/delivery">
-                <Button 
-                  variant={isActive('/delivery') ? "secondary" : "ghost"} 
-                  className={!isActive('/delivery') ? "text-accent-foreground hover:text-accent-foreground hover:bg-accent-foreground/10" : ""}
-                >
-                  <List className="w-4 h-4 mr-2" />
-                  My Tasks
-                </Button>
-              </Link>
-            </nav>
+            <div className="flex items-center space-x-6">
+              <nav className="flex items-center space-x-6">
+                <Link to="/delivery">
+                  <Button 
+                    variant={isActive('/delivery') ? "secondary" : "ghost"} 
+                    className={!isActive('/delivery') ? "text-accent-foreground hover:text-accent-foreground hover:bg-accent-foreground/10" : ""}
+                  >
+                    <List className="w-4 h-4 mr-2" />
+                    My Tasks
+                  </Button>
+                </Link>
+              </nav>
+              
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </header>

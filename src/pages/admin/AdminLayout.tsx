@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin } from "lucide-react";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -20,47 +21,51 @@ const AdminLayout = () => {
               <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             </div>
             
-            <nav className="flex items-center space-x-6">
-              <Link to="/admin">
-                <Button 
-                  variant={isActive('/admin') ? "default" : "ghost"} 
-                  className={!isActive('/admin') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-              </Link>
+            <div className="flex items-center space-x-6">
+              <nav className="flex items-center space-x-6">
+                <Link to="/admin">
+                  <Button 
+                    variant={isActive('/admin') ? "default" : "ghost"} 
+                    className={!isActive('/admin') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </Link>
+                
+                <Link to="/admin/products">
+                  <Button 
+                    variant={isActive('/admin/products') ? "default" : "ghost"} 
+                    className={!isActive('/admin/products') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Products
+                  </Button>
+                </Link>
+                
+                <Link to="/admin/orders">
+                  <Button 
+                    variant={isActive('/admin/orders') ? "default" : "ghost"} 
+                    className={!isActive('/admin/orders') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Orders
+                  </Button>
+                </Link>
+                
+                <Link to="/admin/tracking">
+                  <Button 
+                    variant={isActive('/admin/tracking') ? "default" : "ghost"} 
+                    className={!isActive('/admin/tracking') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Live Tracking
+                  </Button>
+                </Link>
+              </nav>
               
-              <Link to="/admin/products">
-                <Button 
-                  variant={isActive('/admin/products') ? "default" : "ghost"} 
-                  className={!isActive('/admin/products') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  Products
-                </Button>
-              </Link>
-              
-              <Link to="/admin/orders">
-                <Button 
-                  variant={isActive('/admin/orders') ? "default" : "ghost"} 
-                  className={!isActive('/admin/orders') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Orders
-                </Button>
-              </Link>
-              
-              <Link to="/admin/tracking">
-                <Button 
-                  variant={isActive('/admin/tracking') ? "default" : "ghost"} 
-                  className={!isActive('/admin/tracking') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Live Tracking
-                </Button>
-              </Link>
-            </nav>
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </header>

@@ -82,14 +82,26 @@ const CustomerCart = () => {
   };
 
   const handlePaymentSuccess = () => {
-    // Create order tracking data
+    const orderId = 'ORD' + Date.now();
+    
+    // Create complete order data
     const orderData = {
-      orderId: '1001',
+      orderId,
       status: 'confirmed',
       timestamp: new Date().toISOString(),
-      customerAddress: customerAddress
+      customerAddress: customerAddress,
+      items: cart,
+      total: getTotalAmount(),
+      paymentStatus: 'paid'
     };
+    
+    // Store current order for tracking
     localStorage.setItem('currentOrder', JSON.stringify(orderData));
+    
+    // Add to orders list for admin
+    const existingOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+    existingOrders.push(orderData);
+    localStorage.setItem('allOrders', JSON.stringify(existingOrders));
     
     toast({
       title: "Order placed!",
@@ -102,7 +114,7 @@ const CustomerCart = () => {
     
     // Redirect to tracking page after 2 seconds
     setTimeout(() => {
-      window.location.href = '/customer/track';
+      navigate('/customer/track');
     }, 2000);
   };
 

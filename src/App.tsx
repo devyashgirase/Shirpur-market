@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import CustomerLayout from "./pages/customer/CustomerLayout";
 import CustomerCatalog from "./pages/customer/CustomerCatalog";
@@ -28,10 +30,16 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/home" element={<Index />} />
+          <Route path="/login" element={<Login />} />
           
           {/* Customer Routes */}
-          <Route path="/customer" element={<CustomerLayout />}>
+          <Route path="/customer" element={
+            <ProtectedRoute allowedRoles={['customer']}>
+              <CustomerLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<CustomerCatalog />} />
             <Route path="cart" element={<CustomerCart />} />
             <Route path="orders" element={<CustomerOrders />} />
@@ -39,7 +47,11 @@ const App = () => (
           </Route>
           
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<AdminDashboard />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
@@ -47,7 +59,11 @@ const App = () => (
           </Route>
           
           {/* Delivery Routes */}
-          <Route path="/delivery" element={<DeliveryLayout />}>
+          <Route path="/delivery" element={
+            <ProtectedRoute allowedRoles={['delivery']}>
+              <DeliveryLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<DeliveryTasks />} />
             <Route path="task/:taskId" element={<DeliveryTaskDetail />} />
           </Route>

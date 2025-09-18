@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,23 +17,59 @@ import {
 import { mockProducts, mockOrders, mockDeliveryTasks } from "@/lib/mockData";
 
 const AdminDashboard = () => {
-  // Calculate metrics
+  const [realOrders, setRealOrders] = useState([]);
+  const [metrics, setMetrics] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    todaysOrders: 0,
+    todaysRevenue: 0,
+    outForDelivery: 0
+  });
+
+  useEffect(() => {
+    const loadRealData = () => {
+      const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+      setRealOrders(allOrders);
+      
+      const today = new Date().toDateString();
+      
+      // Calculate real metrics from actual orders
+      const totalOrders = allOrders.length;
+      const totalRevenue = allOrders
+        .filter(o => o.paymentStatus === 'paid')
+        .reduce((sum, o) => sum + o.total, 0);
+      
+      const todaysOrders = allOrders.filter(o => {
+        const orderDate = new Date(o.timestamp).toDateString();
+        return today === orderDate;
+      }).length;
+      
+      const todaysRevenue = allOrders
+        .filter(o => {
+          const orderDate = new Date(o.timestamp).toDateString();
+          return today === orderDate && o.paymentStatus === 'paid';
+        })
+        .reduce((sum, o) => sum + o.total, 0);
+      
+      const outForDelivery = allOrders.filter(o => o.status === 'out_for_delivery').length;
+      
+      setMetrics({
+        totalOrders,
+        totalRevenue,
+        todaysOrders,
+        todaysRevenue,
+        outForDelivery
+      });
+    };
+    
+    loadRealData();
+    const interval = setInterval(loadRealData, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate static metrics
   const totalProducts = mockProducts.filter(p => p.is_active).length;
   const lowStockProducts = mockProducts.filter(p => p.is_active && p.stock_qty < 10).length;
-  const todaysOrders = mockOrders.filter(o => {
-    const today = new Date().toDateString();
-    const orderDate = new Date(o.created_at).toDateString();
-    return today === orderDate;
-  }).length;
-  const outForDelivery = mockOrders.filter(o => o.status === 'out_for_delivery').length;
-  const todaysRevenue = mockOrders
-    .filter(o => {
-      const today = new Date().toDateString();
-      const orderDate = new Date(o.created_at).toDateString();
-      return today === orderDate && o.payment_status === 'paid';
-    })
-    .reduce((sum, o) => sum + o.total, 0);
-
   const deliveryTasks = mockDeliveryTasks.length;
 
   return (
@@ -50,22 +87,22 @@ const AdminDashboard = () => {
             <ShoppingCart className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todaysOrders}</div>
+            <div className="text-2xl font-bold">{metrics.todaysOrders}</div>
             <p className="text-xs text-white/80">
-              +12% from yesterday
+              Real-time data
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-success text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
             <DollarSign className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${todaysRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₹{metrics.todaysRevenue.toFixed(2)}</div>
             <p className="text-xs text-white/80">
-              +8% from yesterday
+              From paid orders
             </p>
           </CardContent>
         </Card>
@@ -76,7 +113,7 @@ const AdminDashboard = () => {
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{outForDelivery}</div>
+            <div className="text-2xl font-bold">{metrics.outForDelivery}</div>
             <p className="text-xs text-muted-foreground">
               Active deliveries
             </p>
@@ -98,33 +135,71 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
+        {/* Total Revenue Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue Summary</CardTitle>
+            <CardDescription>Total earnings from all paid deliveries</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="text-center p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
+                <div className="text-3xl font-bold text-green-600 mb-2">
+                  ₹{metrics.totalRevenue.toFixed(2)}
+                </div>
+                <p className="text-sm text-muted-foreground">Total Revenue from All Orders</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-xl font-bold text-blue-600">{metrics.totalOrders}</div>
+                  <p className="text-xs text-muted-foreground">Total Orders</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-xl font-bold text-purple-600">
+                    ₹{metrics.totalOrders > 0 ? (metrics.totalRevenue / metrics.totalOrders).toFixed(2) : '0.00'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Avg Order Value</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
         {/* Recent Orders */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest customer orders requiring attention</CardDescription>
+            <CardDescription>Latest paid orders from customers</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockOrders.slice(0, 5).map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <ShoppingCart className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Order #{order.id}</p>
-                      <p className="text-sm text-muted-foreground">{order.customer_name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">${order.total.toFixed(2)}</p>
-                    <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
-                      {order.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
+              {realOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No orders yet. Orders will appear here when customers make purchases.</p>
                 </div>
-              ))}
+              ) : (
+                realOrders.slice(-5).reverse().map((order) => (
+                  <div key={order.orderId} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <ShoppingCart className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Order #{order.orderId}</p>
+                        <p className="text-sm text-muted-foreground">{order.customerAddress?.name || 'Customer'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">₹{order.total.toFixed(2)}</p>
+                      <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
+                        {order.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -214,7 +289,7 @@ const AdminDashboard = () => {
               <Link to="/admin/orders">
                 <Button variant="outline" className="w-full">
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  View All Orders
+                  Manage Orders
                 </Button>
               </Link>
               <Link to="/admin/tracking">
