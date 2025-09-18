@@ -1,73 +1,62 @@
-# Welcome to your Lovable project
+# Shirpur Delivery System
 
-## Project info
+A comprehensive multi-role delivery management system with real-time tracking, payment integration, and GPS-based location services.
 
-**URL**: https://lovable.dev/projects/f3051215-c082-4780-9d3e-c4e649b82de0
+## Features
 
-## How can I edit this code?
+- **Multi-Role System**: Customer portal, admin dashboard, and delivery partner interface
+- **Real-time GPS Tracking**: Live location tracking for delivery partners
+- **Payment Integration**: Razorpay payment gateway with UPI, card, and wallet support
+- **Address Management**: GPS-based address collection with reverse geocoding
+- **Product Management**: Admin interface for inventory and product management
+- **Live Order Tracking**: Real-time order status and delivery tracking
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI Components**: shadcn/ui + Tailwind CSS
+- **Maps**: Leaflet + React Leaflet
+- **Payment**: Razorpay
+- **Routing**: React Router DOM
+- **State Management**: React Query + Local Storage
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f3051215-c082-4780-9d3e-c4e649b82de0) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd shirpur-delivery-system
+   ```
 
-**Use your preferred IDE**
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+3. **Set up environment variables**
+   Create `.env` file with:
+   ```
+   VITE_RAZORPAY_KEY_ID=your_razorpay_key
+   VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-Follow these steps:
+## User Roles
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Customer** (`/customer`): Browse products, place orders, track deliveries
+- **Admin** (`/admin`): Manage products, orders, and track all deliveries
+- **Delivery Partner** (`/delivery`): Accept orders, update delivery status, GPS tracking
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Deployment
 
-# Step 3: Install the necessary dependencies.
-npm i
+The project is configured for Vercel deployment:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm run build
 ```
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f3051215-c082-4780-9d3e-c4e649b82de0) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Deploy to Vercel or any static hosting service.
