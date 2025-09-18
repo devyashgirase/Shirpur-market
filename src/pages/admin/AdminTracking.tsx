@@ -18,7 +18,7 @@ interface DeliveryPartner {
 }
 
 const AdminTracking = () => {
-  const [deliveryPartners] = useState<DeliveryPartner[]>([
+  const [deliveryPartners, setDeliveryPartners] = useState<DeliveryPartner[]>([
     {
       id: "delivery_1",
       name: "Raj Patel",
@@ -44,20 +44,55 @@ const AdminTracking = () => {
     }
   ]);
 
+  useEffect(() => {
+    // Update delivery partner locations from live tracking data
+    const updateLiveLocations = () => {
+      const liveDelivery = localStorage.getItem('liveDelivery');
+      if (liveDelivery) {
+        const deliveryData = JSON.parse(liveDelivery);
+        setDeliveryPartners(prev => 
+          prev.map(partner => 
+            partner.id === 'delivery_1' 
+              ? { ...partner, currentLocation: deliveryData.deliveryAgentLocation, isActive: true }
+              : partner
+          )
+        );
+      }
+    };
+
+    updateLiveLocations();
+    
+    // Refresh every 5 seconds for live updates
+    const interval = setInterval(updateLiveLocations, 5000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
 
+  // Fix Leaflet default marker icons
+  useEffect(() => {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+  }, []);
+
   // Leaflet icons
-  const deliveryIcon = L.icon({
-    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiMyNTYzZWIiLz4KPHN2ZyB4PSI2IiB5PSI2IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTYgOHY4YTIgMiAwIDAgMS0yIDJIOGEyIDIgMCAwIDEtMi0yVjhhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ6Ii8+CjxwYXRoIGQ9Im0xNiAxMCA0IDJWOGwtNC0yIi8+CjwvcGF0aD4KPC9zdmc+Cjwvc3ZnPg==',
+  const deliveryIcon = L.divIcon({
+    html: `<div style="background-color: #2563eb; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);"><span style="color: white; font-size: 18px;">🚚</span></div>`,
+    className: 'custom-div-icon',
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
 
-  const customerIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
+  const customerIcon = L.divIcon({
+    html: `<div style="background-color: #dc2626; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);"><span style="color: white; font-size: 16px;">📍</span></div>`,
+    className: 'custom-div-icon',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
   });
 
   const activePartners = deliveryPartners.filter(p => p.isActive && p.currentLocation);
@@ -143,12 +178,13 @@ const AdminTracking = () => {
                   >
                     <Popup>
                       <div className="p-2">
-                        <p className="font-semibold">{partner.name}</p>
-                        <p className="text-sm text-muted-foreground">{partner.phone}</p>
+                        <p className="font-semibold">🚚 {partner.name}</p>
+                        <p className="text-sm text-muted-foreground">📞 {partner.phone}</p>
                         {partner.activeTask && (
                           <div className="mt-2">
                             <p className="text-sm">Delivering Order #{partner.activeTask.order_id}</p>
                             <p className="text-xs">To: {partner.activeTask.customer_name}</p>
+                            <p className="text-xs text-green-600">🔴 Live tracking active</p>
                           </div>
                         )}
                       </div>

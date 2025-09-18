@@ -26,18 +26,29 @@ const DeliveryTaskDetail = () => {
   const [watchId, setWatchId] = useState<number | null>(null);
 
 
+  // Fix Leaflet default marker icons
+  useEffect(() => {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+  }, []);
+
   // Leaflet marker icons
-  const defaultIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
+  const defaultIcon = L.divIcon({
+    html: `<div style="background-color: #dc2626; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);"><span style="color: white; font-size: 16px;">📍</span></div>`,
+    className: 'custom-div-icon',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   });
   
-  const currentLocationIcon = L.icon({
-    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiM0Mjg1ZjQiLz4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iNCIgZmlsbD0id2hpdGUiLz4KPC9zdmc+',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+  const currentLocationIcon = L.divIcon({
+    html: `<div style="background-color: #2563eb; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); animation: pulse 2s infinite;"><span style="color: white; font-size: 14px;">🚚</span></div>`,
+    className: 'custom-div-icon',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
   });
 
   const task = mockDeliveryTasks.find((t) => t.id === taskId);
@@ -80,6 +91,20 @@ const DeliveryTaskDetail = () => {
     };
   }, [watchId]);
 
+  // Add CSS for pulsing animation
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   if (!task) {
     return <div className="container mx-auto px-4 py-8">Task not found</div>;
   }
@@ -102,6 +127,15 @@ const DeliveryTaskDetail = () => {
           lng: position.coords.longitude,
         };
         setCurrentLocation(newLocation);
+        
+        // Store delivery agent location for admin/customer tracking
+        const deliveryData = {
+          orderId: task.order_id,
+          deliveryAgentLocation: newLocation,
+          timestamp: new Date().toISOString(),
+          status: 'out_for_delivery'
+        };
+        localStorage.setItem('liveDelivery', JSON.stringify(deliveryData));
         
         // Simple distance calculation for demo
         if (coords) {

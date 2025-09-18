@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package, Home, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Package, Home, ArrowLeft, MapPin } from "lucide-react";
 import { getCartFromStorage } from "@/lib/mockData";
 import { useState, useEffect } from "react";
 
@@ -71,6 +71,16 @@ const CustomerLayout = () => {
                 >
                   <Package className="w-4 h-4 mr-2" />
                   My Orders
+                </Button>
+              </Link>
+              
+              <Link to="/customer/track">
+                <Button 
+                  variant={isActive('/customer/track') ? "secondary" : "ghost"} 
+                  className={isActive('/customer/track') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Track Order
                 </Button>
               </Link>
             </nav>

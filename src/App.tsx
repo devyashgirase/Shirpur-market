@@ -8,6 +8,7 @@ import CustomerLayout from "./pages/customer/CustomerLayout";
 import CustomerCatalog from "./pages/customer/CustomerCatalog";
 import CustomerCart from "./pages/customer/CustomerCart";
 import CustomerOrders from "./pages/customer/CustomerOrders";
+import CustomerOrderTracking from "./pages/customer/CustomerOrderTracking";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
@@ -34,6 +35,7 @@ const App = () => (
             <Route index element={<CustomerCatalog />} />
             <Route path="cart" element={<CustomerCart />} />
             <Route path="orders" element={<CustomerOrders />} />
+            <Route path="track" element={<CustomerOrderTracking />} />
           </Route>
           
           {/* Admin Routes */}

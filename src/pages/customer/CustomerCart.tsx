@@ -13,12 +13,13 @@ import {
   type CartItem 
 } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
 
 
 const CustomerCart = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
@@ -81,6 +82,15 @@ const CustomerCart = () => {
   };
 
   const handlePaymentSuccess = () => {
+    // Create order tracking data
+    const orderData = {
+      orderId: '1001',
+      status: 'confirmed',
+      timestamp: new Date().toISOString(),
+      customerAddress: customerAddress
+    };
+    localStorage.setItem('currentOrder', JSON.stringify(orderData));
+    
     toast({
       title: "Order placed!",
       description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully.`,
@@ -89,6 +99,11 @@ const CustomerCart = () => {
     const clearedCart = clearCart();
     setCart(clearedCart);
     window.dispatchEvent(new CustomEvent('cartUpdated'));
+    
+    // Redirect to tracking page after 2 seconds
+    setTimeout(() => {
+      window.location.href = '/customer/track';
+    }, 2000);
   };
 
   const getTotalAmount = () => {
