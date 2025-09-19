@@ -16,9 +16,11 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminTracking from "./pages/admin/AdminTracking";
+import AdminLiveTracking from "./pages/admin/AdminLiveTracking";
 import DeliveryLayout from "./pages/delivery/DeliveryLayout";
 import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
+import DeliveryNotifications from "./pages/delivery/DeliveryNotifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +58,7 @@ const App = () => (
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="tracking" element={<AdminTracking />} />
+            <Route path="live-tracking" element={<AdminLiveTracking />} />
           </Route>
           
           {/* Delivery Routes */}
@@ -65,6 +68,7 @@ const App = () => (
             </ProtectedRoute>
           }>
             <Route index element={<DeliveryTasks />} />
+            <Route path="notifications" element={<DeliveryNotifications />} />
             <Route path="task/:taskId" element={<DeliveryTaskDetail />} />
           </Route>
           

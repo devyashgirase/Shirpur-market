@@ -11,6 +11,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import RouteMap from "@/components/RouteMap";
+import { WhatsAppService } from "@/lib/whatsappService";
 
 const DeliveryTaskDetail = () => {
   const { taskId } = useParams();
@@ -137,6 +138,17 @@ const DeliveryTaskDetail = () => {
         };
         localStorage.setItem('liveDelivery', JSON.stringify(deliveryData));
         
+        // Store agent location with details for admin tracking
+        const agentData = {
+          lat: newLocation.lat,
+          lng: newLocation.lng,
+          name: 'Delivery Agent',
+          phone: '+91 98765 43210',
+          orderId: task.order_id,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('deliveryAgentLocation', JSON.stringify(agentData));
+        
         // Simple distance calculation for demo
         if (coords) {
           const distance = calculateDistance(newLocation, coords);
@@ -198,17 +210,40 @@ const DeliveryTaskDetail = () => {
   const handleVerifyOTP = async () => {
     setIsVerifying(true);
     setTimeout(() => {
-      if (otp === "123456") {
+      const isValidOTP = WhatsAppService.verifyOTP(task.order_id, otp);
+      
+      if (isValidOTP) {
         handleStopDelivery();
+        
+        // Update order status to delivered
+        const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+        const updatedOrders = allOrders.map((order: any) => 
+          order.orderId === task.order_id ? { ...order, status: 'delivered' } : order
+        );
+        localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
+        
+        const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+        if (currentOrder.orderId === task.order_id) {
+          currentOrder.status = 'delivered';
+          localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
+          
+          // Send delivery confirmation WhatsApp
+          WhatsAppService.sendStatusUpdate(
+            currentOrder.customerAddress,
+            currentOrder,
+            'delivered'
+          );
+        }
+        
         toast({
           title: "Delivery confirmed!",
-          description: "Order has been successfully delivered.",
+          description: "Order has been successfully delivered. Customer notified via WhatsApp.",
         });
         navigate("/delivery");
       } else {
         toast({
           title: "Invalid OTP",
-          description: "Please check the OTP and try again.",
+          description: "Please check the OTP provided by customer and try again.",
           variant: "destructive",
         });
       }
@@ -224,43 +259,88 @@ const DeliveryTaskDetail = () => {
             <CardTitle>Delivery Details - Order #{task.order_id}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="font-semibold">Customer</Label>
-                <p>{task.customer_name}</p>
-                {(() => {
-                  const storedAddress = localStorage.getItem('customerAddress');
-                  if (storedAddress) {
-                    const addressData = JSON.parse(storedAddress);
-                    return (
-                      <div className="mt-2">
-                        <p className="text-sm text-muted-foreground">📞 {addressData.phone}</p>
-                        {addressData.coordinates && (
-                          <p className="text-xs text-green-600">📍 Live location available</p>
+            {/* Customer Information */}
+            {(() => {
+              const storedAddress = localStorage.getItem('customerAddress');
+              const storedOrder = localStorage.getItem('currentOrder');
+              const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+              
+              let customerData = null;
+              let orderData = null;
+              
+              if (storedAddress) {
+                customerData = JSON.parse(storedAddress);
+              }
+              
+              if (storedOrder) {
+                orderData = JSON.parse(storedOrder);
+              } else {
+                orderData = allOrders.find((order: any) => order.orderId === task.order_id);
+              }
+              
+              return (
+                <div className="space-y-4">
+                  {/* Customer Details Card */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Customer Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-blue-700">Name</Label>
+                        <p className="font-medium">{customerData?.name || orderData?.customerAddress?.name || task.customer_name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-blue-700">Phone</Label>
+                        <p className="font-medium">{customerData?.phone || orderData?.customerAddress?.phone || 'Not available'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label className="text-xs text-blue-700">Full Address</Label>
+                        <p className="text-sm bg-white p-2 rounded border">
+                          {customerData?.address || orderData?.customerAddress?.address || task.customer_address}
+                        </p>
+                        {customerData?.coordinates && (
+                          <p className="text-xs text-green-600 mt-1">📍 GPS coordinates available</p>
                         )}
                       </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-              <div>
-                <Label className="font-semibold">Order Value</Label>
-                <p className="text-xl font-bold text-primary">
-                  ${task.total_amount?.toFixed(2)}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <Label className="font-semibold flex items-center mb-2">
-                <MapPin className="w-4 h-4 mr-2" />
-                Delivery Address
-              </Label>
-              <p className="text-sm bg-muted p-3 rounded">
-                {task.customer_address}
-              </p>
-            </div>
+                    </div>
+                  </div>
+                  
+                  {/* Order Details Card */}
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-900 mb-3">Order Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-green-700">Order Value</Label>
+                        <p className="text-xl font-bold text-primary">
+                          ₹{orderData?.total?.toFixed(2) || task.total_amount?.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-green-700">Payment Status</Label>
+                        <p className="font-medium text-green-600">
+                          {orderData?.paymentStatus?.toUpperCase() || 'PAID'}
+                        </p>
+                      </div>
+                      {orderData?.items && (
+                        <div className="md:col-span-2">
+                          <Label className="text-xs text-green-700">Items ({orderData.items.length})</Label>
+                          <div className="space-y-1 mt-1">
+                            {orderData.items.map((item: any, index: number) => (
+                              <div key={index} className="flex justify-between items-center bg-white p-2 rounded text-sm">
+                                <span>{item.product.name} x{item.quantity}</span>
+                                <span className="font-medium">₹{(item.product.price * item.quantity).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Map */}
             {loadingMap && <div>Loading map...</div>}
@@ -346,10 +426,13 @@ const DeliveryTaskDetail = () => {
                 id="otp"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                placeholder="Enter OTP (demo: 123456)"
+                placeholder="Enter 6-digit OTP from customer"
                 maxLength={6}
                 className="text-center text-lg tracking-wider"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Customer received OTP via WhatsApp. Ask them to share the 6-digit code.
+              </p>
             </div>
 
             <Button

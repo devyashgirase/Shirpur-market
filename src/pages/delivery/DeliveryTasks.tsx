@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,21 @@ import { mockDeliveryTasks } from "@/lib/mockData";
 import { Link } from "react-router-dom";
 
 const DeliveryTasks = () => {
-  const totalEarnings = mockDeliveryTasks.reduce((sum, task) => sum + (task.total_amount || 0), 0) * 0.15;
+  const [allTasks, setAllTasks] = useState([]);
+
+  useEffect(() => {
+    const loadTasks = () => {
+      const storedTasks = JSON.parse(localStorage.getItem('deliveryTasks') || '[]');
+      const combinedTasks = [...mockDeliveryTasks, ...storedTasks];
+      setAllTasks(combinedTasks);
+    };
+    
+    loadTasks();
+    const interval = setInterval(loadTasks, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const totalEarnings = allTasks.reduce((sum, task) => sum + (task.total_amount || task.orderValue || 0), 0) * 0.15;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -18,7 +33,7 @@ const DeliveryTasks = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Active Tasks</p>
-                  <p className="text-2xl font-bold">{mockDeliveryTasks.length}</p>
+                  <p className="text-2xl font-bold">{allTasks.length}</p>
                 </div>
                 <Clock className="w-8 h-8 text-primary" />
               </div>
@@ -52,11 +67,11 @@ const DeliveryTasks = () => {
       </div>
 
       <div className="space-y-4">
-        {mockDeliveryTasks.map((task) => (
+        {allTasks.map((task) => (
           <Card key={task.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Order #{task.order_id}</CardTitle>
+                <CardTitle>Order #{task.order_id || task.orderId}</CardTitle>
                 <Badge variant="secondary">Pending</Badge>
               </div>
             </CardHeader>
@@ -68,13 +83,13 @@ const DeliveryTasks = () => {
                     <MapPin className="w-4 h-4 text-muted-foreground" />
                     <span className="font-semibold">Customer</span>
                   </div>
-                  <p className="text-sm">{task.customer_name}</p>
-                  <p className="text-sm text-muted-foreground">{task.customer_address}</p>
+                  <p className="text-sm">{task.customer_name || task.customerAddress?.name}</p>
+                  <p className="text-sm text-muted-foreground">{task.customer_address || task.customerAddress?.address}</p>
                 </div>
                 
                 <div className="text-right">
-                  <p className="text-xl font-bold text-primary">${task.total_amount?.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">Your fee: ${((task.total_amount || 0) * 0.15).toFixed(2)}</p>
+                  <p className="text-xl font-bold text-primary">₹{(task.total_amount || task.orderValue || 0).toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Your fee: ₹{((task.total_amount || task.orderValue || 0) * 0.15).toFixed(2)}</p>
                 </div>
               </div>
 

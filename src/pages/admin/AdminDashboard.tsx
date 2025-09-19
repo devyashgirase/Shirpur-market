@@ -73,68 +73,68 @@ const AdminDashboard = () => {
   const deliveryTasks = mockDeliveryTasks.length;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Monitor your delivery system performance</p>
+    <div className="container mx-auto px-4 py-4 md:py-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Dashboard Overview</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Monitor your delivery system performance</p>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <Card className="bg-gradient-primary text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4" />
+            <CardTitle className="text-xs md:text-sm font-medium">Today's Orders</CardTitle>
+            <ShoppingCart className="h-3 w-3 md:h-4 md:w-4" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.todaysOrders}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold">{metrics.todaysOrders}</div>
             <p className="text-xs text-white/80">
-              Real-time data
+              Real-time
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-success text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
-            <DollarSign className="h-4 w-4" />
+            <CardTitle className="text-xs md:text-sm font-medium">Today's Revenue</CardTitle>
+            <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{metrics.todaysRevenue.toFixed(2)}</div>
+          <CardContent className="pb-3">
+            <div className="text-lg md:text-2xl font-bold">₹{metrics.todaysRevenue.toFixed(2)}</div>
             <p className="text-xs text-white/80">
-              From paid orders
+              Paid orders
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Out for Delivery</CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs md:text-sm font-medium">Out for Delivery</CardTitle>
+            <Truck className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.outForDelivery}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold">{metrics.outForDelivery}</div>
             <p className="text-xs text-muted-foreground">
-              Active deliveries
+              Active
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-warning" />
+            <CardTitle className="text-xs md:text-sm font-medium">Low Stock</CardTitle>
+            <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-warning" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">{lowStockProducts}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold text-warning">{lowStockProducts}</div>
             <p className="text-xs text-muted-foreground">
-              Need restocking
+              Restock
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
         {/* Total Revenue Summary */}
         <Card>
           <CardHeader>

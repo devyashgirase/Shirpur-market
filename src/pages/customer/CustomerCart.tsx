@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
+import { WhatsAppService } from "@/lib/whatsappService";
 
 
 const CustomerCart = () => {
@@ -87,12 +88,14 @@ const CustomerCart = () => {
     // Create complete order data
     const orderData = {
       orderId,
-      status: 'confirmed',
+      status: 'packing',
       timestamp: new Date().toISOString(),
       customerAddress: customerAddress,
       items: cart,
       total: getTotalAmount(),
-      paymentStatus: 'paid'
+      paymentStatus: 'paid',
+      deliveryAgent: null,
+      estimatedDelivery: new Date(Date.now() + 30 * 60000).toISOString() // 30 min
     };
     
     // Store current order for tracking
@@ -103,9 +106,30 @@ const CustomerCart = () => {
     existingOrders.push(orderData);
     localStorage.setItem('allOrders', JSON.stringify(existingOrders));
     
+    // Send WhatsApp confirmation with OTP
+    WhatsAppService.sendOrderConfirmation(customerAddress, orderData);
+    
+    // Create delivery notification for agents within 10km
+    const deliveryNotification = {
+      id: 'NOTIF_' + Date.now(),
+      orderId,
+      customerLocation: customerAddress.coordinates || { lat: 20.7516, lng: 74.2297 }, // Shirpur coords
+      customerAddress: customerAddress,
+      orderValue: getTotalAmount(),
+      items: cart,
+      timestamp: new Date().toISOString(),
+      status: 'pending',
+      radius: 10 // 10km radius
+    };
+    
+    // Store notification for delivery agents
+    const notifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
+    notifications.push(deliveryNotification);
+    localStorage.setItem('deliveryNotifications', JSON.stringify(notifications));
+    
     toast({
       title: "Order placed!",
-      description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully.`,
+      description: `Order #${orderId} placed! WhatsApp confirmation sent to ${customerAddress?.phone}`,
     });
     
     const clearedCart = clearCart();
@@ -142,17 +166,79 @@ const CustomerCart = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid lg:grid-cols-3 gap-8">
+    <div className="container mx-auto px-4 py-4 md:py-8">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
-          <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Shopping Cart</h1>
           
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {cart.map((item) => (
               <Card key={item.product.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
+                <CardContent className="p-4 md:p-6">
+                  {/* Mobile Layout */}
+                  <div className="md:hidden space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
+                        <ShoppingBag className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base">{item.product.name}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          SKU: {item.product.sku}
+                        </p>
+                        <p className="text-lg font-bold text-primary mt-1">
+                          ₹{item.product.price.toFixed(2)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(item.product.id)}
+                        className="text-destructive hover:text-destructive p-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value) || 1)}
+                          className="w-16 text-center text-sm"
+                          min="1"
+                          max={item.product.stock_qty}
+                        />
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          disabled={item.quantity >= item.product.stock_qty}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      
+                      <p className="text-lg font-bold">
+                        ₹{(item.product.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Desktop Layout */}
+                  <div className="hidden md:flex items-center space-x-4">
                     <div className="w-20 h-20 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
                       <ShoppingBag className="w-8 h-8 text-muted-foreground" />
                     </div>
@@ -217,22 +303,22 @@ const CustomerCart = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-4">
+        <div className="lg:col-span-1 order-first lg:order-last">
+          <Card className="lg:sticky lg:top-4">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle className="text-lg md:text-xl">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm md:text-base">
                   <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
                   <span>₹{getCartTotal(cart).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm md:text-base">
                   <span>Delivery Fee</span>
                   <span>₹4.99</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm md:text-base">
                   <span>Tax</span>
                   <span>₹{(getCartTotal(cart) * 0.08).toFixed(2)}</span>
                 </div>

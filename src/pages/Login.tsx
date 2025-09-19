@@ -59,12 +59,12 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-3xl font-bold text-white">S</span>
+        <div className="text-center mb-6 md:mb-8">
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 shadow-lg">
+            <span className="text-2xl md:text-3xl font-bold text-white">S</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Shirpur Delivery</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Shirpur Delivery</h1>
+          <p className="text-sm md:text-base text-gray-600">Sign in to your account</p>
         </div>
 
         {/* Login Card */}
@@ -118,35 +118,35 @@ const Login = () => {
         </Card>
 
         {/* Demo Credentials */}
-        <div className="mt-8 space-y-4">
-          <p className="text-center text-sm text-gray-600 font-medium">Demo Credentials:</p>
+        <div className="mt-6 md:mt-8 space-y-3 md:space-y-4">
+          <p className="text-center text-xs md:text-sm text-gray-600 font-medium">Demo Credentials:</p>
           
-          <div className="grid gap-3">
-            <Card className="p-3 bg-blue-50 border-blue-200">
-              <div className="flex items-center space-x-3">
-                <ShoppingBag className="w-5 h-5 text-blue-600" />
+          <div className="grid gap-2 md:gap-3">
+            <Card className="p-2 md:p-3 bg-blue-50 border-blue-200">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                 <div className="flex-1">
-                  <p className="font-medium text-blue-800">Customer</p>
+                  <p className="text-sm md:text-base font-medium text-blue-800">Customer</p>
                   <p className="text-xs text-blue-600">customer / customer123</p>
                 </div>
               </div>
             </Card>
             
-            <Card className="p-3 bg-purple-50 border-purple-200">
-              <div className="flex items-center space-x-3">
-                <Shield className="w-5 h-5 text-purple-600" />
+            <Card className="p-2 md:p-3 bg-purple-50 border-purple-200">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <Shield className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                 <div className="flex-1">
-                  <p className="font-medium text-purple-800">Admin</p>
+                  <p className="text-sm md:text-base font-medium text-purple-800">Admin</p>
                   <p className="text-xs text-purple-600">admin / admin123</p>
                 </div>
               </div>
             </Card>
             
-            <Card className="p-3 bg-green-50 border-green-200">
-              <div className="flex items-center space-x-3">
-                <Truck className="w-5 h-5 text-green-600" />
+            <Card className="p-2 md:p-3 bg-green-50 border-green-200">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <Truck className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                 <div className="flex-1">
-                  <p className="font-medium text-green-800">Delivery</p>
+                  <p className="text-sm md:text-base font-medium text-green-800">Delivery</p>
                   <p className="text-xs text-green-600">delivery / delivery123</p>
                 </div>
               </div>

@@ -31,6 +31,16 @@ const DeliveryLayout = () => {
                     My Tasks
                   </Button>
                 </Link>
+                
+                <Link to="/delivery/notifications">
+                  <Button 
+                    variant={isActive('/delivery/notifications') ? "secondary" : "ghost"} 
+                    className={!isActive('/delivery/notifications') ? "text-accent-foreground hover:text-accent-foreground hover:bg-accent-foreground/10" : ""}
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    New Orders
+                  </Button>
+                </Link>
               </nav>
               
               <ProfileDropdown />

@@ -39,10 +39,14 @@ const CustomerOrderTracking = () => {
   useEffect(() => {
     // Load delivery and customer data
     const loadTrackingData = () => {
+      const currentOrder = localStorage.getItem('currentOrder');
       const liveDelivery = localStorage.getItem('liveDelivery');
       const storedAddress = localStorage.getItem('customerAddress');
       
-      if (liveDelivery) {
+      if (currentOrder) {
+        const orderData = JSON.parse(currentOrder);
+        setDeliveryData(orderData);
+      } else if (liveDelivery) {
         setDeliveryData(JSON.parse(liveDelivery));
       }
       
@@ -53,8 +57,8 @@ const CustomerOrderTracking = () => {
 
     loadTrackingData();
     
-    // Refresh every 5 seconds for live updates
-    const interval = setInterval(loadTrackingData, 5000);
+    // Refresh every 3 seconds for live updates
+    const interval = setInterval(loadTrackingData, 3000);
     
     return () => clearInterval(interval);
   }, []);
@@ -65,8 +69,8 @@ const CustomerOrderTracking = () => {
         return { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-100', text: 'Order Placed' };
       case 'confirmed':
         return { icon: Package, color: 'text-blue-600', bg: 'bg-blue-100', text: 'Order Confirmed' };
-      case 'preparing':
-        return { icon: Package, color: 'text-orange-600', bg: 'bg-orange-100', text: 'Preparing Order' };
+      case 'packing':
+        return { icon: Package, color: 'text-orange-600', bg: 'bg-orange-100', text: 'Packing Your Order' };
       case 'out_for_delivery':
         return { icon: Truck, color: 'text-primary', bg: 'bg-blue-100', text: 'Out for Delivery' };
       case 'delivered':
@@ -107,6 +111,11 @@ const CustomerOrderTracking = () => {
               )}
             </div>
             
+            {deliveryData?.status === 'packing' && (
+              <div className="bg-orange-50 p-3 rounded text-sm text-orange-800">
+                📦 Your order is being packed and will be assigned to a delivery partner soon.
+              </div>
+            )}
             {deliveryData?.status === 'out_for_delivery' && (
               <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
                 🚚 Your order is on the way! The delivery partner is heading to your location.
@@ -116,7 +125,7 @@ const CustomerOrderTracking = () => {
         </Card>
 
         {/* Live Map Tracking */}
-        {deliveryData?.deliveryAgentLocation && customerAddress?.coordinates && (
+        {deliveryData?.status === 'out_for_delivery' && deliveryData?.deliveryAgentLocation && customerAddress?.coordinates && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -223,6 +232,19 @@ const CustomerOrderTracking = () => {
           </Card>
         )}
 
+        {/* Packing Status Message */}
+        {deliveryData?.status === 'packing' && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Package className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Order Being Packed</h3>
+              <p className="text-muted-foreground">
+                Your order is being prepared and will be assigned to a delivery partner soon.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* No tracking data message */}
         {!deliveryData && (
           <Card>
