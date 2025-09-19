@@ -51,8 +51,11 @@ export interface DeliveryTask {
   delivery_lat?: number;
   delivery_lng?: number;
   customer_name?: string;
+  customer_phone?: string;
   customer_address?: string;
   total_amount?: number;
+  status?: string;
+  items?: any[];
 }
 
 export interface CartItem {
@@ -123,10 +126,16 @@ export const mockDeliveryTasks: DeliveryTask[] = [
     assigned_to_user_id: 'delivery_1',
     verify_attempts: 0,
     customer_name: 'John Smith',
+    customer_phone: '+91 98765 43210',
     customer_address: 'Krantinagar, Shirpur, Dhule, Maharashtra 425405, India',
     total_amount: 45.67,
     delivery_lat: 39.7817,
-    delivery_lng: -89.6501
+    delivery_lng: -89.6501,
+    status: 'accepted',
+    items: [
+      { product: { id: '1', name: 'Organic Bananas', price: 2.99 }, quantity: 2 },
+      { product: { id: '2', name: 'Whole Milk', price: 3.49 }, quantity: 1 }
+    ]
   },
   {
     id: 'task_2',
@@ -134,10 +143,15 @@ export const mockDeliveryTasks: DeliveryTask[] = [
     assigned_to_user_id: 'delivery_1',
     verify_attempts: 0,
     customer_name: 'Lisa Wilson',
+    customer_phone: '+91 87654 32109',
     customer_address: '321 Elm St, Springfield, IL 62704',
     total_amount: 67.23,
     delivery_lat: 39.7901,
-    delivery_lng: -89.6440
+    delivery_lng: -89.6440,
+    status: 'accepted',
+    items: [
+      { product: { id: '3', name: 'Fresh Bread', price: 2.29 }, quantity: 1 }
+    ]
   },
 ];
 

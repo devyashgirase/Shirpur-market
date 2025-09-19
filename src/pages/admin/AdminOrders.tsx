@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Package, Truck, CheckCircle, Eye, MapPin, Navigation } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -236,6 +236,9 @@ const AdminOrders = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details - #{selectedOrder?.orderId}</DialogTitle>
+            <DialogDescription>
+              View and manage order details, tracking, and WhatsApp communications
+            </DialogDescription>
           </DialogHeader>
           
           {selectedOrder && (
@@ -251,9 +254,9 @@ const AdminOrders = () => {
                 <div>
                   <h4 className="font-semibold mb-2">Customer Information</h4>
                   <div className="bg-muted p-4 rounded-lg">
-                    <p><strong>Name:</strong> {selectedOrder.customerAddress.name}</p>
-                    <p><strong>Phone:</strong> {selectedOrder.customerAddress.phone}</p>
-                    <p><strong>Address:</strong> {selectedOrder.customerAddress.address}</p>
+                    <p><strong>Name:</strong> {selectedOrder.customerAddress?.name || 'N/A'}</p>
+                    <p><strong>Phone:</strong> {selectedOrder.customerAddress?.phone || 'N/A'}</p>
+                    <p><strong>Address:</strong> {selectedOrder.customerAddress?.address || 'N/A'}</p>
                   </div>
                 </div>
 
@@ -323,7 +326,7 @@ const AdminOrders = () => {
               </TabsContent>
               
               <TabsContent value="whatsapp" className="space-y-4">
-                <WhatsAppStatus orderId={selectedOrder.orderId} />
+                <WhatsAppStatus orderId={selectedOrder?.orderId || ''} />
               </TabsContent>
             </Tabs>
           )}
@@ -338,6 +341,17 @@ const LiveTrackingMap = ({ order }: { order: Order }) => {
   const [deliveryLocation, setDeliveryLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [deliveryAgent, setDeliveryAgent] = useState<any>(null);
+
+  const getOrderStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'bg-blue-500';
+      case 'preparing': return 'bg-yellow-500';
+      case 'packing': return 'bg-orange-500';
+      case 'out_for_delivery': return 'bg-purple-500';
+      case 'delivered': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
 
   useEffect(() => {
     // Get delivery agent location from localStorage
@@ -385,7 +399,7 @@ const LiveTrackingMap = ({ order }: { order: Order }) => {
           <Navigation className="w-5 h-5" />
           Live Delivery Tracking
         </h4>
-        <Badge className={`${getStatusColor(order.status)} text-white`}>
+        <Badge className={`${getOrderStatusColor(order.status)} text-white`}>
           {order.status.replace('_', ' ').toUpperCase()}
         </Badge>
       </div>
@@ -419,8 +433,8 @@ const LiveTrackingMap = ({ order }: { order: Order }) => {
               </div>
               <div>
                 <h5 className="font-medium">Customer</h5>
-                <p className="text-sm text-muted-foreground">{order.customerAddress.name}</p>
-                <p className="text-xs text-muted-foreground">{order.customerAddress.phone}</p>
+                <p className="text-sm text-muted-foreground">{order.customerAddress?.name || 'N/A'}</p>
+                <p className="text-xs text-muted-foreground">{order.customerAddress?.phone || 'N/A'}</p>
               </div>
             </div>
           </CardContent>
@@ -456,8 +470,8 @@ const LiveTrackingMap = ({ order }: { order: Order }) => {
               <Popup>
                 <div className="text-center">
                   <strong>Customer Location</strong><br />
-                  {order.customerAddress.name}<br />
-                  {order.customerAddress.address}
+                  {order.customerAddress?.name || 'Customer'}<br />
+                  {order.customerAddress?.address || 'Address not available'}
                 </div>
               </Popup>
             </Marker>
@@ -475,7 +489,7 @@ const LiveTrackingMap = ({ order }: { order: Order }) => {
           </div>
           <div className="flex justify-between">
             <span>Customer Address:</span>
-            <span className="font-medium text-right">{order.customerAddress.address}</span>
+            <span className="font-medium text-right">{order.customerAddress?.address || 'N/A'}</span>
           </div>
           <div className="flex justify-between">
             <span>Payment Status:</span>

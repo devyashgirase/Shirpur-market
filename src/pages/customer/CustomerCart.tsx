@@ -15,7 +15,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
-import { WhatsAppService } from "@/lib/whatsappService";
 
 
 const CustomerCart = () => {
@@ -83,54 +82,20 @@ const CustomerCart = () => {
   };
 
   const handlePaymentSuccess = () => {
-    const orderId = 'ORD' + Date.now();
-    
-    // Create complete order data
+    // Create order tracking data
     const orderData = {
-      orderId,
-      status: 'packing',
+      orderId: '1001',
+      status: 'confirmed',
       timestamp: new Date().toISOString(),
-      customerAddress: customerAddress,
-      items: cart,
-      total: getTotalAmount(),
-      paymentStatus: 'paid',
-      deliveryAgent: null,
-      estimatedDelivery: new Date(Date.now() + 30 * 60000).toISOString() // 30 min
+      customerAddress: customerAddress
     };
-    
-    // Store current order for tracking
     localStorage.setItem('currentOrder', JSON.stringify(orderData));
-    
-    // Add to orders list for admin
-    const existingOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-    existingOrders.push(orderData);
-    localStorage.setItem('allOrders', JSON.stringify(existingOrders));
-    
-    // Send WhatsApp confirmation with OTP
-    WhatsAppService.sendOrderConfirmation(customerAddress, orderData);
-    
-    // Create delivery notification for agents within 10km
-    const deliveryNotification = {
-      id: 'NOTIF_' + Date.now(),
-      orderId,
-      customerLocation: customerAddress.coordinates || { lat: 20.7516, lng: 74.2297 }, // Shirpur coords
-      customerAddress: customerAddress,
-      orderValue: getTotalAmount(),
-      items: cart,
-      timestamp: new Date().toISOString(),
-      status: 'pending',
-      radius: 10 // 10km radius
-    };
-    
-    // Store notification for delivery agents
-    const notifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
-    notifications.push(deliveryNotification);
-    localStorage.setItem('deliveryNotifications', JSON.stringify(notifications));
     
     toast({
       title: "Order placed!",
-      description: `Order #${orderId} placed! WhatsApp confirmation sent to ${customerAddress?.phone}`,
+      description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully.`,
     });
+    
     
     const clearedCart = clearCart();
     setCart(clearedCart);
@@ -138,7 +103,7 @@ const CustomerCart = () => {
     
     // Redirect to tracking page after 2 seconds
     setTimeout(() => {
-      navigate('/customer/track');
+      window.location.href = '/customer/track';
     }, 2000);
   };
 
@@ -167,7 +132,7 @@ const CustomerCart = () => {
 
   return (
     <div className="container mx-auto px-4 py-4 md:py-8">
-      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
           <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Shopping Cart</h1>
@@ -185,9 +150,9 @@ const CustomerCart = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-base">{item.product.name}</h3>
                         <p className="text-xs text-muted-foreground">
-                          SKU: {item.product.sku}
+                          SKU: {item.product.sku} • Per {item.product.unit}
                         </p>
-                        <p className="text-lg font-bold text-primary mt-1">
+                        <p className="text-base font-bold text-primary mt-1">
                           ₹{item.product.price.toFixed(2)}
                         </p>
                       </div>
@@ -195,7 +160,7 @@ const CustomerCart = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeItem(item.product.id)}
-                        className="text-destructive hover:text-destructive p-2"
+                        className="text-destructive hover:text-destructive p-1"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -231,7 +196,7 @@ const CustomerCart = () => {
                         </Button>
                       </div>
                       
-                      <p className="text-lg font-bold">
+                      <p className="text-base font-bold">
                         ₹{(item.product.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
@@ -303,7 +268,7 @@ const CustomerCart = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="lg:col-span-1 order-first lg:order-last">
+        <div className="lg:col-span-1">
           <Card className="lg:sticky lg:top-4">
             <CardHeader>
               <CardTitle className="text-lg md:text-xl">Order Summary</CardTitle>
@@ -323,7 +288,7 @@ const CustomerCart = () => {
                   <span>₹{(getCartTotal(cart) * 0.08).toFixed(2)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between text-base md:text-lg font-bold">
                   <span>Total</span>
                   <span>₹{getTotalAmount().toFixed(2)}</span>
                 </div>

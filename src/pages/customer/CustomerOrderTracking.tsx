@@ -84,40 +84,40 @@ const CustomerOrderTracking = () => {
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">Track Your Order</h1>
-          <p className="text-muted-foreground">Real-time delivery tracking</p>
+    <div className="container mx-auto px-4 py-4 md:py-8">
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Track Your Order</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Real-time delivery tracking</p>
         </div>
 
         {/* Order Status */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <StatusIcon className={`w-6 h-6 mr-2 ${statusInfo.color}`} />
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="flex items-center text-base md:text-lg">
+              <StatusIcon className={`w-5 h-5 md:w-6 md:h-6 mr-2 ${statusInfo.color}`} />
               Order #{deliveryData?.orderId || '1001'}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <Badge className={`${statusInfo.bg} ${statusInfo.color} border-0`}>
+          <CardContent className="p-4 md:p-6 pt-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-2">
+              <Badge className={`${statusInfo.bg} ${statusInfo.color} border-0 text-xs md:text-sm w-fit`}>
                 {statusInfo.text}
               </Badge>
               {deliveryData?.timestamp && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs md:text-sm text-muted-foreground">
                   Last updated: {new Date(deliveryData.timestamp).toLocaleTimeString()}
                 </span>
               )}
             </div>
             
             {deliveryData?.status === 'packing' && (
-              <div className="bg-orange-50 p-3 rounded text-sm text-orange-800">
+              <div className="bg-orange-50 p-3 rounded text-xs md:text-sm text-orange-800">
                 📦 Your order is being packed and will be assigned to a delivery partner soon.
               </div>
             )}
             {deliveryData?.status === 'out_for_delivery' && (
-              <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
+              <div className="bg-blue-50 p-3 rounded text-xs md:text-sm text-blue-800">
                 🚚 Your order is on the way! The delivery partner is heading to your location.
               </div>
             )}
@@ -127,14 +127,14 @@ const CustomerOrderTracking = () => {
         {/* Live Map Tracking */}
         {deliveryData?.status === 'out_for_delivery' && deliveryData?.deliveryAgentLocation && customerAddress?.coordinates && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MapPin className="w-5 h-5 mr-2" />
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="flex items-center text-base md:text-lg">
+                <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                 Live Tracking
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="mb-4 bg-green-50 p-3 rounded text-sm text-green-800">
+            <CardContent className="p-4 md:p-6 pt-0">
+              <div className="mb-3 md:mb-4 bg-green-50 p-3 rounded text-xs md:text-sm text-green-800">
                 📍 Live tracking is active. You can see your delivery partner's real-time location.
               </div>
               
@@ -144,7 +144,8 @@ const CustomerOrderTracking = () => {
                   deliveryData.deliveryAgentLocation.lng
                 ]}
                 zoom={14}
-                style={{ height: "400px", width: "100%", borderRadius: "0.5rem" }}
+                style={{ height: "300px", width: "100%", borderRadius: "0.5rem" }}
+                className="md:h-[400px]"
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -201,24 +202,24 @@ const CustomerOrderTracking = () => {
         {/* Delivery Information */}
         {customerAddress && (
           <Card>
-            <CardHeader>
-              <CardTitle>Delivery Information</CardTitle>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Delivery Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-4 md:p-6 pt-0 space-y-3 md:space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">Delivery Address</h4>
+                <h4 className="font-semibold mb-2 text-sm md:text-base">Delivery Address</h4>
                 <div className="bg-muted p-3 rounded">
-                  <p className="font-medium">{customerAddress.name}</p>
-                  <p className="text-sm text-muted-foreground">📞 {customerAddress.phone}</p>
-                  <p className="text-sm">{customerAddress.address}</p>
+                  <p className="font-medium text-sm md:text-base">{customerAddress.name}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">📞 {customerAddress.phone}</p>
+                  <p className="text-xs md:text-sm leading-relaxed">{customerAddress.address}</p>
                   {customerAddress.landmark && (
-                    <p className="text-sm text-muted-foreground">Near: {customerAddress.landmark}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Near: {customerAddress.landmark}</p>
                   )}
-                  <p className="text-sm">📮 {customerAddress.pincode}</p>
+                  <p className="text-xs md:text-sm">📮 {customerAddress.pincode}</p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 md:gap-4 text-xs md:text-sm">
                 <div>
                   <p className="text-muted-foreground">Estimated Delivery</p>
                   <p className="font-semibold">15-30 minutes</p>
@@ -235,10 +236,10 @@ const CustomerOrderTracking = () => {
         {/* Packing Status Message */}
         {deliveryData?.status === 'packing' && (
           <Card>
-            <CardContent className="text-center py-8">
-              <Package className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Order Being Packed</h3>
-              <p className="text-muted-foreground">
+            <CardContent className="text-center py-6 md:py-8">
+              <Package className="w-12 h-12 md:w-16 md:h-16 text-orange-500 mx-auto mb-3 md:mb-4" />
+              <h3 className="text-base md:text-lg font-semibold mb-2">Order Being Packed</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Your order is being prepared and will be assigned to a delivery partner soon.
               </p>
             </CardContent>
@@ -248,10 +249,10 @@ const CustomerOrderTracking = () => {
         {/* No tracking data message */}
         {!deliveryData && (
           <Card>
-            <CardContent className="text-center py-8">
-              <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Active Delivery</h3>
-              <p className="text-muted-foreground">
+            <CardContent className="text-center py-6 md:py-8">
+              <Package className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground mx-auto mb-3 md:mb-4" />
+              <h3 className="text-base md:text-lg font-semibold mb-2">No Active Delivery</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Place an order to see live tracking information here.
               </p>
             </CardContent>
