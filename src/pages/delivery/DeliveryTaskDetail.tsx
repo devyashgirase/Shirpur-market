@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { MapPin, CheckCircle, Navigation, Play, Square } from "lucide-react";
 import { mockDeliveryTasks } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { WhatsAppService } from "@/lib/whatsappService";
+import { SMSService } from "@/lib/smsService";
 
 const DeliveryTaskDetail = () => {
   const { taskId } = useParams();
@@ -84,9 +86,30 @@ const DeliveryTaskDetail = () => {
     );
     setWatchId(id);
     
+    // Send out for delivery notification
+    const customerAddress = JSON.parse(localStorage.getItem('customerAddress') || '{}');
+    const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+    if (customerAddress.phone && currentOrder.orderId === task.order_id) {
+      try {
+        const deliveryAgent = {
+          name: 'Delivery Partner',
+          phone: '+91 98765 43210'
+        };
+        WhatsAppService.sendOutForDeliveryNotification(customerAddress, currentOrder, deliveryAgent);
+        console.log('✅ Out for delivery notification sent via WhatsApp');
+        
+        // Also send SMS
+        const otp = WhatsAppService.getStoredOTP(task.order_id);
+        SMSService.sendOutForDeliverySMS(customerAddress, currentOrder, deliveryAgent, otp);
+        console.log('✅ Out for delivery SMS sent');
+      } catch (error) {
+        console.error('❌ Failed to send out for delivery notification:', error);
+      }
+    }
+    
     toast({
       title: "Delivery started!",
-      description: "Real-time tracking is now active.",
+      description: "Real-time tracking is now active. Customer notified via WhatsApp & SMS.",
     });
   };
 
@@ -107,8 +130,9 @@ const DeliveryTaskDetail = () => {
   const handleVerifyOTP = async () => {
     setIsVerifying(true);
     setTimeout(() => {
-      // Simple OTP verification - check if it's 6 digits
-      const isValidOTP = otp.length === 6;
+      // Verify OTP using WhatsApp service
+      const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+      const isValidOTP = WhatsAppService.verifyOTP(task.order_id, otp);
       
       if (isValidOTP) {
         handleStopDelivery();
@@ -123,11 +147,26 @@ const DeliveryTaskDetail = () => {
         if (currentOrder.orderId === task.order_id) {
           currentOrder.status = 'delivered';
           localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
+          
+          // Send delivery confirmation via WhatsApp
+          const customerAddress = JSON.parse(localStorage.getItem('customerAddress') || '{}');
+          if (customerAddress.phone) {
+            try {
+              WhatsAppService.sendStatusUpdate(customerAddress, currentOrder, 'delivered');
+              console.log('✅ Delivery confirmation sent via WhatsApp');
+              
+              // Also send SMS
+              SMSService.sendDeliveredSMS(customerAddress, currentOrder);
+              console.log('✅ Delivery confirmation SMS sent');
+            } catch (error) {
+              console.error('❌ Failed to send delivery confirmation:', error);
+            }
+          }
         }
         
         toast({
           title: "Delivery confirmed!",
-          description: "Order has been successfully delivered.",
+          description: "Order has been successfully delivered. Customer notified via WhatsApp & SMS.",
         });
         navigate("/delivery");
       } else {

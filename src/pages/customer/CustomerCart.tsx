@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
+import { WhatsAppService } from "@/lib/whatsappService";
 
 
 const CustomerCart = () => {
@@ -81,21 +82,37 @@ const CustomerCart = () => {
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     // Create order tracking data
     const orderData = {
       orderId: '1001',
-      status: 'confirmed',
+      status: 'packing',
       timestamp: new Date().toISOString(),
-      customerAddress: customerAddress
+      customerAddress: customerAddress,
+      items: cart,
+      total: getTotalAmount()
     };
     localStorage.setItem('currentOrder', JSON.stringify(orderData));
     
+    // Store in all orders for admin
+    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+    allOrders.push(orderData);
+    localStorage.setItem('allOrders', JSON.stringify(allOrders));
+    
+    // Send WhatsApp confirmation
+    if (customerAddress) {
+      try {
+        const otp = await WhatsAppService.sendOrderConfirmation(customerAddress, orderData);
+        console.log('✅ Order confirmation sent via WhatsApp/SMS');
+      } catch (error) {
+        console.error('❌ Failed to send confirmation:', error);
+      }
+    }
+    
     toast({
       title: "Order placed!",
-      description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully.`,
+      description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully. Check WhatsApp for confirmation.`,
     });
-    
     
     const clearedCart = clearCart();
     setCart(clearedCart);
