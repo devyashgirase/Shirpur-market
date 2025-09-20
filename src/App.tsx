@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "@/components/ui/animations.css";
+import { useEffect } from "react";
+import { startNotificationDemo } from "@/lib/testNotifications";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -23,14 +26,27 @@ import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
 import DeliveryNotifications from "./pages/delivery/DeliveryNotifications";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+const App = () => {
+  useEffect(() => {
+    // Start notification demo for testing
+    startNotificationDemo();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/home" element={<Index />} />
@@ -75,9 +91,10 @@ const App = () => (
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import RealTimeNotifications from "@/components/RealTimeNotifications";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -24,6 +25,7 @@ const AdminLayout = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4">
+              <RealTimeNotifications userType="admin" />
               <nav className="flex items-center space-x-3">
                 <Link to="/admin">
                   <Button 
@@ -86,6 +88,7 @@ const AdminLayout = () => {
             
             {/* Mobile Navigation */}
             <div className="lg:hidden flex items-center space-x-2">
+              <RealTimeNotifications userType="admin" />
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-secondary-foreground">

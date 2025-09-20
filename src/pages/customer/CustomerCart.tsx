@@ -15,7 +15,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
+import { OrderService, Order } from "@/lib/orderService";
+import { NotificationService } from "@/lib/notificationService";
 import { WhatsAppService } from "@/lib/whatsappService";
+import { DataGenerator } from "@/lib/dataGenerator";
 
 
 const CustomerCart = () => {
@@ -57,6 +60,11 @@ const CustomerCart = () => {
     localStorage.setItem('customerAddress', JSON.stringify(addressData));
     
     // Proceed with payment
+    toast({
+      title: "Processing Payment",
+      description: "Redirecting to payment gateway...",
+    });
+    
     const options = {
       key: 'rzp_test_1DP5mmOlF5G5ag',
       amount: Math.round(getTotalAmount() * 100),
@@ -64,7 +72,17 @@ const CustomerCart = () => {
       name: 'Shirpur Delivery',
       description: 'Order Payment',
       handler: function (response: any) {
+        console.log('Payment successful:', response.razorpay_payment_id);
         handlePaymentSuccess();
+      },
+      modal: {
+        ondismiss: function() {
+          toast({
+            title: "Payment Cancelled",
+            description: "Payment was cancelled. Your cart is still saved.",
+            variant: "destructive"
+          });
+        }
       },
       prefill: {
         name: addressData.name,
@@ -79,48 +97,78 @@ const CustomerCart = () => {
     if ((window as any).Razorpay) {
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
+    } else {
+      // Fallback for development - simulate successful payment
+      setTimeout(() => {
+        handlePaymentSuccess();
+      }, 1000);
     }
   };
 
   const handlePaymentSuccess = async () => {
-    // Create order tracking data
-    const orderData = {
-      orderId: '1001',
-      status: 'packing',
-      timestamp: new Date().toISOString(),
-      customerAddress: customerAddress,
-      items: cart,
-      total: getTotalAmount()
-    };
-    localStorage.setItem('currentOrder', JSON.stringify(orderData));
+    if (!customerAddress) return;
     
-    // Store in all orders for admin
+    // Generate unique order ID using DataGenerator
+    const orderId = DataGenerator.generateOrderId();
+    
+    // Generate dynamic customer data if not provided
+    const dynamicCustomer = customerAddress.name ? customerAddress : {
+      ...DataGenerator.generateCustomer(),
+      ...customerAddress
+    };
+    
+    // Create order using OrderService
+    const orderData: Order = {
+      orderId,
+      status: 'confirmed',
+      timestamp: new Date().toISOString(),
+      customerAddress: {
+        ...dynamicCustomer,
+        coordinates: dynamicCustomer.coordinates || DataGenerator.generateShirpurCoordinates()
+      },
+      items: cart.map(item => ({
+        product: {
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price
+        },
+        quantity: item.quantity
+      })),
+      total: getTotalAmount(),
+      paymentStatus: 'paid'
+    };
+    
+    // Store order data
     const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
     allOrders.push(orderData);
     localStorage.setItem('allOrders', JSON.stringify(allOrders));
+    localStorage.setItem('currentOrder', JSON.stringify(orderData));
     
-    // Send WhatsApp confirmation
-    if (customerAddress) {
-      try {
-        const otp = await WhatsAppService.sendOrderConfirmation(customerAddress, orderData);
-        console.log('✅ Order confirmation sent via WhatsApp/SMS');
-      } catch (error) {
-        console.error('❌ Failed to send confirmation:', error);
-      }
+    // Send WhatsApp confirmation with OTP
+    try {
+      const otp = await WhatsAppService.sendOrderConfirmation(customerAddress, orderData);
+      console.log('✅ Order confirmation sent via WhatsApp/SMS');
+    } catch (error) {
+      console.error('❌ Failed to send confirmation:', error);
     }
     
+    // Send notifications
+    NotificationService.sendOrderStatusNotification(orderId, 'confirmed', 'customer');
+    NotificationService.sendOrderStatusNotification(orderId, 'confirmed', 'admin');
+    
     toast({
-      title: "Order placed!",
-      description: `Your order for ₹${getTotalAmount().toFixed(2)} has been placed successfully. Check WhatsApp for confirmation.`,
+      title: "Order Placed Successfully!",
+      description: `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed. You'll receive real-time updates.`,
     });
     
+    // Clear cart
     const clearedCart = clearCart();
     setCart(clearedCart);
     window.dispatchEvent(new CustomEvent('cartUpdated'));
     
-    // Redirect to tracking page after 2 seconds
+    // Redirect to tracking page
     setTimeout(() => {
-      window.location.href = '/customer/track';
+      navigate('/customer/track');
     }, 2000);
   };
 

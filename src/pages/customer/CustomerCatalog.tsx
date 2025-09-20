@@ -1,33 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Minus, ShoppingCart, Package } from "lucide-react";
-import { mockCategories, mockProducts, addToCart, type Product } from "@/lib/mockData";
+import { mockCategories, getProductsFromStorage, addToCart, updateProductStock, type Product } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 
 const CustomerCatalog = () => {
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    setProducts(getProductsFromStorage());
+  }, []);
 
   const filteredProducts = selectedCategory === 'all' 
-    ? mockProducts.filter(p => p.is_active)
-    : mockProducts.filter(p => p.is_active && p.category_id === selectedCategory);
+    ? products.filter(p => p.is_active)
+    : products.filter(p => p.is_active && p.category_id === selectedCategory);
 
   const getCategoryName = (categoryId: string) => {
     return mockCategories.find(c => c.id === categoryId)?.name || 'Unknown';
   };
 
   const handleAddToCart = (product: Product) => {
-    addToCart(product, 1);
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-    });
-    
-    // Trigger cart update event
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
+    if (product.stock_qty > 0) {
+      addToCart(product, 1);
+      const updatedProducts = updateProductStock(product.id, 1);
+      setProducts(updatedProducts);
+      
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
+      });
+      
+      // Trigger cart update event
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    }
   };
 
   return (

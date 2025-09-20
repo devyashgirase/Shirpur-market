@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Truck, List, ArrowLeft, Menu } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import RealTimeNotifications from "@/components/RealTimeNotifications";
 
 const DeliveryLayout = () => {
   const location = useLocation();
@@ -23,6 +24,7 @@ const DeliveryLayout = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
+              <RealTimeNotifications userType="delivery" />
               <nav className="flex items-center space-x-4">
                 <Link to="/delivery">
                   <Button 
@@ -52,6 +54,7 @@ const DeliveryLayout = () => {
             
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center space-x-2">
+              <RealTimeNotifications userType="delivery" />
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-accent-foreground">

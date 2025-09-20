@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { MapPin, CheckCircle, Navigation, Play, Square } from "lucide-react";
 import { mockDeliveryTasks } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { OrderService } from "@/lib/orderService";
+import { NotificationService } from "@/lib/notificationService";
 import { WhatsAppService } from "@/lib/whatsappService";
 import { SMSService } from "@/lib/smsService";
 
@@ -53,23 +55,8 @@ const DeliveryTaskDetail = () => {
         };
         setCurrentLocation(newLocation);
         
-        const deliveryData = {
-          orderId: task.order_id,
-          deliveryAgentLocation: newLocation,
-          timestamp: new Date().toISOString(),
-          status: 'out_for_delivery'
-        };
-        localStorage.setItem('liveDelivery', JSON.stringify(deliveryData));
-        
-        const agentData = {
-          lat: newLocation.lat,
-          lng: newLocation.lng,
-          name: 'Delivery Agent',
-          phone: '+91 98765 43210',
-          orderId: task.order_id,
-          timestamp: new Date().toISOString()
-        };
-        localStorage.setItem('deliveryAgentLocation', JSON.stringify(agentData));
+        // Update delivery location using OrderService
+        OrderService.updateDeliveryLocation(task.order_id, newLocation);
       },
       (error) => {
         toast({
@@ -129,55 +116,46 @@ const DeliveryTaskDetail = () => {
 
   const handleVerifyOTP = async () => {
     setIsVerifying(true);
-    setTimeout(() => {
-      // Verify OTP using WhatsApp service
-      const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
-      const isValidOTP = WhatsAppService.verifyOTP(task.order_id, otp);
+    
+    try {
+      // Use OrderService to complete delivery
+      const success = await OrderService.completeDelivery(task.order_id, otp);
       
-      if (isValidOTP) {
+      if (success) {
         handleStopDelivery();
         
-        const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-        const updatedOrders = allOrders.map((order: any) => 
-          order.orderId === task.order_id ? { ...order, status: 'delivered' } : order
-        );
-        localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
-        
-        const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
-        if (currentOrder.orderId === task.order_id) {
-          currentOrder.status = 'delivered';
-          localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
-          
-          // Send delivery confirmation via WhatsApp
-          const customerAddress = JSON.parse(localStorage.getItem('customerAddress') || '{}');
-          if (customerAddress.phone) {
-            try {
-              WhatsAppService.sendStatusUpdate(customerAddress, currentOrder, 'delivered');
-              console.log('✅ Delivery confirmation sent via WhatsApp');
-              
-              // Also send SMS
-              SMSService.sendDeliveredSMS(customerAddress, currentOrder);
-              console.log('✅ Delivery confirmation SMS sent');
-            } catch (error) {
-              console.error('❌ Failed to send delivery confirmation:', error);
-            }
-          }
-        }
-        
         toast({
-          title: "Delivery confirmed!",
-          description: "Order has been successfully delivered. Customer notified via WhatsApp & SMS.",
+          title: "Delivery Completed!",
+          description: "Order has been successfully delivered. Customer notified automatically.",
         });
-        navigate("/delivery");
+        
+        // Send delivery notification
+        NotificationService.sendOrderStatusNotification(
+          task.order_id, 
+          'delivered', 
+          'delivery'
+        );
+        
+        setTimeout(() => {
+          navigate("/delivery");
+        }, 1500);
       } else {
         toast({
           title: "Invalid OTP",
-          description: "Please enter a valid 6-digit OTP.",
+          description: "Please enter the correct 6-digit OTP from the customer.",
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error('Delivery completion error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete delivery. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsVerifying(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -203,7 +181,11 @@ const DeliveryTaskDetail = () => {
                 <h4 className="font-semibold mb-2 text-sm md:text-base">Customer Details</h4>
                 <div className="space-y-1 text-xs md:text-sm">
                   <p><strong>Name:</strong> {task.customer_name}</p>
-                  <p><strong>Phone:</strong> {task.customer_phone || 'N/A'}</p>
+                  <p><strong>Phone:</strong> 
+                    <a href={`tel:${task.customer_phone}`} className="text-blue-600 hover:underline ml-1">
+                      {task.customer_phone || 'N/A'}
+                    </a>
+                  </p>
                   <p><strong>Address:</strong> {task.customer_address}</p>
                 </div>
               </div>
@@ -212,11 +194,16 @@ const DeliveryTaskDetail = () => {
                 <div className="space-y-1 text-xs md:text-sm">
                   <p><strong>Total:</strong> ₹{task.total_amount?.toFixed(2) || '0.00'}</p>
                   <p><strong>Items:</strong> {task.items?.length || 0} items</p>
+                  <p><strong>Payment:</strong> 
+                    <span className="ml-1 px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                      PAID
+                    </span>
+                  </p>
                   <p><strong>Status:</strong> 
                     <span className={`ml-2 px-2 py-1 rounded text-xs ${
                       task.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {task.status}
+                      {task.status.toUpperCase()}
                     </span>
                   </p>
                 </div>
@@ -254,8 +241,11 @@ const DeliveryTaskDetail = () => {
             </div>
             
             {isDeliveryStarted && currentLocation && (
-              <div className="bg-green-50 p-3 rounded text-xs md:text-sm text-green-800">
-                📍 Live tracking active. Your location is being shared with customer and admin.
+              <div className="bg-green-50 p-3 rounded text-xs md:text-sm text-green-800 border border-green-200">
+                📍 <strong>Live tracking active</strong> - Your location is being shared with customer and admin in real-time.
+                <div className="mt-1 text-xs">
+                  Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
+                </div>
               </div>
             )}
           </CardContent>
@@ -298,9 +288,14 @@ const DeliveryTaskDetail = () => {
               )}
             </Button>
             
-            <p className="text-xs md:text-sm text-muted-foreground text-center">
-              Ask the customer for the 6-digit OTP to confirm delivery
-            </p>
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <p className="text-xs md:text-sm text-blue-800 text-center font-medium">
+                🔐 Ask the customer for their 6-digit OTP to confirm delivery
+              </p>
+              <p className="text-xs text-blue-600 text-center mt-1">
+                The OTP was sent to them via WhatsApp and SMS when the order was placed
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

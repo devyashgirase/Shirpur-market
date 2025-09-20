@@ -2,14 +2,19 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { MapPin, Truck, Clock, CheckCircle, Package } from "lucide-react";
+import { MapPin, Truck, Clock, CheckCircle, Package, Bell } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import RouteMap from "@/components/RouteMap";
+import { OrderService, Order } from "@/lib/orderService";
+import { NotificationService } from "@/lib/notificationService";
+import { useToast } from "@/hooks/use-toast";
 
 const CustomerOrderTracking = () => {
-  const [deliveryData, setDeliveryData] = useState<any>(null);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [customerAddress, setCustomerAddress] = useState<any>(null);
+  const [lastStatus, setLastStatus] = useState<string>('');
+  const { toast } = useToast();
 
   // Fix Leaflet default marker icons
   useEffect(() => {
@@ -37,31 +42,56 @@ const CustomerOrderTracking = () => {
   });
 
   useEffect(() => {
-    // Load delivery and customer data
-    const loadTrackingData = () => {
-      const currentOrder = localStorage.getItem('currentOrder');
-      const liveDelivery = localStorage.getItem('liveDelivery');
-      const storedAddress = localStorage.getItem('customerAddress');
-      
-      if (currentOrder) {
-        const orderData = JSON.parse(currentOrder);
-        setDeliveryData(orderData);
-      } else if (liveDelivery) {
-        setDeliveryData(JSON.parse(liveDelivery));
-      }
-      
-      if (storedAddress) {
-        setCustomerAddress(JSON.parse(storedAddress));
-      }
-    };
+    // Load initial data
+    const storedOrder = localStorage.getItem('currentOrder');
+    const storedAddress = localStorage.getItem('customerAddress');
+    
+    if (storedOrder) {
+      const orderData = JSON.parse(storedOrder);
+      setCurrentOrder(orderData);
+      setLastStatus(orderData.status);
+    }
+    
+    if (storedAddress) {
+      setCustomerAddress(JSON.parse(storedAddress));
+    }
 
-    loadTrackingData();
+    // Subscribe to real-time order updates
+    const unsubscribe = OrderService.subscribe((orders) => {
+      const storedOrderId = JSON.parse(localStorage.getItem('currentOrder') || '{}').orderId;
+      if (storedOrderId) {
+        const updatedOrder = orders.find(order => order.orderId === storedOrderId);
+        if (updatedOrder) {
+          setCurrentOrder(updatedOrder);
+          
+          // Show toast notification for status changes
+          if (lastStatus && updatedOrder.status !== lastStatus) {
+            const statusMessages = {
+              confirmed: '✅ Your order has been confirmed!',
+              packing: '📦 Your order is being packed',
+              out_for_delivery: '🚚 Your order is out for delivery!',
+              delivered: '🎉 Your order has been delivered!'
+            };
+            
+            const message = statusMessages[updatedOrder.status as keyof typeof statusMessages];
+            if (message) {
+              toast({
+                title: "Order Update",
+                description: message,
+              });
+            }
+          }
+          
+          setLastStatus(updatedOrder.status);
+        }
+      }
+    });
+
+    // Request notification permission
+    NotificationService.requestPermission();
     
-    // Refresh every 3 seconds for live updates
-    const interval = setInterval(loadTrackingData, 3000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    return unsubscribe;
+  }, [lastStatus, toast]);
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -80,7 +110,7 @@ const CustomerOrderTracking = () => {
     }
   };
 
-  const statusInfo = getStatusInfo(deliveryData?.status || 'pending');
+  const statusInfo = getStatusInfo(currentOrder?.status || 'pending');
   const StatusIcon = statusInfo.icon;
 
   return (
@@ -96,7 +126,7 @@ const CustomerOrderTracking = () => {
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center text-base md:text-lg">
               <StatusIcon className={`w-5 h-5 md:w-6 md:h-6 mr-2 ${statusInfo.color}`} />
-              Order #{deliveryData?.orderId || '1001'}
+              Order #{currentOrder?.orderId || 'No active order'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
@@ -104,28 +134,41 @@ const CustomerOrderTracking = () => {
               <Badge className={`${statusInfo.bg} ${statusInfo.color} border-0 text-xs md:text-sm w-fit`}>
                 {statusInfo.text}
               </Badge>
-              {deliveryData?.timestamp && (
+              {currentOrder?.timestamp && (
                 <span className="text-xs md:text-sm text-muted-foreground">
-                  Last updated: {new Date(deliveryData.timestamp).toLocaleTimeString()}
+                  Last updated: {new Date(currentOrder.timestamp).toLocaleTimeString()}
                 </span>
               )}
             </div>
             
-            {deliveryData?.status === 'packing' && (
+            {currentOrder?.status === 'confirmed' && (
+              <div className="bg-blue-50 p-3 rounded text-xs md:text-sm text-blue-800">
+                ✅ Your order has been confirmed and is being prepared by our team.
+              </div>
+            )}
+            {currentOrder?.status === 'packing' && (
               <div className="bg-orange-50 p-3 rounded text-xs md:text-sm text-orange-800">
                 📦 Your order is being packed and will be assigned to a delivery partner soon.
               </div>
             )}
-            {deliveryData?.status === 'out_for_delivery' && (
+            {currentOrder?.status === 'out_for_delivery' && (
               <div className="bg-blue-50 p-3 rounded text-xs md:text-sm text-blue-800">
-                🚚 Your order is on the way! The delivery partner is heading to your location.
+                🚚 Your order is on the way! {currentOrder.deliveryAgent?.name} is heading to your location.
+                {currentOrder.deliveryAgent?.phone && (
+                  <div className="mt-1">📞 Contact: {currentOrder.deliveryAgent.phone}</div>
+                )}
+              </div>
+            )}
+            {currentOrder?.status === 'delivered' && (
+              <div className="bg-green-50 p-3 rounded text-xs md:text-sm text-green-800">
+                🎉 Your order has been delivered successfully! Thank you for choosing Shirpur Delivery.
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Live Map Tracking */}
-        {deliveryData?.status === 'out_for_delivery' && deliveryData?.deliveryAgentLocation && customerAddress?.coordinates && (
+        {currentOrder?.status === 'out_for_delivery' && currentOrder?.deliveryAgent?.location && customerAddress?.coordinates && (
           <Card>
             <CardHeader className="p-4 md:p-6">
               <CardTitle className="flex items-center text-base md:text-lg">
@@ -140,8 +183,8 @@ const CustomerOrderTracking = () => {
               
               <MapContainer
                 center={[
-                  deliveryData.deliveryAgentLocation.lat,
-                  deliveryData.deliveryAgentLocation.lng
+                  currentOrder.deliveryAgent.location.lat,
+                  currentOrder.deliveryAgent.location.lng
                 ]}
                 zoom={14}
                 style={{ height: "300px", width: "100%", borderRadius: "0.5rem" }}
@@ -155,17 +198,20 @@ const CustomerOrderTracking = () => {
                 {/* Delivery Agent Location */}
                 <Marker 
                   position={[
-                    deliveryData.deliveryAgentLocation.lat,
-                    deliveryData.deliveryAgentLocation.lng
+                    currentOrder.deliveryAgent.location.lat,
+                    currentOrder.deliveryAgent.location.lng
                   ]} 
                   icon={deliveryIcon}
                 >
                   <Popup>
                     <div className="p-2">
-                      <p className="font-semibold">🚚 Delivery Partner</p>
+                      <p className="font-semibold">🚚 {currentOrder.deliveryAgent.name}</p>
                       <p className="text-sm">On the way to your location</p>
                       <p className="text-xs text-muted-foreground">
-                        Last updated: {new Date(deliveryData.timestamp).toLocaleTimeString()}
+                        📞 {currentOrder.deliveryAgent.phone}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Last updated: {new Date(currentOrder.timestamp).toLocaleTimeString()}
                       </p>
                     </div>
                   </Popup>
@@ -190,7 +236,7 @@ const CustomerOrderTracking = () => {
 
                 {/* Route between delivery agent and customer */}
                 <RouteMap 
-                  start={deliveryData.deliveryAgentLocation}
+                  start={currentOrder.deliveryAgent.location}
                   end={customerAddress.coordinates}
                   isActive={true}
                 />
@@ -233,28 +279,78 @@ const CustomerOrderTracking = () => {
           </Card>
         )}
 
-        {/* Packing Status Message */}
-        {deliveryData?.status === 'packing' && (
+        {/* Order Status Messages */}
+        {currentOrder?.status === 'confirmed' && (
+          <Card>
+            <CardContent className="text-center py-6 md:py-8">
+              <CheckCircle className="w-12 h-12 md:w-16 md:h-16 text-blue-500 mx-auto mb-3 md:mb-4" />
+              <h3 className="text-base md:text-lg font-semibold mb-2">Order Confirmed</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Your order has been confirmed and our team is preparing it for delivery.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        
+        {currentOrder?.status === 'packing' && (
           <Card>
             <CardContent className="text-center py-6 md:py-8">
               <Package className="w-12 h-12 md:w-16 md:h-16 text-orange-500 mx-auto mb-3 md:mb-4" />
               <h3 className="text-base md:text-lg font-semibold mb-2">Order Being Packed</h3>
               <p className="text-sm md:text-base text-muted-foreground">
-                Your order is being prepared and will be assigned to a delivery partner soon.
+                Your order is being packed and will be assigned to a delivery partner soon.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        
+        {currentOrder?.status === 'delivered' && (
+          <Card>
+            <CardContent className="text-center py-6 md:py-8">
+              <CheckCircle className="w-12 h-12 md:w-16 md:h-16 text-green-500 mx-auto mb-3 md:mb-4" />
+              <h3 className="text-base md:text-lg font-semibold mb-2">Order Delivered</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Your order has been delivered successfully! Thank you for choosing Shirpur Delivery.
               </p>
             </CardContent>
           </Card>
         )}
         
         {/* No tracking data message */}
-        {!deliveryData && (
+        {!currentOrder && (
           <Card>
             <CardContent className="text-center py-6 md:py-8">
               <Package className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground mx-auto mb-3 md:mb-4" />
-              <h3 className="text-base md:text-lg font-semibold mb-2">No Active Delivery</h3>
+              <h3 className="text-base md:text-lg font-semibold mb-2">No Active Order</h3>
               <p className="text-sm md:text-base text-muted-foreground">
-                Place an order to see live tracking information here.
+                Place an order to see real-time tracking information here.
               </p>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Order Items Summary */}
+        {currentOrder && (
+          <Card>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6 pt-0">
+              <div className="space-y-2">
+                {currentOrder.items.map((item, index) => (
+                  <div key={index} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                    <div>
+                      <p className="font-medium text-sm md:text-base">{item.product.name}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                    </div>
+                    <p className="font-semibold text-sm md:text-base">₹{(item.product.price * item.quantity).toFixed(2)}</p>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-3 font-bold text-base md:text-lg">
+                  <span>Total Amount:</span>
+                  <span>₹{currentOrder.total.toFixed(2)}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}

@@ -72,88 +72,26 @@ export const mockCategories: Category[] = [
   { id: '5', name: 'Personal Care', slug: 'personal-care', is_active: true },
 ];
 
-// Mock Products
-export const mockProducts: Product[] = [
-  { id: '1', category_id: '1', name: 'Organic Bananas', sku: 'BAN001', price: 2.99, unit: 'bunch', stock_qty: 50, is_age_restricted: false, is_active: true },
-  { id: '2', category_id: '1', name: 'Whole Milk', sku: 'MLK001', price: 3.49, unit: 'gallon', stock_qty: 30, is_age_restricted: false, is_active: true },
-  { id: '3', category_id: '1', name: 'Fresh Bread', sku: 'BRD001', price: 2.29, unit: 'loaf', stock_qty: 25, is_age_restricted: false, is_active: true },
-  { id: '4', category_id: '2', name: 'Orange Juice', sku: 'OJ001', price: 4.99, unit: 'bottle', stock_qty: 40, is_age_restricted: false, is_active: true },
-  { id: '5', category_id: '2', name: 'Craft Beer', sku: 'BEER001', price: 8.99, unit: '6-pack', stock_qty: 20, is_age_restricted: true, is_active: true },
-  { id: '6', category_id: '3', name: 'Wireless Headphones', sku: 'WH001', price: 99.99, unit: 'piece', stock_qty: 15, is_age_restricted: false, is_active: true },
-  { id: '7', category_id: '4', name: 'Pain Relief', sku: 'PR001', price: 12.99, unit: 'bottle', stock_qty: 35, is_age_restricted: false, is_active: true },
-  { id: '8', category_id: '5', name: 'Shampoo', sku: 'SH001', price: 7.99, unit: 'bottle', stock_qty: 45, is_age_restricted: false, is_active: true },
-];
+import { DataGenerator } from './dataGenerator';
 
-// Mock Orders
-export const mockOrders: Order[] = [
-  {
-    id: '1001',
-    customer_id: 'cust_1',
-    status: 'out_for_delivery',
-    total: 45.67,
-    payment_status: 'paid',
-    created_at: new Date().toISOString(),
-    customer_name: 'yash',
-    customer_address: 'Krantinagar, Shirpur, Dhule, Maharashtra 425405, India'
-  },
-  {
-    id: '1002',
-    customer_id: 'cust_2',
-    status: 'preparing',
-    total: 23.45,
-    payment_status: 'paid',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    customer_name: 'Sarah Johnson',
-    customer_address: '456 Oak Ave, Springfield, IL 62702'
-  },
-  {
-    id: '1003',
-    customer_id: 'cust_3',
-    status: 'delivered',
-    total: 78.90,
-    payment_status: 'paid',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    customer_name: 'Mike Davis',
-    customer_address: '789 Pine Rd, Springfield, IL 62703'
-  },
-];
+// Dynamic Products - generated on app load
+export const mockProducts: Product[] = DataGenerator.generateProducts(50).map(p => ({
+  id: p.id,
+  category_id: '1',
+  name: p.name,
+  sku: p.sku,
+  price: p.price,
+  unit: p.unit,
+  stock_qty: p.stock_qty,
+  is_age_restricted: false,
+  is_active: true
+}));
 
-// Mock Delivery Tasks
-export const mockDeliveryTasks: DeliveryTask[] = [
-  {
-    id: 'task_1',
-    order_id: '1001',
-    assigned_to_user_id: 'delivery_1',
-    verify_attempts: 0,
-    customer_name: 'John Smith',
-    customer_phone: '+91 98765 43210',
-    customer_address: 'Krantinagar, Shirpur, Dhule, Maharashtra 425405, India',
-    total_amount: 45.67,
-    delivery_lat: 39.7817,
-    delivery_lng: -89.6501,
-    status: 'accepted',
-    items: [
-      { product: { id: '1', name: 'Organic Bananas', price: 2.99 }, quantity: 2 },
-      { product: { id: '2', name: 'Whole Milk', price: 3.49 }, quantity: 1 }
-    ]
-  },
-  {
-    id: 'task_2',
-    order_id: '1004',
-    assigned_to_user_id: 'delivery_1',
-    verify_attempts: 0,
-    customer_name: 'Lisa Wilson',
-    customer_phone: '+91 87654 32109',
-    customer_address: '321 Elm St, Springfield, IL 62704',
-    total_amount: 67.23,
-    delivery_lat: 39.7901,
-    delivery_lng: -89.6440,
-    status: 'accepted',
-    items: [
-      { product: { id: '3', name: 'Fresh Bread', price: 2.29 }, quantity: 1 }
-    ]
-  },
-];
+// Dynamic Orders - loaded from localStorage
+export const mockOrders: Order[] = [];
+
+// Dynamic Delivery Tasks - generated when orders are accepted
+export const mockDeliveryTasks: DeliveryTask[] = [];
 
 // Cart utilities
 export const getCartFromStorage = (): CartItem[] => {
@@ -212,4 +150,31 @@ export const clearCart = () => {
 
 export const getCartTotal = (cart: CartItem[]) => {
   return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+};
+
+// Initialize products in localStorage
+if (typeof window !== 'undefined' && !localStorage.getItem('products')) {
+  localStorage.setItem('products', JSON.stringify(mockProducts));
+}
+
+export const getProductsFromStorage = (): Product[] => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('products');
+    return stored ? JSON.parse(stored) : mockProducts;
+  }
+  return mockProducts;
+};
+
+export const updateProductStock = (productId: string, quantity: number) => {
+  if (typeof window !== 'undefined') {
+    const products = getProductsFromStorage();
+    const updatedProducts = products.map(product => 
+      product.id === productId 
+        ? { ...product, stock_qty: Math.max(0, product.stock_qty - quantity) }
+        : product
+    );
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
+    return updatedProducts;
+  }
+  return [];
 };

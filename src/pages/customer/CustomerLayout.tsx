@@ -6,6 +6,7 @@ import { ShoppingCart, Package, Home, ArrowLeft, MapPin, Menu } from "lucide-rea
 import { getCartFromStorage } from "@/lib/mockData";
 import { useState, useEffect } from "react";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import RealTimeNotifications from "@/components/RealTimeNotifications";
 
 const CustomerLayout = () => {
   const location = useLocation();
@@ -42,6 +43,7 @@ const CustomerLayout = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
+              <RealTimeNotifications userType="customer" />
               <nav className="flex items-center space-x-4">
                 <Link to="/customer">
                   <Button 
@@ -98,6 +100,7 @@ const CustomerLayout = () => {
             
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center space-x-2">
+              <RealTimeNotifications userType="customer" />
               <Link to="/customer/cart" className="relative">
                 <Button variant="ghost" size="sm" className="text-primary-foreground">
                   <ShoppingCart className="w-5 h-5" />
