@@ -18,6 +18,9 @@ import AddressForm, { type AddressData } from "@/components/AddressForm";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { WhatsAppService } from "@/lib/whatsappService";
+import { WhatsAppBusinessService } from "@/lib/whatsappBusinessService";
+import { FreeWhatsAppService } from "@/lib/freeWhatsAppService";
+import { FreeSmsService } from "@/lib/freeSmsService";
 import { DataGenerator } from "@/lib/dataGenerator";
 
 
@@ -55,6 +58,9 @@ const CustomerCart = () => {
 
   const handleAddressSubmit = (addressData: AddressData) => {
     setCustomerAddress(addressData);
+    
+    // Store customer phone for notifications
+    localStorage.setItem('customerPhone', addressData.phone);
     
     // Store address in localStorage for delivery tracking
     localStorage.setItem('customerAddress', JSON.stringify(addressData));
@@ -144,12 +150,25 @@ const CustomerCart = () => {
     localStorage.setItem('allOrders', JSON.stringify(allOrders));
     localStorage.setItem('currentOrder', JSON.stringify(orderData));
     
-    // Send WhatsApp confirmation with OTP
+    // Send FREE WhatsApp notification (no API costs)
     try {
-      const otp = await WhatsAppService.sendOrderConfirmation(customerAddress, orderData);
-      console.log('✅ Order confirmation sent via WhatsApp/SMS');
+      // Generate WhatsApp link for order confirmation
+      const whatsappLink = FreeWhatsAppService.sendOrderNotification(
+        dynamicCustomer.phone,
+        orderData
+      );
+      
+      // Send OTP for delivery verification
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      localStorage.setItem(`otp_${orderId}`, otp);
+      
+      // Send FREE SMS as primary notification
+      await FreeSmsService.sendOrderConfirmationSMS(dynamicCustomer, orderData, otp);
+      
+      console.log('✅ FREE WhatsApp link generated & SMS sent');
+      console.log('📱 WhatsApp Link:', whatsappLink);
     } catch (error) {
-      console.error('❌ Failed to send confirmation:', error);
+      console.error('❌ Failed to send notifications:', error);
     }
     
     // Send notifications

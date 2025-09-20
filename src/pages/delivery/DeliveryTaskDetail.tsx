@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { WhatsAppService } from "@/lib/whatsappService";
-import { SMSService } from "@/lib/smsService";
+import { FreeSmsService } from "@/lib/freeSmsService";
 
 const DeliveryTaskDetail = () => {
   const { taskId } = useParams();
@@ -85,10 +85,10 @@ const DeliveryTaskDetail = () => {
         WhatsAppService.sendOutForDeliveryNotification(customerAddress, currentOrder, deliveryAgent);
         console.log('✅ Out for delivery notification sent via WhatsApp');
         
-        // Also send SMS
+        // Also send FREE SMS
         const otp = WhatsAppService.getStoredOTP(task.order_id);
-        SMSService.sendOutForDeliverySMS(customerAddress, currentOrder, deliveryAgent, otp);
-        console.log('✅ Out for delivery SMS sent');
+        FreeSmsService.sendOutForDeliverySMS(customerAddress, currentOrder, deliveryAgent, otp);
+        console.log('✅ Out for delivery FREE SMS sent');
       } catch (error) {
         console.error('❌ Failed to send out for delivery notification:', error);
       }

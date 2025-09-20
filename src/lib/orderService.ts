@@ -1,6 +1,10 @@
 // Real-time Order Management Service
 import { WhatsAppService } from './whatsappService';
 import { SMSService } from './smsService';
+import { FreeSmsService } from './freeSmsService';
+import { WhatsAppBusinessService } from './whatsappBusinessService';
+import { apiService } from './apiService';
+import { realTimeService } from './realTimeService';
 
 export interface OrderStatus {
   pending: 'Order Placed';
@@ -56,6 +60,36 @@ export class OrderService {
     return JSON.parse(localStorage.getItem('allOrders') || '[]');
   }
 
+  // Get orders from API
+  static async getOrdersFromAPI(): Promise<Order[]> {
+    try {
+      const apiOrders = await apiService.getOrders();
+      const orders = apiOrders.map(order => ({
+        orderId: order.orderId || order.id?.toString() || '',
+        status: order.status as keyof OrderStatus,
+        timestamp: new Date().toISOString(),
+        customerAddress: {
+          name: order.customerName,
+          phone: order.customerPhone,
+          address: order.deliveryAddress
+        },
+        items: order.items?.map(item => ({
+          product: { id: item.productId.toString(), name: item.productName, price: item.price },
+          quantity: item.quantity
+        })) || [],
+        total: order.total,
+        paymentStatus: order.paymentStatus
+      }));
+      
+      // Update local storage
+      localStorage.setItem('allOrders', JSON.stringify(orders));
+      return orders;
+    } catch (error) {
+      console.error('Failed to fetch orders from API:', error);
+      return this.getAllOrders();
+    }
+  }
+
   // Update order status with real-time sync
   static async updateOrderStatus(orderId: string, newStatus: keyof OrderStatus, deliveryAgent?: any) {
     const orders = this.getAllOrders();
@@ -66,7 +100,15 @@ export class OrderService {
     const order = orders[orderIndex];
     const oldStatus = order.status;
     
-    // Update order
+    try {
+      // Update via API
+      const dbId = parseInt(orderId.replace(/\D/g, '')) || 1;
+      await apiService.updateOrderStatus(dbId, newStatus);
+    } catch (error) {
+      console.error('Failed to update order status via API:', error);
+    }
+    
+    // Update local storage
     orders[orderIndex] = {
       ...order,
       status: newStatus,
@@ -74,7 +116,6 @@ export class OrderService {
       ...(deliveryAgent && { deliveryAgent })
     };
 
-    // Save to localStorage
     localStorage.setItem('allOrders', JSON.stringify(orders));
 
     // Update current order if it matches
@@ -98,20 +139,47 @@ export class OrderService {
   // Send notifications for status changes
   private static async sendStatusNotifications(order: Order, newStatus: keyof OrderStatus, oldStatus: keyof OrderStatus) {
     try {
-      // Send WhatsApp notification
-      await WhatsAppService.sendStatusUpdate(order.customerAddress, order, newStatus);
+      // Send WhatsApp Business API notification
+      await WhatsAppBusinessService.sendOrderStatusUpdate(
+        order.customerAddress.phone, 
+        order.orderId, 
+        newStatus
+      );
       
-      // Send SMS for critical status changes
+      // Send delivery partner info when out for delivery
       if (newStatus === 'out_for_delivery' && order.deliveryAgent) {
-        const otp = WhatsAppService.getStoredOTP(order.orderId);
-        await SMSService.sendOutForDeliverySMS(order.customerAddress, order, order.deliveryAgent, otp);
-      } else if (newStatus === 'delivered') {
-        await SMSService.sendDeliveredSMS(order.customerAddress, order);
+        await WhatsAppBusinessService.sendDeliveryPartnerInfo(
+          order.customerAddress.phone,
+          order.orderId,
+          order.deliveryAgent
+        );
+        
+        // Send OTP for delivery verification
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        localStorage.setItem(`otp_${order.orderId}`, otp);
+        await WhatsAppBusinessService.sendOTPMessage(
+          order.customerAddress.phone,
+          otp,
+          order.orderId
+        );
       }
+      
+      // Fallback to SMS for critical updates
+      await FreeSmsService.sendStatusUpdate(
+        order.customerAddress.phone,
+        order.orderId,
+        newStatus
+      );
 
-      console.log(`✅ Notifications sent for order ${order.orderId}: ${oldStatus} → ${newStatus}`);
+      console.log(`✅ WhatsApp Business notifications sent for order ${order.orderId}: ${oldStatus} → ${newStatus}`);
     } catch (error) {
-      console.error('❌ Failed to send status notifications:', error);
+      console.error('❌ Failed to send WhatsApp Business notifications:', error);
+      // Fallback to existing services
+      try {
+        await WhatsAppService.sendStatusUpdate(order.customerAddress, order, newStatus);
+      } catch (fallbackError) {
+        console.error('❌ Fallback notification also failed:', fallbackError);
+      }
     }
   }
 
@@ -183,11 +251,19 @@ export class OrderService {
   }
 
   // Update delivery agent location
-  static updateDeliveryLocation(orderId: string, location: { lat: number; lng: number }) {
+  static async updateDeliveryLocation(orderId: string, location: { lat: number; lng: number }) {
     const orders = this.getAllOrders();
     const orderIndex = orders.findIndex(order => order.orderId === orderId);
     
     if (orderIndex !== -1 && orders[orderIndex].deliveryAgent) {
+      try {
+        // Update via API
+        const dbId = parseInt(orderId.replace(/\D/g, '')) || 1;
+        await apiService.updateDeliveryLocation(dbId, location.lat, location.lng);
+      } catch (error) {
+        console.error('Failed to update delivery location via API:', error);
+      }
+      
       orders[orderIndex].deliveryAgent!.location = location;
       orders[orderIndex].timestamp = new Date().toISOString();
       

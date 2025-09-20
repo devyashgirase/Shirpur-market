@@ -29,16 +29,16 @@ const CustomerLayout = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-lg">
+      <header className="bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-xl">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Link to="/" className="text-primary-foreground hover:text-primary-foreground/80">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-xl md:text-2xl font-bold">Shirpur Delivery</h1>
+              <h1 className="text-xl md:text-2xl font-bold">🛒 Shirpur Delivery</h1>
             </div>
             
             {/* Desktop Navigation */}
@@ -48,7 +48,7 @@ const CustomerLayout = () => {
                 <Link to="/customer">
                   <Button 
                     variant={isActive('/customer') ? "secondary" : "ghost"} 
-                    className={isActive('/customer') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                    className={isActive('/customer') ? "bg-white text-blue-600" : "text-white hover:bg-white/20"}
                     size="sm"
                   >
                     <Home className="w-4 h-4 mr-2" />
@@ -59,13 +59,13 @@ const CustomerLayout = () => {
                 <Link to="/customer/cart">
                   <Button 
                     variant={isActive('/customer/cart') ? "secondary" : "ghost"} 
-                    className={`relative ${isActive('/customer/cart') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}`}
+                    className={`relative ${isActive('/customer/cart') ? "bg-white text-blue-600" : "text-white hover:bg-white/20"}`}
                     size="sm"
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Cart
                     {cartItemCount > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-accent text-accent-foreground min-w-[18px] h-4 flex items-center justify-center text-xs">
+                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[18px] h-4 flex items-center justify-center text-xs animate-pulse">
                         {cartItemCount}
                       </Badge>
                     )}
@@ -75,7 +75,7 @@ const CustomerLayout = () => {
                 <Link to="/customer/orders">
                   <Button 
                     variant={isActive('/customer/orders') ? "secondary" : "ghost"} 
-                    className={isActive('/customer/orders') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                    className={isActive('/customer/orders') ? "bg-white text-blue-600" : "text-white hover:bg-white/20"}
                     size="sm"
                   >
                     <Package className="w-4 h-4 mr-2" />
@@ -86,7 +86,7 @@ const CustomerLayout = () => {
                 <Link to="/customer/track">
                   <Button 
                     variant={isActive('/customer/track') ? "secondary" : "ghost"} 
-                    className={isActive('/customer/track') ? "text-secondary-foreground" : "text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"}
+                    className={isActive('/customer/track') ? "bg-white text-blue-600" : "text-white hover:bg-white/20"}
                     size="sm"
                   >
                     <MapPin className="w-4 h-4 mr-2" />
@@ -102,10 +102,10 @@ const CustomerLayout = () => {
             <div className="md:hidden flex items-center space-x-2">
               <RealTimeNotifications userType="customer" />
               <Link to="/customer/cart" className="relative">
-                <Button variant="ghost" size="sm" className="text-primary-foreground">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                   <ShoppingCart className="w-5 h-5" />
                   {cartItemCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-accent text-accent-foreground min-w-[16px] h-4 flex items-center justify-center text-xs">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white min-w-[16px] h-4 flex items-center justify-center text-xs animate-pulse">
                       {cartItemCount}
                     </Badge>
                   )}
@@ -114,7 +114,7 @@ const CustomerLayout = () => {
               
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-primary-foreground">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>

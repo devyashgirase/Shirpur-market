@@ -63,34 +63,50 @@ export interface CartItem {
   quantity: number;
 }
 
-// Mock Categories
-export const mockCategories: Category[] = [
-  { id: '1', name: 'Groceries', slug: 'groceries', is_active: true },
-  { id: '2', name: 'Beverages', slug: 'beverages', is_active: true },
-  { id: '3', name: 'Electronics', slug: 'electronics', is_active: true },
-  { id: '4', name: 'Healthcare', slug: 'healthcare', is_active: true },
-  { id: '5', name: 'Personal Care', slug: 'personal-care', is_active: true },
-];
-
 import { DataGenerator } from './dataGenerator';
 
-// Dynamic Products - generated on app load
-export const mockProducts: Product[] = DataGenerator.generateProducts(50).map(p => ({
-  id: p.id,
-  category_id: '1',
-  name: p.name,
-  sku: p.sku,
-  price: p.price,
-  unit: p.unit,
-  stock_qty: p.stock_qty,
-  is_age_restricted: false,
-  is_active: true
-}));
+// NO STATIC DATA - Everything generated dynamically
+// Dynamic Categories - generated from available products
+export const getDynamicCategories = (): Category[] => {
+  const products = getDynamicProducts();
+  return DataGenerator.generateCategories(products);
+};
 
-// Dynamic Orders - loaded from localStorage
+// Dynamic Products - regenerated every time with real-time pricing
+export const getDynamicProducts = (): Product[] => {
+  const dynamicProducts = DataGenerator.generateProducts(50);
+  return dynamicProducts.map(p => ({
+    id: p.id,
+    category_id: p.category.toLowerCase().replace(/\s+/g, '-'),
+    name: p.name,
+    sku: p.sku,
+    price: p.price,
+    unit: p.unit,
+    stock_qty: p.stock_qty,
+    is_age_restricted: p.category === 'Beverages' && Math.random() > 0.7,
+    is_active: p.isActive,
+    image: undefined,
+    description: p.description,
+    discount: p.discount,
+    rating: p.rating,
+    reviewCount: p.reviewCount
+  }));
+};
+
+// Dynamic Orders - always empty, loaded from real-time sources
+export const getDynamicOrders = (): Order[] => {
+  return JSON.parse(localStorage.getItem('allOrders') || '[]');
+};
+
+// Dynamic Delivery Tasks - generated from active orders
+export const getDynamicDeliveryTasks = (): DeliveryTask[] => {
+  return JSON.parse(localStorage.getItem('deliveryTasks') || '[]');
+};
+
+// Legacy exports for backward compatibility - now dynamic
+export const mockCategories: Category[] = [];
+export const mockProducts: Product[] = [];
 export const mockOrders: Order[] = [];
-
-// Dynamic Delivery Tasks - generated when orders are accepted
 export const mockDeliveryTasks: DeliveryTask[] = [];
 
 // Cart utilities
@@ -152,17 +168,18 @@ export const getCartTotal = (cart: CartItem[]) => {
   return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
 };
 
-// Initialize products in localStorage
-if (typeof window !== 'undefined' && !localStorage.getItem('products')) {
-  localStorage.setItem('products', JSON.stringify(mockProducts));
-}
-
+// Real-time product management - NO STATIC STORAGE
 export const getProductsFromStorage = (): Product[] => {
+  // Always return fresh dynamic products with real-time pricing
+  const dynamicProducts = getDynamicProducts();
+  
+  // Update localStorage with fresh data for consistency
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('products');
-    return stored ? JSON.parse(stored) : mockProducts;
+    localStorage.setItem('products', JSON.stringify(dynamicProducts));
+    localStorage.setItem('productsLastUpdated', Date.now().toString());
   }
-  return mockProducts;
+  
+  return dynamicProducts;
 };
 
 export const updateProductStock = (productId: string, quantity: number) => {

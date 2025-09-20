@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { NotificationService, Notification } from '@/lib/notificationService';
+import { realTimeService } from '@/lib/realTimeService';
 
 interface RealTimeNotificationsProps {
   userType: 'customer' | 'admin' | 'delivery';
@@ -15,9 +16,45 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Subscribe to notifications
+    // Get user ID for customer-specific notifications
+    const userId = userType === 'customer' ? localStorage.getItem('customerPhone') || 'anonymous' : undefined;
+    
+    // Connect to real-time service
+    realTimeService.connect(userType, userId);
+
+    // Subscribe to role-specific notifications
+    if (userType === 'admin') {
+      realTimeService.subscribe('AdminNotification', (notification: any) => {
+        NotificationService.addNotification({
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          priority: notification.priority
+        });
+      });
+    } else if (userType === 'delivery') {
+      realTimeService.subscribe('DeliveryNotification', (notification: any) => {
+        NotificationService.addNotification({
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          priority: notification.priority
+        });
+      });
+    } else if (userType === 'customer') {
+      realTimeService.subscribe('CustomerNotification', (notification: any) => {
+        NotificationService.addNotification({
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          priority: notification.priority
+        });
+      });
+    }
+
+    // Subscribe to notification service
     const unsubscribe = NotificationService.subscribe((newNotifications) => {
-      setNotifications(newNotifications.slice(0, 10)); // Show only last 10
+      setNotifications(newNotifications.slice(0, 10));
       setUnreadCount(NotificationService.getUnreadCount());
     });
 
@@ -25,8 +62,11 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
     setNotifications(NotificationService.getNotifications().slice(0, 10));
     setUnreadCount(NotificationService.getUnreadCount());
 
-    return unsubscribe;
-  }, []);
+    return () => {
+      unsubscribe();
+      realTimeService.disconnect();
+    };
+  }, [userType]);
 
   const handleMarkAsRead = (notificationId: string) => {
     NotificationService.markAsRead(notificationId);

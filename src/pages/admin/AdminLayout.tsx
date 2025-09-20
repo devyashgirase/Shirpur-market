@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu } from "lucide-react";
+import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu, Settings } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
 
@@ -11,26 +11,29 @@ const AdminLayout = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <header className="bg-secondary text-secondary-foreground shadow-lg">
+      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="text-secondary-foreground hover:text-secondary-foreground/80">
+              <Link to="/" className="text-white hover:text-white/80 transition-colors">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-xl md:text-2xl font-bold">Admin Panel</h1>
+              <div className="flex items-center gap-2">
+                <Settings className="h-6 w-6" />
+                <h1 className="text-xl md:text-2xl font-bold">Admin Panel</h1>
+              </div>
             </div>
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4">
               <RealTimeNotifications userType="admin" />
-              <nav className="flex items-center space-x-3">
+              <nav className="flex items-center space-x-2">
                 <Link to="/admin">
                   <Button 
-                    variant={isActive('/admin') ? "default" : "ghost"} 
-                    className={!isActive('/admin') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                    variant={isActive('/admin') ? "secondary" : "ghost"} 
+                    className={isActive('/admin') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                     size="sm"
                   >
                     <BarChart3 className="w-4 h-4 mr-2" />
@@ -40,8 +43,8 @@ const AdminLayout = () => {
                 
                 <Link to="/admin/products">
                   <Button 
-                    variant={isActive('/admin/products') ? "default" : "ghost"} 
-                    className={!isActive('/admin/products') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                    variant={isActive('/admin/products') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/products') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                     size="sm"
                   >
                     <Package className="w-4 h-4 mr-2" />
@@ -51,8 +54,8 @@ const AdminLayout = () => {
                 
                 <Link to="/admin/orders">
                   <Button 
-                    variant={isActive('/admin/orders') ? "default" : "ghost"} 
-                    className={!isActive('/admin/orders') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                    variant={isActive('/admin/orders') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/orders') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                     size="sm"
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
@@ -62,8 +65,8 @@ const AdminLayout = () => {
                 
                 <Link to="/admin/tracking">
                   <Button 
-                    variant={isActive('/admin/tracking') ? "default" : "ghost"} 
-                    className={!isActive('/admin/tracking') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                    variant={isActive('/admin/tracking') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/tracking') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                     size="sm"
                   >
                     <MapPin className="w-4 h-4 mr-2" />
@@ -73,8 +76,8 @@ const AdminLayout = () => {
                 
                 <Link to="/admin/live-tracking">
                   <Button 
-                    variant={isActive('/admin/live-tracking') ? "default" : "ghost"} 
-                    className={!isActive('/admin/live-tracking') ? "text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary-foreground/10" : ""}
+                    variant={isActive('/admin/live-tracking') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/live-tracking') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                     size="sm"
                   >
                     <Truck className="w-4 h-4 mr-2" />
@@ -91,7 +94,7 @@ const AdminLayout = () => {
               <RealTimeNotifications userType="admin" />
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-secondary-foreground">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>

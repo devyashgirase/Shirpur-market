@@ -9,6 +9,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import WhatsAppStatus from "@/components/WhatsAppStatus";
+import SMSHistory from "@/components/SMSHistory";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { useToast } from "@/hooks/use-toast";
@@ -273,7 +274,10 @@ const AdminOrders = () => {
               </TabsContent>
               
               <TabsContent value="whatsapp" className="space-y-4">
-                <WhatsAppStatus orderId={selectedOrder?.orderId || ''} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <WhatsAppStatus orderId={selectedOrder?.orderId || ''} />
+                  <SMSHistory />
+                </div>
               </TabsContent>
             </Tabs>
           )}
