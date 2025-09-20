@@ -8,6 +8,7 @@ import { Plus, Minus, ShoppingCart, Package, Star, Heart, Zap, TrendingUp } from
 import { getDynamicCategories, getProductsFromStorage, addToCart, updateProductStock, type Product } from "@/lib/mockData";
 import { CustomerDataService } from "@/lib/customerDataService";
 import { useToast } from "@/hooks/use-toast";
+import { sweetAlert } from "@/components/ui/sweet-alert";
 import { realTimeDataService } from "@/lib/realTimeDataService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 import DynamicPrice from "@/components/DynamicPrice";
@@ -101,10 +102,10 @@ const CustomerCatalog = () => {
       const updatedProducts = updateProductStock(product.id, 1);
       setProducts(updatedProducts);
       
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
-      });
+      sweetAlert.success(
+        "Added to Cart!",
+        `${product.name} has been added to your cart successfully`
+      );
       
       // Trigger cart update event
       window.dispatchEvent(new CustomEvent('cartUpdated'));
