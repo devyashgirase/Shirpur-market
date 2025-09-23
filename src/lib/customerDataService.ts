@@ -1,11 +1,12 @@
-import { apiService } from './apiService';
+import { apiService, DynamicDataManager, ApiProduct, ApiOrder, ApiCustomer, ApiCategory } from './apiService';
 
 export class CustomerDataService {
+  // Get all customer orders with dynamic caching
   static async getCustomerOrders() {
     const customerPhone = localStorage.getItem('customerPhone');
     if (!customerPhone) return [];
 
-    try {
+    return DynamicDataManager.syncData(`customerOrders_${customerPhone}`, async () => {
       const allOrders = await apiService.getOrders();
       return allOrders
         .filter(order => order.customerPhone === customerPhone)
@@ -15,66 +16,61 @@ export class CustomerDataService {
           status: order.status,
           total: order.total,
           items: order.items || [],
-          createdAt: new Date().toISOString(),
-          deliveryAddress: order.deliveryAddress
-        }));
-    } catch (error) {
-      console.error('Customer: Failed to fetch orders', error);
-      return this.getLocalCustomerOrders();
-    }
+          createdAt: order.createdAt || new Date().toISOString(),
+          deliveryAddress: order.deliveryAddress,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          paymentStatus: order.paymentStatus
+        }))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
   }
 
-  static getLocalCustomerOrders() {
-    const customerPhone = localStorage.getItem('customerPhone');
-    if (!customerPhone) return [];
+  // Get available products with dynamic updates
+  static async getAvailableProducts(): Promise<ApiProduct[]> {
+    return DynamicDataManager.syncData('availableProducts', async () => {
+      const products = await apiService.getProducts();
+      return products
+        .filter(product => product.isActive && product.stockQuantity > 0)
+        .map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          imageUrl: product.imageUrl,
+          category: product.category,
+          stockQuantity: product.stockQuantity,
+          isActive: product.isActive
+        }));
+    });
+  }
 
-    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-    return allOrders.filter((order: any) => 
-      order.customerAddress?.phone === customerPhone
+  // Get all categories dynamically
+  static async getCategories(): Promise<ApiCategory[]> {
+    return DynamicDataManager.syncData('categories', async () => {
+      return await apiService.getCategories();
+    });
+  }
+
+  // Search products dynamically
+  static async searchProducts(query: string): Promise<ApiProduct[]> {
+    const products = await this.getAvailableProducts();
+    return products.filter(product => 
+      product.name.toLowerCase().includes(query.toLowerCase()) ||
+      product.description.toLowerCase().includes(query.toLowerCase()) ||
+      product.category.toLowerCase().includes(query.toLowerCase())
     );
   }
 
-  static async getAvailableProducts() {
-    try {
-      return await apiService.getProducts();
-    } catch (error) {
-      console.error('Customer: Failed to fetch products', error);
-      return this.getLocalProducts();
-    }
+  // Get products by category
+  static async getProductsByCategory(categoryId: string): Promise<ApiProduct[]> {
+    const products = await this.getAvailableProducts();
+    return products.filter(product => 
+      product.category.toLowerCase().replace(/\s+/g, '-') === categoryId
+    );
   }
 
-  static getLocalProducts() {
-    // Return real-time dynamic products - NO STATIC DATA
-    const { DataGenerator } = require('./dataGenerator');
-    const dynamicProducts = DataGenerator.generateProducts(40);
-    
-    return dynamicProducts.map(p => ({
-      id: parseInt(p.id.split('_')[1]) || Math.floor(Math.random() * 1000),
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      category: p.category,
-      stockQuantity: p.stock_qty,
-      isActive: p.isActive,
-      imageUrl: '',
-      discount: p.discount,
-      rating: p.rating,
-      reviewCount: p.reviewCount,
-      lastUpdated: new Date().toISOString()
-    }));
-  }
-
-  static getCurrentOrder() {
-    const customerPhone = localStorage.getItem('customerPhone');
-    if (!customerPhone) return null;
-
-    const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
-    if (currentOrder.customerAddress?.phone === customerPhone) {
-      return currentOrder;
-    }
-    return null;
-  }
-
+  // Create order with full data persistence
   static async createOrder(orderData: any) {
     try {
       const apiOrder = {
@@ -92,19 +88,151 @@ export class CustomerDataService {
         }))
       };
 
-      return await apiService.createOrder(apiOrder);
+      const createdOrder = await apiService.createOrder(apiOrder);
+      
+      // Save order data locally for immediate access
+      DynamicDataManager.saveData('currentOrder', createdOrder);
+      DynamicDataManager.saveData('customerAddress', orderData.customerAddress);
+      
+      // Update cached orders list
+      const customerPhone = orderData.customerAddress.phone;
+      const cachedOrders = DynamicDataManager.getData(`customerOrders_${customerPhone}`) || [];
+      cachedOrders.unshift(createdOrder);
+      DynamicDataManager.saveData(`customerOrders_${customerPhone}`, cachedOrders);
+      
+      return createdOrder;
     } catch (error) {
       console.error('Customer: Failed to create order', error);
       return null;
     }
   }
 
+  // Save customer profile data
+  static async saveCustomerProfile(customerData: Omit<ApiCustomer, 'id' | 'createdAt'>): Promise<ApiCustomer | null> {
+    try {
+      const customer = await apiService.createCustomer(customerData);
+      DynamicDataManager.saveData('customerProfile', customer);
+      localStorage.setItem('customerPhone', customer.phone);
+      return customer;
+    } catch (error) {
+      console.error('Failed to save customer profile:', error);
+      return null;
+    }
+  }
+
+  // Get customer profile
+  static getCustomerProfile(): ApiCustomer | null {
+    return DynamicDataManager.getData('customerProfile');
+  }
+
+  // Update customer profile
+  static async updateCustomerProfile(customerId: number, updates: Partial<ApiCustomer>): Promise<ApiCustomer | null> {
+    try {
+      const updatedCustomer = await apiService.updateCustomer(customerId, updates);
+      DynamicDataManager.saveData('customerProfile', updatedCustomer);
+      return updatedCustomer;
+    } catch (error) {
+      console.error('Failed to update customer profile:', error);
+      return null;
+    }
+  }
+
+  // Get customer metrics with real-time data
   static getCustomerMetrics(orders: any[]) {
+    const now = new Date();
+    const thisMonth = orders.filter(o => {
+      const orderDate = new Date(o.createdAt);
+      return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+    });
+    
     return {
       totalOrders: orders.length,
       totalSpent: orders.reduce((sum, o) => sum + o.total, 0),
-      activeOrders: orders.filter(o => ['pending', 'confirmed', 'out_for_delivery'].includes(o.status)).length,
-      completedOrders: orders.filter(o => o.status === 'delivered').length
+      activeOrders: orders.filter(o => ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.status)).length,
+      completedOrders: orders.filter(o => o.status === 'delivered').length,
+      monthlyOrders: thisMonth.length,
+      monthlySpent: thisMonth.reduce((sum, o) => sum + o.total, 0),
+      averageOrderValue: orders.length > 0 ? orders.reduce((sum, o) => sum + o.total, 0) / orders.length : 0,
+      lastOrderDate: orders.length > 0 ? orders[0].createdAt : null
     };
+  }
+
+  // Get real-time order updates
+  static async getOrderUpdates(orderId: string): Promise<any> {
+    try {
+      const orders = await apiService.getOrders();
+      const order = orders.find(o => o.orderId === orderId);
+      if (order) {
+        DynamicDataManager.saveData('currentOrder', order);
+      }
+      return order;
+    } catch (error) {
+      console.error('Failed to get order updates:', error);
+      return DynamicDataManager.getData('currentOrder');
+    }
+  }
+
+  // Clear customer session data
+  static clearCustomerSession(): void {
+    const keys = ['currentOrder', 'customerAddress', 'customerProfile', 'cart'];
+    keys.forEach(key => localStorage.removeItem(key));
+    localStorage.removeItem('customerPhone');
+  }
+
+  // Get cart data with persistence
+  static getCart(): any[] {
+    return DynamicDataManager.getData('cart') || [];
+  }
+
+  // Save cart data
+  static saveCart(cartItems: any[]): void {
+    DynamicDataManager.saveData('cart', cartItems);
+  }
+
+  // Add item to cart
+  static addToCart(product: any, quantity: number = 1): void {
+    const cart = this.getCart();
+    const existingItem = cart.find(item => item.product.id === product.id);
+    
+    if (existingItem) {
+      existingItem.quantity += quantity;
+    } else {
+      cart.push({ product, quantity });
+    }
+    
+    this.saveCart(cart);
+  }
+
+  // Remove item from cart
+  static removeFromCart(productId: string): void {
+    const cart = this.getCart();
+    const updatedCart = cart.filter(item => item.product.id !== productId);
+    this.saveCart(updatedCart);
+  }
+
+  // Update cart item quantity
+  static updateCartQuantity(productId: string, quantity: number): void {
+    const cart = this.getCart();
+    const item = cart.find(item => item.product.id === productId);
+    
+    if (item) {
+      if (quantity <= 0) {
+        this.removeFromCart(productId);
+      } else {
+        item.quantity = quantity;
+        this.saveCart(cart);
+      }
+    }
+  }
+
+  // Clear cart
+  static clearCart(): void {
+    this.saveCart([]);
+  }
+
+  // Get cart total
+  static getCartTotal(): number {
+    const cart = this.getCart();
+    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   }
 }

@@ -21,12 +21,11 @@ const DeliveryLayout = () => {
               </Link>
               <div className="flex items-center gap-2">
                 <Truck className="h-6 w-6" />
-                <h1 className="text-xl md:text-2xl font-bold">Delivery Portal</h1>
+                <h1 className="text-2xl font-bold">Delivery Portal</h1>
               </div>
             </div>
             
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="flex items-center space-x-6">
               <RealTimeNotifications userType="delivery" />
               <nav className="flex items-center space-x-2">
                 <Link to="/delivery">
@@ -54,45 +53,7 @@ const DeliveryLayout = () => {
               
               <ProfileDropdown />
             </div>
-            
-            {/* Mobile Navigation */}
-            <div className="md:hidden flex items-center space-x-2">
-              <RealTimeNotifications userType="delivery" />
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                    <Menu className="w-5 h-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-64">
-                  <div className="flex flex-col space-y-4 mt-8">
-                    <Link to="/delivery" className="w-full">
-                      <Button 
-                        variant={isActive('/delivery') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <List className="w-4 h-4 mr-3" />
-                        My Tasks
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/delivery/notifications" className="w-full">
-                      <Button 
-                        variant={isActive('/delivery/notifications') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <Truck className="w-4 h-4 mr-3" />
-                        New Orders
-                      </Button>
-                    </Link>
-                    
-                    <div className="pt-4 border-t">
-                      <ProfileDropdown />
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+
           </div>
         </div>
       </header>

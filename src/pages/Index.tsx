@@ -18,7 +18,7 @@ const Index = () => {
         </div>
 
         {/* Interface Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Customer Portal */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/20 transition-all duration-300 group">
             <CardHeader className="text-center">
@@ -83,7 +83,7 @@ const Index = () => {
         {/* Features */}
         <div className="mt-20 text-center">
           <h2 className="text-3xl font-bold text-white mb-12">System Features</h2>
-          <div className="grid md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
             <div className="text-white">
               <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Package className="w-6 h-6" />

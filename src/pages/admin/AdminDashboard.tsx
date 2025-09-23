@@ -18,7 +18,6 @@ import {
   Star
 } from "lucide-react";
 import { AdminDataService } from "@/lib/adminDataService";
-import { TestSMSComponent } from "@/components/TestSMSComponent";
 import { realTimeDataService } from "@/lib/realTimeDataService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 
@@ -152,11 +151,6 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Test SMS Component */}
-        <div className="mb-6">
-          <TestSMSComponent />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

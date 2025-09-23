@@ -253,11 +253,11 @@ const AdminTracking = () => {
                     <div className="space-y-2">
                       <p><span className="font-medium">Name:</span> {partner.name}</p>
                       <p><span className="font-medium">Phone:</span> {partner.phone}</p>
-                      <p><span className="font-medium">Status:</span> 
+                      <div><span className="font-medium">Status:</span> 
                         <Badge className="ml-2" variant={partner.isActive ? "default" : "secondary"}>
                           {partner.isActive ? "Active" : "Offline"}
                         </Badge>
-                      </p>
+                      </div>
                       {partner.currentLocation && (
                         <p><span className="font-medium">Location:</span> {partner.currentLocation.lat.toFixed(4)}, {partner.currentLocation.lng.toFixed(4)}</p>
                       )}

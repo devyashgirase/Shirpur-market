@@ -22,12 +22,11 @@ const AdminLayout = () => {
               </Link>
               <div className="flex items-center gap-2">
                 <Settings className="h-6 w-6" />
-                <h1 className="text-xl md:text-2xl font-bold">Admin Panel</h1>
+                <h1 className="text-2xl font-bold">Admin Panel</h1>
               </div>
             </div>
             
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
               <RealTimeNotifications userType="admin" />
               <nav className="flex items-center space-x-2">
                 <Link to="/admin">
@@ -87,75 +86,6 @@ const AdminLayout = () => {
               </nav>
               
               <ProfileDropdown />
-            </div>
-            
-            {/* Mobile Navigation */}
-            <div className="lg:hidden flex items-center space-x-2">
-              <RealTimeNotifications userType="admin" />
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                    <Menu className="w-5 h-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-64">
-                  <div className="flex flex-col space-y-4 mt-8">
-                    <Link to="/admin" className="w-full">
-                      <Button 
-                        variant={isActive('/admin') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <BarChart3 className="w-4 h-4 mr-3" />
-                        Dashboard
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/admin/products" className="w-full">
-                      <Button 
-                        variant={isActive('/admin/products') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <Package className="w-4 h-4 mr-3" />
-                        Products
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/admin/orders" className="w-full">
-                      <Button 
-                        variant={isActive('/admin/orders') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-3" />
-                        Orders
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/admin/tracking" className="w-full">
-                      <Button 
-                        variant={isActive('/admin/tracking') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <MapPin className="w-4 h-4 mr-3" />
-                        Agent Tracking
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/admin/live-tracking" className="w-full">
-                      <Button 
-                        variant={isActive('/admin/live-tracking') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <Truck className="w-4 h-4 mr-3" />
-                        Live Orders
-                      </Button>
-                    </Link>
-                    
-                    <div className="pt-4 border-t">
-                      <ProfileDropdown />
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
             </div>
           </div>
         </div>

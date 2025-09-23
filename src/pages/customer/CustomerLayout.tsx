@@ -38,11 +38,10 @@ const CustomerLayout = () => {
               <Link to="/" className="text-primary-foreground hover:text-primary-foreground/80">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-xl md:text-2xl font-bold">🛒 Shirpur Delivery</h1>
+              <h1 className="text-2xl font-bold">🛒 Shirpur Delivery</h1>
             </div>
             
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="flex items-center space-x-6">
               <RealTimeNotifications userType="customer" />
               <nav className="flex items-center space-x-4">
                 <Link to="/customer">
@@ -97,81 +96,7 @@ const CustomerLayout = () => {
               
               <ProfileDropdown />
             </div>
-            
-            {/* Mobile Navigation */}
-            <div className="md:hidden flex items-center space-x-2">
-              <RealTimeNotifications userType="customer" />
-              <Link to="/customer/cart" className="relative">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartItemCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white min-w-[16px] h-4 flex items-center justify-center text-xs animate-pulse">
-                      {cartItemCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-              
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                    <Menu className="w-5 h-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-64">
-                  <div className="flex flex-col space-y-4 mt-8">
-                    <Link to="/customer" className="w-full">
-                      <Button 
-                        variant={isActive('/customer') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <Home className="w-4 h-4 mr-3" />
-                        Catalog
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/customer/cart" className="w-full">
-                      <Button 
-                        variant={isActive('/customer/cart') ? "default" : "ghost"} 
-                        className="w-full justify-start relative"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-3" />
-                        Cart
-                        {cartItemCount > 0 && (
-                          <Badge className="ml-auto bg-primary text-primary-foreground">
-                            {cartItemCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/customer/orders" className="w-full">
-                      <Button 
-                        variant={isActive('/customer/orders') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <Package className="w-4 h-4 mr-3" />
-                        My Orders
-                      </Button>
-                    </Link>
-                    
-                    <Link to="/customer/track" className="w-full">
-                      <Button 
-                        variant={isActive('/customer/track') ? "default" : "ghost"} 
-                        className="w-full justify-start"
-                      >
-                        <MapPin className="w-4 h-4 mr-3" />
-                        Track Order
-                      </Button>
-                    </Link>
-                    
-                    <div className="pt-4 border-t">
-                      <ProfileDropdown />
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+
           </div>
         </div>
       </header>
@@ -180,6 +105,8 @@ const CustomerLayout = () => {
       <main>
         <Outlet />
       </main>
+
+
     </div>
   );
 };

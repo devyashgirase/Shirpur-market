@@ -1,131 +1,82 @@
-// Mock data for the delivery system
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  is_active: boolean;
-}
+// Database-only data service - No hardcoded data
+import { apiService } from './apiService';
 
 export interface Product {
   id: string;
-  category_id: string;
   name: string;
-  sku: string;
+  description: string;
   price: number;
-  unit: string;
+  image_url: string;
+  category_id: string;
   stock_qty: number;
-  is_age_restricted: boolean;
   is_active: boolean;
-  image?: string;
+  sku: string;
+  unit: string;
+  is_age_restricted: boolean;
 }
 
-export interface Order {
-  id: string;
-  customer_id: string;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  total: number;
-  payment_status: 'pending' | 'paid' | 'failed';
-  created_at: string;
-  customer_name?: string;
-  customer_address?: string;
-}
-
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  product_id: string;
-  qty: number;
-  price: number;
-  product_name?: string;
-}
-
-export interface DeliveryTask {
-  id: string;
-  order_id: string;
-  assigned_to_user_id: string;
-  otp_hash?: string;
-  otp_salt?: string;
-  otp_expires_at?: string;
-  verify_attempts: number;
-  verified_at?: string;
-  delivery_lat?: number;
-  delivery_lng?: number;
-  customer_name?: string;
-  customer_phone?: string;
-  customer_address?: string;
-  total_amount?: number;
-  status?: string;
-  items?: any[];
-}
-
-export interface CartItem {
-  product: Product;
-  quantity: number;
-}
-
-import { DataGenerator } from './dataGenerator';
-
-// NO STATIC DATA - Everything generated dynamically
-// Dynamic Categories - generated from available products
-export const getDynamicCategories = (): Category[] => {
-  const products = getDynamicProducts();
-  return DataGenerator.generateCategories(products);
-};
-
-// Dynamic Products - regenerated every time with real-time pricing
-export const getDynamicProducts = (): Product[] => {
-  const dynamicProducts = DataGenerator.generateProducts(50);
-  return dynamicProducts.map(p => ({
-    id: p.id,
-    category_id: p.category.toLowerCase().replace(/\s+/g, '-'),
-    name: p.name,
-    sku: p.sku,
-    price: p.price,
-    unit: p.unit,
-    stock_qty: p.stock_qty,
-    is_age_restricted: p.category === 'Beverages' && Math.random() > 0.7,
-    is_active: p.isActive,
-    image: undefined,
-    description: p.description,
-    discount: p.discount,
-    rating: p.rating,
-    reviewCount: p.reviewCount
-  }));
-};
-
-// Dynamic Orders - always empty, loaded from real-time sources
-export const getDynamicOrders = (): Order[] => {
-  return JSON.parse(localStorage.getItem('allOrders') || '[]');
-};
-
-// Dynamic Delivery Tasks - generated from active orders
-export const getDynamicDeliveryTasks = (): DeliveryTask[] => {
-  return JSON.parse(localStorage.getItem('deliveryTasks') || '[]');
-};
-
-// Legacy exports for backward compatibility - now dynamic
-export const mockCategories: Category[] = [];
-export const mockProducts: Product[] = [];
-export const mockOrders: Order[] = [];
-export const mockDeliveryTasks: DeliveryTask[] = [];
-
-// Cart utilities
-export const getCartFromStorage = (): CartItem[] => {
+export const getProductsFromStorage = async (): Promise<Product[]> => {
   try {
-    const cart = localStorage.getItem('deliveryCart');
-    return cart ? JSON.parse(cart) : [];
-  } catch {
+    const products = await apiService.getProducts();
+    return products.map(p => ({
+      id: p.id.toString(),
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      image_url: p.imageUrl,
+      category_id: p.category.toLowerCase().replace(/\s+/g, '-'),
+      stock_qty: p.stockQuantity,
+      is_active: p.isActive,
+      sku: `SKU${p.id}`,
+      unit: 'kg',
+      is_age_restricted: false
+    }));
+  } catch (error) {
+    console.error('Failed to fetch products from API:', error);
     return [];
   }
 };
 
-export const saveCartToStorage = (cart: CartItem[]) => {
-  localStorage.setItem('deliveryCart', JSON.stringify(cart));
+export const getDynamicCategories = async () => {
+  try {
+    const products = await getProductsFromStorage();
+    const categoryMap = new Map();
+    
+    products.forEach(product => {
+      if (!categoryMap.has(product.category_id)) {
+        categoryMap.set(product.category_id, {
+          id: product.category_id,
+          name: product.category_id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          slug: product.category_id,
+          is_active: true,
+          productCount: 0
+        });
+      }
+      categoryMap.get(product.category_id).productCount++;
+    });
+    
+    return Array.from(categoryMap.values());
+  } catch (error) {
+    console.error('Failed to generate categories:', error);
+    return [];
+  }
 };
 
-export const addToCart = (product: Product, quantity: number = 1) => {
+export const mockOrders = [];
+export const mockDeliveryTasks = [];
+
+export const getCartFromStorage = () => {
+  return JSON.parse(localStorage.getItem('cart') || '[]');
+};
+
+export const getCartTotal = () => {
   const cart = getCartFromStorage();
-  const existingItem = cart.find(item => item.product.id === product.id);
+  return cart.reduce((total: number, item: any) => total + (item.product.price * item.quantity), 0);
+};
+
+export const addToCart = (product: Product, quantity: number) => {
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const existingItem = cart.find((item: any) => item.product.id === product.id);
   
   if (existingItem) {
     existingItem.quantity += quantity;
@@ -133,65 +84,35 @@ export const addToCart = (product: Product, quantity: number = 1) => {
     cart.push({ product, quantity });
   }
   
-  saveCartToStorage(cart);
-  return cart;
+  localStorage.setItem('cart', JSON.stringify(cart));
+};
+
+export const updateCartQuantity = (productId: string, newQuantity: number) => {
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const item = cart.find((item: any) => item.product.id === productId);
+  
+  if (item) {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      item.quantity = newQuantity;
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  }
 };
 
 export const removeFromCart = (productId: string) => {
-  const cart = getCartFromStorage();
-  const updatedCart = cart.filter(item => item.product.id !== productId);
-  saveCartToStorage(updatedCart);
-  return updatedCart;
-};
-
-export const updateCartQuantity = (productId: string, quantity: number) => {
-  const cart = getCartFromStorage();
-  const item = cart.find(item => item.product.id === productId);
-  
-  if (item) {
-    if (quantity <= 0) {
-      return removeFromCart(productId);
-    }
-    item.quantity = quantity;
-    saveCartToStorage(cart);
-  }
-  
-  return cart;
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const updatedCart = cart.filter((item: any) => item.product.id !== productId);
+  localStorage.setItem('cart', JSON.stringify(updatedCart));
 };
 
 export const clearCart = () => {
-  localStorage.removeItem('deliveryCart');
-  return [];
+  localStorage.setItem('cart', '[]');
 };
 
-export const getCartTotal = (cart: CartItem[]) => {
-  return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-};
-
-// Real-time product management - NO STATIC STORAGE
-export const getProductsFromStorage = (): Product[] => {
-  // Always return fresh dynamic products with real-time pricing
-  const dynamicProducts = getDynamicProducts();
-  
-  // Update localStorage with fresh data for consistency
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('products', JSON.stringify(dynamicProducts));
-    localStorage.setItem('productsLastUpdated', Date.now().toString());
-  }
-  
-  return dynamicProducts;
-};
-
-export const updateProductStock = (productId: string, quantity: number) => {
-  if (typeof window !== 'undefined') {
-    const products = getProductsFromStorage();
-    const updatedProducts = products.map(product => 
-      product.id === productId 
-        ? { ...product, stock_qty: Math.max(0, product.stock_qty - quantity) }
-        : product
-    );
-    localStorage.setItem('products', JSON.stringify(updatedProducts));
-    return updatedProducts;
-  }
+export const updateProductStock = (productId: string, quantityUsed: number): Product[] => {
+  // This should update stock in database via API
+  // For now, return empty array as we're using database-only approach
   return [];
 };
