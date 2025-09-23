@@ -19,8 +19,8 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
     // Get user ID for customer-specific notifications
     const userId = userType === 'customer' ? localStorage.getItem('customerPhone') || 'anonymous' : undefined;
     
-    // Connect to real-time service
-    realTimeService.connect(userType, userId);
+    // SignalR disabled - using mock notifications
+    console.log(`Mock notifications enabled for ${userType}`);
 
     // Subscribe to role-specific notifications
     if (userType === 'admin') {
@@ -64,7 +64,6 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
 
     return () => {
       unsubscribe();
-      realTimeService.disconnect();
     };
   }, [userType]);
 

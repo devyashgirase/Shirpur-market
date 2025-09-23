@@ -7,12 +7,10 @@ export const dbConfig = {
     apiUrl: 'http://localhost:5000/api',
     type: 'mysql'
   },
-  // Production Supabase
+  // Production MySQL on Vercel
   production: {
-    apiUrl: '/api/supabase',
-    supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    type: 'supabase'
+    apiUrl: '/api',
+    type: 'mysql'
   }
 };
 

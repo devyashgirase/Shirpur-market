@@ -77,6 +77,7 @@ export interface ApiCategory {
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
+      console.log(`Making API request to: ${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -86,10 +87,14 @@ class ApiService {
       });
       
       if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`API Error ${response.status}:`, errorText);
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log(`API Response for ${endpoint}:`, data);
+      return data;
     } catch (error) {
       console.error(`API Request failed for ${endpoint}:`, error);
       throw error;
@@ -98,9 +103,6 @@ class ApiService {
 
   // Products CRUD
   async getProducts(): Promise<ApiProduct[]> {
-    if (isProduction && currentDb.type === 'supabase') {
-      return supabaseApi.getProducts();
-    }
     return this.request<ApiProduct[]>('/products');
   }
 
@@ -128,9 +130,6 @@ class ApiService {
 
   // Orders CRUD
   async getOrders(): Promise<ApiOrder[]> {
-    if (isProduction && currentDb.type === 'supabase') {
-      return supabaseApi.getOrders();
-    }
     return this.request<ApiOrder[]>('/orders');
   }
 
@@ -139,9 +138,6 @@ class ApiService {
   }
 
   async createOrder(order: Omit<ApiOrder, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>): Promise<ApiOrder> {
-    if (isProduction && currentDb.type === 'supabase') {
-      return supabaseApi.createOrder(order);
-    }
     return this.request<ApiOrder>('/orders', {
       method: 'POST',
       body: JSON.stringify(order),
@@ -156,10 +152,6 @@ class ApiService {
   }
 
   async updateOrderStatus(orderId: number, status: string): Promise<void> {
-    if (isProduction && currentDb.type === 'supabase') {
-      await supabaseApi.updateOrderStatus(orderId, status);
-      return;
-    }
     await this.request(`/orders/${orderId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),

@@ -147,18 +147,29 @@ const AdminProducts = () => {
     });
   };
 
-  const toggleProductStatus = (productId: string) => {
-    const updatedProducts = products.map(product => 
-      product.id === productId 
-        ? { ...product, isActive: !product.isActive }
-        : product
-    );
-    setProducts(updatedProducts);
+  const toggleProductStatus = async (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    const newStatus = !product.isActive;
     
-    toast({
-      title: "Product Status Updated",
-      description: "Product availability has been updated.",
-    });
+    try {
+      await apiService.updateProduct(productId, { isActive: newStatus });
+      
+      const updatedProducts = products.map(p => 
+        p.id === productId ? { ...p, isActive: newStatus } : p
+      );
+      setProducts(updatedProducts);
+      
+      toast({
+        title: "Product Status Updated",
+        description: `Product ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update product status.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
@@ -260,7 +271,7 @@ const AdminProducts = () => {
               <div className="grid gap-2">
                 <Label>Product Image</Label>
                 <div
-                  className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+                  className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
                     dragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
                   }`}
                   onDragEnter={handleDrag}
@@ -356,7 +367,7 @@ const AdminProducts = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Price:</span>
-                    <span className="font-semibold">₹{product.price?.toFixed(2) || '0.00'}</span>
+                    <span className="font-semibold">₹{parseFloat(product.price || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Stock:</span>

@@ -25,20 +25,25 @@ const CustomerCatalog = () => {
       try {
         setLoading(true);
         const customerProducts = await CustomerDataService.getAvailableProducts();
+        console.log('CustomerCatalog: Products received from service:', customerProducts);
+        console.log('CustomerCatalog: Number of products received:', customerProducts.length);
         const formattedProducts = customerProducts.map(p => ({
           id: p.id.toString(),
           name: p.name,
           description: p.description,
-          price: p.price,
-          image_url: p.imageUrl,
-          category_id: p.category.toLowerCase().replace(/\s+/g, '-'),
-          stock_qty: p.stockQuantity,
-          is_active: p.isActive,
+          price: parseFloat(p.price || 0),
+          image_url: p.image_url || p.imageUrl,
+          category_id: (p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+          stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
+          is_active: p.is_active !== undefined ? p.is_active : p.isActive,
           sku: `SKU${p.id}`,
           unit: 'kg',
           is_age_restricted: false
         }));
-        setProducts(formattedProducts.filter(p => p.is_active));
+        const activeProducts = formattedProducts.filter(p => p.is_active);
+        console.log('CustomerCatalog: Active products after filtering:', activeProducts);
+        console.log('CustomerCatalog: Setting', activeProducts.length, 'active products');
+        setProducts(activeProducts);
         
         // Generate categories from API products
         const categoryMap = new Map();
@@ -68,11 +73,11 @@ const CustomerCatalog = () => {
         id: p.id.toString(),
         name: p.name,
         description: p.description,
-        price: p.price,
-        image_url: p.imageUrl,
-        category_id: p.category.toLowerCase().replace(/\s+/g, '-'),
-        stock_qty: p.stockQuantity,
-        is_active: p.isActive,
+        price: parseFloat(p.price || 0),
+        image_url: p.image_url || p.imageUrl,
+        category_id: (p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+        stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
+        is_active: p.is_active !== undefined ? p.is_active : p.isActive,
         sku: `SKU${p.id}`,
         unit: 'kg',
         is_age_restricted: false
@@ -153,8 +158,12 @@ const CustomerCatalog = () => {
                   <CarouselItem key={product.id}>
                     <Card className="bg-white/10 backdrop-blur border-white/20">
                       <CardContent className="p-6 text-center">
-                        <div className="w-32 h-32 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                          <Package className="w-16 h-16 text-white" />
+                        <div className="w-32 h-32 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-full" />
+                          ) : (
+                            <Package className="w-16 h-16 text-white" />
+                          )}
                         </div>
                         <h3 className="text-2xl font-bold mb-2">{product.name}</h3>
                         <p className="text-3xl font-bold text-yellow-300 mb-4">₹{product.price}</p>
@@ -211,8 +220,12 @@ const CustomerCatalog = () => {
               {popularProducts.map((product) => (
                 <Card key={product.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50">
                   <CardContent className="p-3">
-                    <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-blue-600" />
+                    <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-8 h-8 text-blue-600" />
+                      )}
                     </div>
                     <h3 className="font-semibold text-sm mb-1 line-clamp-2">{product.name}</h3>
                     <p className="text-lg font-bold text-green-600 mb-2">₹{product.price}</p>
@@ -257,7 +270,11 @@ const CustomerCatalog = () => {
               <Card key={product.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white border-0 shadow-md">
                 <CardHeader className="p-4 pb-2">
                   <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-50 to-green-100 rounded-xl mb-3 flex items-center justify-center overflow-hidden relative">
-                    <Package className="w-12 h-12 text-blue-600" />
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-12 h-12 text-blue-600" />
+                    )}
                     {product.stock_qty < 10 && (
                       <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
                         Low Stock

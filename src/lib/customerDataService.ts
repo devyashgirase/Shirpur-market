@@ -28,21 +28,37 @@ export class CustomerDataService {
 
   // Get available products with dynamic updates
   static async getAvailableProducts(): Promise<ApiProduct[]> {
-    return DynamicDataManager.syncData('availableProducts', async () => {
+    try {
+      console.log('CustomerDataService: Fetching products from API...');
       const products = await apiService.getProducts();
-      return products
-        .filter(product => product.isActive && product.stockQuantity > 0)
+      console.log('CustomerDataService: Raw products from API:', products);
+      console.log('CustomerDataService: Number of products:', products.length);
+      
+      const filteredProducts = products
+        .filter(product => {
+          const isActive = product.isActive !== undefined ? product.isActive : product.is_active;
+          return isActive === true || isActive === 1;
+        })
         .map(product => ({
           id: product.id,
           name: product.name,
           description: product.description,
-          price: product.price,
-          imageUrl: product.imageUrl,
+          price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+          imageUrl: product.imageUrl || product.image,
           category: product.category,
-          stockQuantity: product.stockQuantity,
-          isActive: product.isActive
+          stockQuantity: product.stockQuantity || product.stock_quantity || 0,
+          isActive: product.isActive !== undefined ? product.isActive : product.is_active
         }));
-    });
+      
+      // Save to cache
+      DynamicDataManager.saveData('availableProducts', filteredProducts);
+      console.log('CustomerDataService: Filtered products for customer:', filteredProducts);
+      console.log('CustomerDataService: Returning', filteredProducts.length, 'products');
+      return filteredProducts;
+    } catch (error) {
+      console.error('Failed to fetch products from API, using cached data:', error);
+      return DynamicDataManager.getData('availableProducts') || [];
+    }
   }
 
   // Get all categories dynamically
