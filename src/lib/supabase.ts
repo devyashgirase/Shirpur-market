@@ -14,18 +14,73 @@ export const supabaseApi = {
     const { data } = await supabase
       .from('products')
       .select('*')
-      .eq('is_active', true)
-      .gt('stock_quantity', 0);
+      .order('created_at', { ascending: false });
     return data?.map(p => ({
       id: p.id,
       name: p.name,
       description: p.description,
       price: parseFloat(p.price),
-      imageUrl: p.image_url,
+      imageUrl: p.image,
       category: p.category,
       stockQuantity: p.stock_quantity,
       isActive: p.is_active
     })) || [];
+  },
+
+  async createProduct(product: any) {
+    if (!supabase) return null;
+    const { data } = await supabase
+      .from('products')
+      .insert({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+        image: product.imageUrl,
+        stock_quantity: product.stockQuantity,
+        is_active: product.isActive
+      })
+      .select()
+      .single();
+    return data ? {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      price: parseFloat(data.price),
+      imageUrl: data.image,
+      category: data.category,
+      stockQuantity: data.stock_quantity,
+      isActive: data.is_active
+    } : null;
+  },
+
+  async updateProduct(id: number, product: any) {
+    if (!supabase) return null;
+    const updateData: any = {};
+    if (product.name) updateData.name = product.name;
+    if (product.description) updateData.description = product.description;
+    if (product.price) updateData.price = product.price;
+    if (product.category) updateData.category = product.category;
+    if (product.imageUrl) updateData.image = product.imageUrl;
+    if (product.stockQuantity !== undefined) updateData.stock_quantity = product.stockQuantity;
+    if (product.isActive !== undefined) updateData.is_active = product.isActive;
+    
+    const { data } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    return data ? {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      price: parseFloat(data.price),
+      imageUrl: data.image,
+      category: data.category,
+      stockQuantity: data.stock_quantity,
+      isActive: data.is_active
+    } : null;
   },
 
   async createOrder(order: any) {
@@ -52,12 +107,22 @@ export const supabaseApi = {
           product_id: item.productId,
           product_name: item.productName,
           price: item.price,
-          quantity: item.quantity,
-          total: item.price * item.quantity
+          quantity: item.quantity
         }))
       );
     }
-    return data;
+    return data ? {
+      id: data.id,
+      orderId: data.order_id,
+      customerName: data.customer_name,
+      customerPhone: data.customer_phone,
+      deliveryAddress: data.delivery_address,
+      total: data.total,
+      status: data.status,
+      paymentStatus: data.payment_status,
+      items: order.items,
+      createdAt: data.created_at
+    } : null;
   },
 
   async getOrders() {
@@ -91,11 +156,20 @@ export const supabaseApi = {
 
   async getCategories() {
     if (!supabase) return [];
-    const { data } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('is_active', true);
-    return data || [];
+    const categories = [
+      { id: 1, name: 'Grains', slug: 'grains', isActive: true },
+      { id: 2, name: 'Pulses', slug: 'pulses', isActive: true },
+      { id: 3, name: 'Oil', slug: 'oil', isActive: true },
+      { id: 4, name: 'Sweeteners', slug: 'sweeteners', isActive: true },
+      { id: 5, name: 'Beverages', slug: 'beverages', isActive: true },
+      { id: 6, name: 'Dairy', slug: 'dairy', isActive: true },
+      { id: 7, name: 'Vegetables', slug: 'vegetables', isActive: true },
+      { id: 8, name: 'Fruits', slug: 'fruits', isActive: true },
+      { id: 9, name: 'Bakery', slug: 'bakery', isActive: true },
+      { id: 10, name: 'Snacks', slug: 'snacks', isActive: true },
+      { id: 11, name: 'Instant Food', slug: 'instant-food', isActive: true }
+    ];
+    return categories;
   },
 
   async createCustomer(customer: any) {

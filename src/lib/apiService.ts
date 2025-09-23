@@ -1,4 +1,4 @@
-import { currentDb, API_BASE_URL } from './database';
+import { currentDb, API_BASE_URL, DB_TYPE } from './database';
 import { supabaseApi } from './supabase';
 
 const isProduction = import.meta.env.PROD;
@@ -76,6 +76,11 @@ export interface ApiCategory {
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    // Use Supabase for production, MySQL API for local
+    if (isProduction && DB_TYPE === 'supabase') {
+      throw new Error('Use Supabase client methods for production');
+    }
+    
     try {
       console.log(`Making API request to: ${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -103,14 +108,16 @@ class ApiService {
 
   // Products CRUD
   async getProducts(): Promise<ApiProduct[]> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.getProducts();
+    }
     return this.request<ApiProduct[]>('/products');
   }
 
-  async getProduct(id: number): Promise<ApiProduct> {
-    return this.request<ApiProduct>(`/products/${id}`);
-  }
-
   async createProduct(product: Omit<ApiProduct, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiProduct> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.createProduct(product);
+    }
     return this.request<ApiProduct>('/products', {
       method: 'POST',
       body: JSON.stringify(product),
@@ -118,30 +125,74 @@ class ApiService {
   }
 
   async updateProduct(id: number, product: Partial<ApiProduct>): Promise<ApiProduct> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.updateProduct(id, product);
+    }
     return this.request<ApiProduct>(`/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(product),
     });
   }
 
-  async deleteProduct(id: number): Promise<void> {
-    await this.request(`/products/${id}`, { method: 'DELETE' });
-  }
-
   // Orders CRUD
   async getOrders(): Promise<ApiOrder[]> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.getOrders();
+    }
     return this.request<ApiOrder[]>('/orders');
   }
 
-  async getOrder(id: number): Promise<ApiOrder> {
-    return this.request<ApiOrder>(`/orders/${id}`);
-  }
-
   async createOrder(order: Omit<ApiOrder, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>): Promise<ApiOrder> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.createOrder(order);
+    }
     return this.request<ApiOrder>('/orders', {
       method: 'POST',
       body: JSON.stringify(order),
     });
+  }
+
+  async updateOrderStatus(orderId: number, status: string): Promise<void> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      await supabaseApi.updateOrderStatus(orderId, status);
+      return;
+    }
+    await this.request(`/orders/${orderId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Categories
+  async getCategories(): Promise<ApiCategory[]> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.getCategories();
+    }
+    return this.request<ApiCategory[]>('/categories');
+  }
+
+  // Customers
+  async createCustomer(customer: Omit<ApiCustomer, 'id' | 'createdAt'>): Promise<ApiCustomer> {
+    if (isProduction && DB_TYPE === 'supabase') {
+      return supabaseApi.createCustomer(customer);
+    }
+    return this.request<ApiCustomer>('/customers', {
+      method: 'POST',
+      body: JSON.stringify(customer),
+    });
+  }
+
+  // Fallback methods for local development
+  async getProduct(id: number): Promise<ApiProduct> {
+    return this.request<ApiProduct>(`/products/${id}`);
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await this.request(`/products/${id}`, { method: 'DELETE' });
+  }
+
+  async getOrder(id: number): Promise<ApiOrder> {
+    return this.request<ApiOrder>(`/orders/${id}`);
   }
 
   async updateOrder(id: number, order: Partial<ApiOrder>): Promise<ApiOrder> {
@@ -151,31 +202,16 @@ class ApiService {
     });
   }
 
-  async updateOrderStatus(orderId: number, status: string): Promise<void> {
-    await this.request(`/orders/${orderId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    });
-  }
-
   async deleteOrder(id: number): Promise<void> {
     await this.request(`/orders/${id}`, { method: 'DELETE' });
   }
 
-  // Customers CRUD
   async getCustomers(): Promise<ApiCustomer[]> {
     return this.request<ApiCustomer[]>('/customers');
   }
 
   async getCustomer(id: number): Promise<ApiCustomer> {
     return this.request<ApiCustomer>(`/customers/${id}`);
-  }
-
-  async createCustomer(customer: Omit<ApiCustomer, 'id' | 'createdAt'>): Promise<ApiCustomer> {
-    return this.request<ApiCustomer>('/customers', {
-      method: 'POST',
-      body: JSON.stringify(customer),
-    });
   }
 
   async updateCustomer(id: number, customer: Partial<ApiCustomer>): Promise<ApiCustomer> {
@@ -189,7 +225,6 @@ class ApiService {
     await this.request(`/customers/${id}`, { method: 'DELETE' });
   }
 
-  // Delivery Agents CRUD
   async getDeliveryAgents(): Promise<ApiDeliveryAgent[]> {
     return this.request<ApiDeliveryAgent[]>('/delivery-agents');
   }
@@ -223,11 +258,6 @@ class ApiService {
     await this.request(`/delivery-agents/${id}`, { method: 'DELETE' });
   }
 
-  // Categories CRUD
-  async getCategories(): Promise<ApiCategory[]> {
-    return this.request<ApiCategory[]>('/categories');
-  }
-
   async getCategory(id: number): Promise<ApiCategory> {
     return this.request<ApiCategory>(`/categories/${id}`);
   }
@@ -250,7 +280,6 @@ class ApiService {
     await this.request(`/categories/${id}`, { method: 'DELETE' });
   }
 
-  // Analytics & Reports
   async getDashboardStats(): Promise<any> {
     return this.request('/analytics/dashboard');
   }
@@ -263,7 +292,6 @@ class ApiService {
     return this.request<ApiOrder[]>(`/orders?startDate=${startDate}&endDate=${endDate}`);
   }
 
-  // Bulk Operations
   async bulkCreateProducts(products: Omit<ApiProduct, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<ApiProduct[]> {
     return this.request<ApiProduct[]>('/products/bulk', {
       method: 'POST',
@@ -283,7 +311,6 @@ export const apiService = new ApiService();
 
 // Dynamic Data Manager
 export class DynamicDataManager {
-  // Save any data to localStorage with timestamp
   static saveData(key: string, data: any): void {
     const dataWithTimestamp = {
       data,
@@ -293,20 +320,18 @@ export class DynamicDataManager {
     localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
   }
 
-  // Get data from localStorage
   static getData(key: string): any {
     const stored = localStorage.getItem(key);
     if (!stored) return null;
     
     try {
       const parsed = JSON.parse(stored);
-      return parsed.data || parsed; // Handle both new and old formats
+      return parsed.data || parsed;
     } catch {
       return null;
     }
   }
 
-  // Sync data between API and localStorage
   static async syncData(key: string, apiCall: () => Promise<any>): Promise<any> {
     try {
       const apiData = await apiCall();
@@ -318,7 +343,6 @@ export class DynamicDataManager {
     }
   }
 
-  // Clear all cached data
   static clearCache(): void {
     const keys = ['products', 'orders', 'customers', 'deliveryAgents', 'categories'];
     keys.forEach(key => localStorage.removeItem(key));
