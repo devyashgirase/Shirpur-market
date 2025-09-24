@@ -12,6 +12,7 @@ import WhatsAppStatus from "@/components/WhatsAppStatus";
 import SMSHistory from "@/components/SMSHistory";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
+import { apiService } from "@/lib/apiService";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -23,17 +24,48 @@ const AdminOrders = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    loadOrders();
     
     // Subscribe to real-time order updates
     const unsubscribe = OrderService.subscribe((updatedOrders) => {
       setOrders([...updatedOrders].reverse()); // Show newest first
     });
     
-    // Load initial orders
-    setOrders([...OrderService.getAllOrders()].reverse());
-    
     return unsubscribe;
   }, []);
+  
+  const loadOrders = async () => {
+    try {
+      const dbOrders = await apiService.getOrders();
+      // Convert database orders to Order format
+      const formattedOrders = dbOrders.map(order => ({
+        orderId: order.order_id,
+        status: order.status,
+        timestamp: order.created_at,
+        customerAddress: {
+          name: order.customer_name,
+          phone: order.customer_phone,
+          address: order.delivery_address,
+          coordinates: { lat: 21.3487, lng: 74.8831 } // Default Shirpur coordinates
+        },
+        items: order.items ? order.items.map(item => ({
+          product: {
+            id: item.product_id,
+            name: item.product_name,
+            price: parseFloat(item.price)
+          },
+          quantity: item.quantity
+        })) : [],
+        total: parseFloat(order.total),
+        paymentStatus: order.payment_status || 'paid'
+      }));
+      setOrders(formattedOrders);
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+      // Fallback to localStorage orders
+      setOrders([...OrderService.getAllOrders()].reverse());
+    }
+  };
 
   const updateOrderStatus = async (orderId: string, newStatus: keyof typeof OrderService.prototype) => {
     const success = await OrderService.updateOrderStatus(orderId, newStatus as any);

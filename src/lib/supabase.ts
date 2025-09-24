@@ -3,55 +3,153 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = supabaseUrl && supabaseKey 
+// Initialize Supabase client
+export const supabase = supabaseUrl && supabaseKey && supabaseKey !== 'YOUR_NEW_API_KEY_HERE'
   ? createClient(supabaseUrl, supabaseKey)
   : null;
+
+// Log connection status
+if (supabase) {
+  console.log('✅ Supabase client initialized successfully');
+} else {
+  console.warn('⚠️ Supabase client not initialized. Check environment variables.');
+  console.log('VITE_SUPABASE_URL:', supabaseUrl ? 'Present' : 'Missing');
+  console.log('VITE_SUPABASE_ANON_KEY:', supabaseKey && supabaseKey !== 'YOUR_NEW_API_KEY_HERE' ? 'Present' : 'Missing/Placeholder');
+}
+
+// Check database tables and data
+export const inspectDatabase = async () => {
+  if (!supabase) {
+    console.error('Supabase not initialized');
+    return;
+  }
+  
+  try {
+    // Check if products table exists and has data
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('*')
+      .limit(5);
+    
+    console.log('Products table check:', { products, productsError });
+    
+    // Check table structure
+    const { data: tableInfo, error: tableError } = await supabase
+      .rpc('get_table_info', { table_name: 'products' })
+      .single();
+    
+    console.log('Table info:', { tableInfo, tableError });
+    
+  } catch (err) {
+    console.error('Database inspection failed:', err);
+  }
+};
+
+// Test connection
+export const testConnection = async () => {
+  if (!supabase) {
+    console.error('Supabase not initialized. Check environment variables:');
+    console.error('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.error('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Present' : 'Missing');
+    return false;
+  }
+  try {
+    const { data, error } = await supabase.from('products').select('count').limit(1);
+    if (error) {
+      console.error('Supabase connection error:', error);
+      return false;
+    }
+    console.log('Supabase connected successfully');
+    return true;
+  } catch (err) {
+    console.error('Connection test failed:', err);
+    return false;
+  }
+};
 
 // Supabase API functions
 export const supabaseApi = {
   async getProducts() {
-    if (!supabase) return [];
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-    return data?.map(p => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      price: parseFloat(p.price),
-      imageUrl: p.image,
-      category: p.category,
-      stockQuantity: p.stock_quantity,
-      isActive: p.is_active
-    })) || [];
+    if (!supabase) {
+      console.error('Supabase not initialized');
+      return [];
+    }
+    try {
+      console.log('Fetching products from Supabase...');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      console.log('Supabase response:', { data, error });
+      
+      if (error) {
+        console.error('Error fetching products:', error);
+        return [];
+      }
+      
+      if (!data || data.length === 0) {
+        console.log('No products found in database');
+        return [];
+      }
+      
+      console.log(`Found ${data.length} products`);
+      const mappedProducts = data.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        price: parseFloat(p.price),
+        imageUrl: p.image_url,
+        category: p.category,
+        stockQuantity: p.stock_quantity,
+        isActive: p.is_active
+      }));
+      
+      console.log('Mapped products:', mappedProducts);
+      return mappedProducts;
+    } catch (err) {
+      console.error('Exception in getProducts:', err);
+      return [];
+    }
   },
 
   async createProduct(product: any) {
-    if (!supabase) return null;
-    const { data } = await supabase
-      .from('products')
-      .insert({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-        image: product.imageUrl,
-        stock_quantity: product.stockQuantity,
-        is_active: product.isActive
-      })
-      .select()
-      .single();
-    return data ? {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      price: parseFloat(data.price),
-      imageUrl: data.image,
-      category: data.category,
-      stockQuantity: data.stock_quantity,
-      isActive: data.is_active
-    } : null;
+    if (!supabase) {
+      console.error('Supabase not initialized');
+      return null;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert({
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          category: product.category,
+          image_url: product.imageUrl,
+          stock_quantity: product.stockQuantity,
+          is_active: product.isActive
+        })
+        .select()
+        .single();
+      if (error) {
+        console.error('Error creating product:', error);
+        return null;
+      }
+      return data ? {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        price: parseFloat(data.price),
+        imageUrl: data.image_url,
+        category: data.category,
+        stockQuantity: data.stock_quantity,
+        isActive: data.is_active
+      } : null;
+    } catch (err) {
+      console.error('Exception in createProduct:', err);
+      return null;
+    }
   },
 
   async updateProduct(id: number, product: any) {
@@ -61,7 +159,7 @@ export const supabaseApi = {
     if (product.description) updateData.description = product.description;
     if (product.price) updateData.price = product.price;
     if (product.category) updateData.category = product.category;
-    if (product.imageUrl) updateData.image = product.imageUrl;
+    if (product.imageUrl) updateData.image_url = product.imageUrl;
     if (product.stockQuantity !== undefined) updateData.stock_quantity = product.stockQuantity;
     if (product.isActive !== undefined) updateData.is_active = product.isActive;
     
@@ -76,7 +174,7 @@ export const supabaseApi = {
       name: data.name,
       description: data.description,
       price: parseFloat(data.price),
-      imageUrl: data.image,
+      imageUrl: data.image_url,
       category: data.category,
       stockQuantity: data.stock_quantity,
       isActive: data.is_active

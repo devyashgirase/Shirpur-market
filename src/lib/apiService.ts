@@ -1,7 +1,5 @@
-import { currentDb, API_BASE_URL, DB_TYPE } from './database';
+import { currentDb, API_BASE_URL, DB_TYPE, useSupabase } from './database';
 import { supabaseApi } from './supabase';
-
-const isProduction = import.meta.env.PROD;
 
 // Database Interfaces
 export interface ApiProduct {
@@ -77,7 +75,7 @@ export interface ApiCategory {
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     // Use Supabase for production, MySQL API for local
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       throw new Error('Use Supabase client methods for production');
     }
     
@@ -108,14 +106,14 @@ class ApiService {
 
   // Products CRUD
   async getProducts(): Promise<ApiProduct[]> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.getProducts();
     }
     return this.request<ApiProduct[]>('/products');
   }
 
   async createProduct(product: Omit<ApiProduct, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiProduct> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.createProduct(product);
     }
     return this.request<ApiProduct>('/products', {
@@ -125,7 +123,7 @@ class ApiService {
   }
 
   async updateProduct(id: number, product: Partial<ApiProduct>): Promise<ApiProduct> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.updateProduct(id, product);
     }
     return this.request<ApiProduct>(`/products/${id}`, {
@@ -136,14 +134,14 @@ class ApiService {
 
   // Orders CRUD
   async getOrders(): Promise<ApiOrder[]> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.getOrders();
     }
     return this.request<ApiOrder[]>('/orders');
   }
 
   async createOrder(order: Omit<ApiOrder, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>): Promise<ApiOrder> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.createOrder(order);
     }
     return this.request<ApiOrder>('/orders', {
@@ -153,7 +151,7 @@ class ApiService {
   }
 
   async updateOrderStatus(orderId: number, status: string): Promise<void> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       await supabaseApi.updateOrderStatus(orderId, status);
       return;
     }
@@ -165,7 +163,7 @@ class ApiService {
 
   // Categories
   async getCategories(): Promise<ApiCategory[]> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.getCategories();
     }
     return this.request<ApiCategory[]>('/categories');
@@ -173,7 +171,7 @@ class ApiService {
 
   // Customers
   async createCustomer(customer: Omit<ApiCustomer, 'id' | 'createdAt'>): Promise<ApiCustomer> {
-    if (isProduction && DB_TYPE === 'supabase') {
+    if (useSupabase && DB_TYPE === 'supabase') {
       return supabaseApi.createCustomer(customer);
     }
     return this.request<ApiCustomer>('/customers', {

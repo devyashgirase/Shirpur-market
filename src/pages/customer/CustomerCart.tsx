@@ -22,6 +22,7 @@ import { WhatsAppBusinessService } from "@/lib/whatsappBusinessService";
 import { FreeWhatsAppService } from "@/lib/freeWhatsAppService";
 import { FreeSmsService } from "@/lib/freeSmsService";
 import { DataGenerator } from "@/lib/dataGenerator";
+import { apiService } from "@/lib/apiService";
 
 
 const CustomerCart = () => {
@@ -144,7 +145,31 @@ const CustomerCart = () => {
       paymentStatus: 'paid'
     };
     
-    // Store order data
+    // Save order to MySQL database
+    try {
+      const dbOrderData = {
+        orderId,
+        customerName: dynamicCustomer.name,
+        customerPhone: dynamicCustomer.phone,
+        deliveryAddress: `${dynamicCustomer.address}, ${dynamicCustomer.city}, ${dynamicCustomer.state} - ${dynamicCustomer.pincode}`,
+        total: getTotalAmount(),
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        items: cart.map(item => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity
+        }))
+      };
+      
+      await apiService.createOrder(dbOrderData);
+      console.log('✅ Order saved to database:', orderId);
+    } catch (error) {
+      console.error('❌ Failed to save order to database:', error);
+    }
+    
+    // Store order data in localStorage for tracking
     const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
     allOrders.push(orderData);
     localStorage.setItem('allOrders', JSON.stringify(allOrders));

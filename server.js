@@ -39,10 +39,31 @@ app.post('/api/products', (req, res) => {
   );
 });
 
-// Orders
+// Orders with items
 app.get('/api/orders', (req, res) => {
-  db.query('SELECT * FROM orders ORDER BY created_at DESC', (err, results) => {
-    res.json(err ? [] : results);
+  db.query(`
+    SELECT o.*, 
+           JSON_ARRAYAGG(
+             JSON_OBJECT(
+               'id', oi.id,
+               'product_id', oi.product_id,
+               'product_name', oi.product_name,
+               'price', oi.price,
+               'quantity', oi.quantity,
+               'total', oi.total
+             )
+           ) as items
+    FROM orders o
+    LEFT JOIN order_items oi ON o.id = oi.order_id
+    GROUP BY o.id
+    ORDER BY o.created_at DESC
+  `, (err, results) => {
+    if (err) return res.json([]);
+    const ordersWithItems = results.map(order => ({
+      ...order,
+      items: order.items ? JSON.parse(order.items) : []
+    }));
+    res.json(ordersWithItems);
   });
 });
 
@@ -149,6 +170,34 @@ app.put('/api/products/:id', (req, res) => {
 app.delete('/api/products/:id', (req, res) => {
   db.query('UPDATE products SET is_active = 0 WHERE id = ?', [req.params.id], (err) => {
     res.json(err ? { error: err.message } : { success: true });
+  });
+});
+
+// Single order with items
+app.get('/api/orders/:id', (req, res) => {
+  db.query(`
+    SELECT o.*, 
+           JSON_ARRAYAGG(
+             JSON_OBJECT(
+               'id', oi.id,
+               'product_id', oi.product_id,
+               'product_name', oi.product_name,
+               'price', oi.price,
+               'quantity', oi.quantity,
+               'total', oi.total
+             )
+           ) as items
+    FROM orders o
+    LEFT JOIN order_items oi ON o.id = oi.order_id
+    WHERE o.id = ?
+    GROUP BY o.id
+  `, [req.params.id], (err, results) => {
+    if (err || !results.length) return res.json(null);
+    const order = results[0];
+    res.json({
+      ...order,
+      items: order.items ? JSON.parse(order.items) : []
+    });
   });
 });
 
