@@ -213,9 +213,9 @@ const AdminProducts = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Product Management</h1>
+    <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
+        <h1 className="text-xl md:text-3xl font-bold">Product Management</h1>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -370,18 +370,18 @@ const AdminProducts = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {products.map((product) => (
           <Card key={product.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="p-4">
+            <CardHeader className="p-3 md:p-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{product.name}</CardTitle>
+                <CardTitle className="text-base md:text-lg truncate pr-2">{product.name}</CardTitle>
                 <Badge variant={product.isActive ? "default" : "secondary"}>
                   {product.isActive ? "Active" : "Inactive"}
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="p-3 md:p-4 pt-0">
               <div className="space-y-3">
                 <div className="flex items-center justify-center w-full h-32 bg-muted rounded-md overflow-hidden">
                   {product.imageUrl ? (

@@ -87,12 +87,12 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <RealTimeIndicator />
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-6 shadow-lg">
-        <div className="flex items-center gap-3">
-          <Settings className="h-8 w-8" />
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-blue-100 mt-1">Monitor and manage your delivery system</p>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-6 shadow-lg safe-area-top">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Settings className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">Admin Dashboard</h1>
+            <p className="text-blue-100 mt-1 text-sm sm:text-base hidden sm:block">Monitor and manage your delivery system</p>
           </div>
         </div>
       </div>
@@ -100,61 +100,61 @@ const AdminDashboard = () => {
       <div className="p-4 sm:p-6 space-y-6">
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 responsive-transition">
+            <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Today's Orders</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{metrics.todaysOrders}</p>
-                  <p className="text-xs text-blue-200 mt-1">Real-time</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-blue-100 text-xs sm:text-sm font-medium truncate">Today's Orders</p>
+                  <p className="text-lg sm:text-xl md:text-3xl font-bold mt-1">{metrics.todaysOrders}</p>
+                  <p className="text-xs text-blue-200 mt-1 hidden sm:block">Real-time</p>
                 </div>
-                <ShoppingCart className="h-8 w-8 text-blue-200" />
+                <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-200 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 responsive-transition">
+            <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm font-medium">Today's Revenue</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">₹{metrics.todaysRevenue.toFixed(0)}</p>
-                  <p className="text-xs text-green-200 mt-1">Paid orders</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-green-100 text-xs sm:text-sm font-medium truncate">Today's Revenue</p>
+                  <p className="text-lg sm:text-xl md:text-3xl font-bold mt-1">₹{metrics.todaysRevenue.toFixed(0)}</p>
+                  <p className="text-xs text-green-200 mt-1 hidden sm:block">Paid orders</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-200" />
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-green-200 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 responsive-transition">
+            <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm font-medium">Out for Delivery</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{metrics.outForDelivery}</p>
-                  <p className="text-xs text-orange-200 mt-1">Active</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-orange-100 text-xs sm:text-sm font-medium truncate">Out for Delivery</p>
+                  <p className="text-lg sm:text-xl md:text-3xl font-bold mt-1">{metrics.outForDelivery}</p>
+                  <p className="text-xs text-orange-200 mt-1 hidden sm:block">Active</p>
                 </div>
-                <Truck className="h-8 w-8 text-orange-200" />
+                <Truck className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-orange-200 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 responsive-transition">
+            <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-red-100 text-sm font-medium">Low Stock</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{lowStockProducts}</p>
-                  <p className="text-xs text-red-200 mt-1">Restock needed</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-red-100 text-xs sm:text-sm font-medium truncate">Low Stock</p>
+                  <p className="text-lg sm:text-xl md:text-3xl font-bold mt-1">{lowStockProducts}</p>
+                  <p className="text-xs text-red-200 mt-1 hidden sm:block">Restock needed</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-red-200" />
+                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-red-200 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Database Status */}
           <DatabaseStatus />
           {/* Total Revenue Summary */}
@@ -175,7 +175,7 @@ const AdminDashboard = () => {
                   <p className="text-green-100">Total Revenue from All Orders</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
                     <div className="text-xl font-bold text-blue-600">{metrics.totalOrders}</div>
                     <p className="text-xs text-gray-600">Total Orders</p>
@@ -203,10 +203,10 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {adminOrders.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="font-semibold text-gray-600 mb-2">No orders yet</h3>
-                    <p className="text-sm">Orders will appear here when customers make purchases.</p>
+                  <div className="text-center py-6 md:py-8 text-gray-500">
+                    <ShoppingCart className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="font-semibold text-gray-600 mb-2 text-sm md:text-base">No orders yet</h3>
+                    <p className="text-xs md:text-sm">Orders will appear here when customers make purchases.</p>
                   </div>
                 ) : (
                   adminOrders.slice(-5).reverse().map((order) => (

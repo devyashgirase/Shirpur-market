@@ -95,23 +95,23 @@ const CustomerOrders = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">My Orders</h1>
-        <p className="text-muted-foreground">Track your order history and delivery status</p>
+    <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-4">My Orders</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Track your order history and delivery status</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {loading ? (
-          <div className="text-center py-12">
+          <div className="text-center py-8 md:py-12">
             <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-lg text-gray-600">Loading your orders from database...</p>
+            <p className="text-base md:text-lg text-gray-600">Loading your orders from database...</p>
           </div>
         ) : orders.length > 0 ? orders.map((order) => (
           <Card key={order.orderId || order.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
+            <CardHeader className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Order #{order.orderId || order.id}</CardTitle>
+                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.orderId || order.id}</CardTitle>
                 <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
                   {getStatusIcon(order.status)}
                   {formatStatus(order.status)}
@@ -122,7 +122,7 @@ const CustomerOrders = () => {
               </p>
             </CardHeader>
             
-            <CardContent className="space-y-4">
+            <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold">Delivery Address</p>

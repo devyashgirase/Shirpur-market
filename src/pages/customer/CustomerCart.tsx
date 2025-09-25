@@ -248,16 +248,16 @@ const CustomerCart = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8">
-      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+    <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
-          <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Shopping Cart</h1>
+          <h1 className="text-xl md:text-3xl font-bold mb-4 md:mb-6">Shopping Cart</h1>
           
-          <div className="space-y-3 md:space-y-4">
+          <div className="space-y-2 md:space-y-4">
             {cart.map((item) => (
               <Card key={item.product.id}>
-                <CardContent className="p-4 md:p-6">
+                <CardContent className="p-3 md:p-6">
                   {/* Mobile Layout */}
                   <div className="md:hidden space-y-3">
                     <div className="flex items-start space-x-3">

@@ -167,10 +167,10 @@ const CustomerOrderTracking = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="text-3xl font-bold">Track Your Order</h1>
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+        <div className="text-center mb-6 md:mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-center gap-2 md:gap-4 mb-4">
+            <h1 className="text-2xl md:text-3xl font-bold">Track Your Order</h1>
             <Button 
               variant="outline" 
               size="sm" 
@@ -182,7 +182,7 @@ const CustomerOrderTracking = () => {
               Refresh
             </Button>
           </div>
-          <p className="text-base text-muted-foreground px-4">Real-time delivery tracking from database</p>
+          <p className="text-sm md:text-base text-muted-foreground px-4">Real-time delivery tracking from database</p>
         </div>
 
         <Card>

@@ -56,23 +56,23 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 safe-area-top safe-area-bottom">
+      <div className="w-full max-w-sm sm:max-w-md">
         {/* Logo/Header */}
-        <div className="text-center mb-6 md:mb-8">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 shadow-lg">
-            <span className="text-2xl md:text-3xl font-bold text-white">S</span>
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
+            <span className="text-2xl sm:text-3xl font-bold text-white">S</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Shirpur Delivery</h1>
-          <p className="text-sm md:text-base text-gray-600">Sign in to your account</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">Shirpur Delivery</h1>
+          <p className="text-sm sm:text-base text-gray-600">Sign in to your account</p>
         </div>
 
         {/* Login Card */}
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl text-center font-semibold">Welcome Back</CardTitle>
+          <CardHeader className="space-y-1 pb-4 sm:pb-6">
+            <CardTitle className="text-xl sm:text-2xl text-center font-semibold">Welcome Back</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-sm font-medium">Username</Label>
@@ -84,7 +84,7 @@ const Login = () => {
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-12"
+                    className="pl-10 h-11 sm:h-12 text-base"
                     required
                   />
                 </div>
@@ -100,7 +100,7 @@ const Login = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-12"
+                    className="pl-10 h-11 sm:h-12 text-base"
                     required
                   />
                 </div>
@@ -108,7 +108,7 @@ const Login = () => {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium"
+                className="w-full h-11 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium btn-mobile"
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign In"}
@@ -118,36 +118,36 @@ const Login = () => {
         </Card>
 
         {/* Demo Credentials */}
-        <div className="mt-6 md:mt-8 space-y-3 md:space-y-4">
-          <p className="text-center text-xs md:text-sm text-gray-600 font-medium">Demo Credentials:</p>
+        <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
+          <p className="text-center text-xs sm:text-sm text-gray-600 font-medium">Demo Credentials:</p>
           
-          <div className="grid gap-2 md:gap-3">
-            <Card className="p-2 md:p-3 bg-blue-50 border-blue-200">
-              <div className="flex items-center space-x-2 md:space-x-3">
-                <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                <div className="flex-1">
-                  <p className="text-sm md:text-base font-medium text-blue-800">Customer</p>
-                  <p className="text-xs text-blue-600">customer / customer123</p>
+          <div className="grid gap-2 sm:gap-3">
+            <Card className="p-3 sm:p-4 bg-blue-50 border-blue-200 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3">
+                <ShoppingBag className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium text-blue-800">Customer</p>
+                  <p className="text-xs sm:text-sm text-blue-600 font-mono">customer / customer123</p>
                 </div>
               </div>
             </Card>
             
-            <Card className="p-2 md:p-3 bg-purple-50 border-purple-200">
-              <div className="flex items-center space-x-2 md:space-x-3">
-                <Shield className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
-                <div className="flex-1">
-                  <p className="text-sm md:text-base font-medium text-purple-800">Admin</p>
-                  <p className="text-xs text-purple-600">admin / admin123</p>
+            <Card className="p-3 sm:p-4 bg-purple-50 border-purple-200 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium text-purple-800">Admin</p>
+                  <p className="text-xs sm:text-sm text-purple-600 font-mono">admin / admin123</p>
                 </div>
               </div>
             </Card>
             
-            <Card className="p-2 md:p-3 bg-green-50 border-green-200">
-              <div className="flex items-center space-x-2 md:space-x-3">
-                <Truck className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-                <div className="flex-1">
-                  <p className="text-sm md:text-base font-medium text-green-800">Delivery</p>
-                  <p className="text-xs text-green-600">delivery / delivery123</p>
+            <Card className="p-3 sm:p-4 bg-green-50 border-green-200 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3">
+                <Truck className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium text-green-800">Delivery</p>
+                  <p className="text-xs sm:text-sm text-green-600 font-mono">delivery / delivery123</p>
                 </div>
               </div>
             </Card>

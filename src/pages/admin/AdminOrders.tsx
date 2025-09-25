@@ -151,8 +151,8 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8">
-      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Recent Orders</h1>
+    <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+      <h1 className="text-xl md:text-3xl font-bold mb-4 md:mb-6">Recent Orders</h1>
       
       {orders.length === 0 ? (
         <Card>
@@ -166,14 +166,14 @@ const AdminOrders = () => {
         <div className="space-y-4">
           {orders.map((order) => (
             <Card key={order.orderId} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4 md:p-6">
+              <CardContent className="p-3 md:p-6">
                 {/* Mobile Layout */}
-                <div className="md:hidden space-y-3">
+                <div className="md:hidden space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       {getStatusIcon(order.status)}
                       <div>
-                        <h3 className="font-semibold text-base">#{order.orderId}</h3>
+                        <h3 className="font-semibold text-sm">#{order.orderId}</h3>
                         <p className="text-xs text-muted-foreground">
                           {new Date(order.timestamp).toLocaleDateString()}
                         </p>

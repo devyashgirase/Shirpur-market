@@ -13,20 +13,21 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
-        <div className="container mx-auto px-4 py-3">
+      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg safe-area-top">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Link to="/" className="text-white hover:text-white/80 transition-colors">
-                <ArrowLeft className="w-5 h-5" />
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <Link to="/" className="text-white hover:text-white/80 transition-colors flex-shrink-0">
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
-              <div className="flex items-center gap-2">
-                <Settings className="h-6 w-6" />
-                <h1 className="text-2xl font-bold">Admin Panel</h1>
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                <Settings className="h-4 w-4 sm:h-5 sm:h-5 md:h-6 md:w-6 flex-shrink-0" />
+                <h1 className="text-base sm:text-lg md:text-2xl font-bold truncate">Admin Panel</h1>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-4">
               <RealTimeNotifications userType="admin" />
               <nav className="flex items-center space-x-2">
                 <Link to="/admin">
@@ -86,6 +87,80 @@ const AdminLayout = () => {
               </nav>
               
               <ProfileDropdown />
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="flex lg:hidden items-center space-x-2">
+              <RealTimeNotifications userType="admin" />
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-64">
+                  <div className="flex flex-col space-y-4 mt-6">
+                    <Link to="/admin" className="w-full">
+                      <Button 
+                        variant={isActive('/admin') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <BarChart3 className="w-4 h-4 mr-3" />
+                        Dashboard
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/admin/products" className="w-full">
+                      <Button 
+                        variant={isActive('/admin/products') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <Package className="w-4 h-4 mr-3" />
+                        Products
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/admin/orders" className="w-full">
+                      <Button 
+                        variant={isActive('/admin/orders') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-3" />
+                        Orders
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/admin/tracking" className="w-full">
+                      <Button 
+                        variant={isActive('/admin/tracking') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <MapPin className="w-4 h-4 mr-3" />
+                        Agents
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/admin/live-tracking" className="w-full">
+                      <Button 
+                        variant={isActive('/admin/live-tracking') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <Truck className="w-4 h-4 mr-3" />
+                        Live Tracking
+                      </Button>
+                    </Link>
+                    
+                    <div className="pt-4 border-t">
+                      <ProfileDropdown />
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>

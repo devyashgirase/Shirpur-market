@@ -54,17 +54,17 @@ const DeliveryTasks = () => {
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 space-y-6">
+      <div className="p-3 md:p-6 space-y-4 md:space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">Active Tasks</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{metrics.activeTasks}</p>
+                  <p className="text-blue-100 text-xs md:text-sm font-medium">Active Tasks</p>
+                  <p className="text-xl md:text-3xl font-bold mt-1">{metrics.activeTasks}</p>
                 </div>
-                <Package className="h-8 w-8 text-blue-200" />
+                <Package className="h-6 w-6 md:h-8 md:w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>

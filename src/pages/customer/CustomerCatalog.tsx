@@ -145,10 +145,10 @@ const CustomerCatalog = () => {
       <RealTimeIndicator />
       
       <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white">
-        <div className="container mx-auto px-4 py-12">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold mb-4">🛒 Shirpur Delivery</h1>
-            <p className="text-xl opacity-90">Fresh products delivered to your doorstep in 30 minutes</p>
+        <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4">🛒 Shirpur Delivery</h1>
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl opacity-90 px-4">Fresh products delivered to your doorstep in 30 minutes</p>
           </div>
           
           {featuredProducts.length > 0 && (
@@ -188,54 +188,55 @@ const CustomerCatalog = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <Zap className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <p className="font-bold text-green-800 text-base">30 Min</p>
-            <p className="text-sm text-green-600">Fast Delivery</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
+          <Card className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mx-auto mb-1 sm:mb-2" />
+            <p className="font-bold text-green-800 text-sm sm:text-base">30 Min</p>
+            <p className="text-xs sm:text-sm text-green-600">Fast Delivery</p>
           </Card>
-          <Card className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <Star className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <p className="font-bold text-blue-800 text-base">{products.length}+</p>
-            <p className="text-sm text-blue-600">Products</p>
+          <Card className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <Star className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mx-auto mb-1 sm:mb-2" />
+            <p className="font-bold text-blue-800 text-sm sm:text-base">{products.length}+</p>
+            <p className="text-xs sm:text-sm text-blue-600">Products</p>
           </Card>
-          <Card className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <Heart className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <p className="font-bold text-purple-800 text-base">4.8★</p>
-            <p className="text-sm text-purple-600">Rating</p>
+          <Card className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 mx-auto mb-1 sm:mb-2" />
+            <p className="font-bold text-purple-800 text-sm sm:text-base">4.8★</p>
+            <p className="text-xs sm:text-sm text-purple-600">Rating</p>
           </Card>
-          <Card className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <TrendingUp className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-            <p className="font-bold text-orange-800 text-base">₹4.99</p>
-            <p className="text-sm text-orange-600">Delivery Fee</p>
+          <Card className="text-center p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 mx-auto mb-1 sm:mb-2" />
+            <p className="font-bold text-orange-800 text-sm sm:text-base">₹4.99</p>
+            <p className="text-xs sm:text-sm text-orange-600">Delivery Fee</p>
           </Card>
         </div>
 
         {popularProducts.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
               🔥 Popular Products
             </h2>
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8">
               {popularProducts.map((product) => (
                 <Card key={product.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50">
-                  <CardContent className="p-3">
-                    <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                  <CardContent className="p-2 sm:p-3">
+                    <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg mb-2 sm:mb-3 flex items-center justify-center overflow-hidden">
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover responsive-image" />
                       ) : (
-                        <Package className="w-8 h-8 text-blue-600" />
+                        <Package className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                       )}
                     </div>
-                    <h3 className="font-semibold text-sm mb-1 line-clamp-2">{product.name}</h3>
-                    <p className="text-lg font-bold text-green-600 mb-2">₹{product.price}</p>
+                    <h3 className="font-semibold text-xs sm:text-sm mb-1 line-clamp-2">{product.name}</h3>
+                    <p className="text-sm sm:text-lg font-bold text-green-600 mb-2">₹{product.price}</p>
                     <Button 
                       onClick={() => handleAddToCart(product)}
                       size="sm"
-                      className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+                      className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-xs sm:text-sm btn-mobile"
                     >
                       <Plus className="w-3 h-3 mr-1" />
-                      Add
+                      <span className="hidden sm:inline">Add</span>
+                      <span className="sm:hidden">+</span>
                     </Button>
                   </CardContent>
                 </Card>
@@ -245,43 +246,45 @@ const CustomerCatalog = () => {
         )}
 
         {categories.length > 0 && (
-          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
-            <TabsList className="grid w-full grid-cols-6 gap-1 h-auto p-1 bg-white shadow-md">
-              <TabsTrigger value="all" className="text-sm px-2 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-green-500 data-[state=active]:text-white">
-                All
-              </TabsTrigger>
-              {categories.filter(c => c.is_active).map(category => (
-                <TabsTrigger 
-                  key={category.id} 
-                  value={category.id} 
-                  className="text-sm px-2 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
-                >
-                  {category.name}
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6 md:mb-8">
+            <div className="overflow-x-auto hide-scrollbar">
+              <TabsList className="flex w-max min-w-full gap-1 h-auto p-1 bg-white shadow-md">
+                <TabsTrigger value="all" className="text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-green-500 data-[state=active]:text-white">
+                  All
                 </TabsTrigger>
-              ))}
-            </TabsList>
+                {categories.filter(c => c.is_active).map(category => (
+                  <TabsTrigger 
+                    key={category.id} 
+                    value={category.id} 
+                    className="text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
+                  >
+                    {category.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           </Tabs>
         )}
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-4">All Products</h2>
-          <div className="grid grid-cols-3 gap-6">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">All Products</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
             {filteredProducts.map(product => (
-              <Card key={product.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white border-0 shadow-md">
-                <CardHeader className="p-4 pb-2">
-                  <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-50 to-green-100 rounded-xl mb-3 flex items-center justify-center overflow-hidden relative">
+              <Card key={product.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white border-0 shadow-md responsive-transition">
+                <CardHeader className="p-3 sm:p-4 pb-2">
+                  <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-50 to-green-100 rounded-xl mb-2 sm:mb-3 flex items-center justify-center overflow-hidden relative">
                     {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover responsive-image" />
                     ) : (
-                      <Package className="w-12 h-12 text-blue-600" />
+                      <Package className="w-8 h-8 sm:w-12 sm:h-12 text-blue-600" />
                     )}
                     {product.stock_qty < 10 && (
-                      <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
+                      <Badge className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-red-500 text-white text-xs">
                         Low Stock
                       </Badge>
                     )}
                   </div>
-                  <CardTitle className="text-base leading-tight line-clamp-2">{product.name}</CardTitle>
+                  <CardTitle className="text-sm sm:text-base leading-tight line-clamp-2">{product.name}</CardTitle>
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
                       {getCategoryName(product.category_id)}
@@ -294,10 +297,10 @@ const CustomerCatalog = () => {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="p-4 pt-0">
+                <CardContent className="p-3 sm:p-4 pt-0">
                   <div className="mb-3">
                     <div className="mb-2">
-                      <p className="text-xl font-bold text-green-600 mb-1">₹{product.price}</p>
+                      <p className="text-lg sm:text-xl font-bold text-green-600 mb-1">₹{product.price}</p>
                       <p className="text-xs text-muted-foreground">per {product.unit}</p>
                     </div>
                     <div className="flex items-center justify-between text-xs">
@@ -307,18 +310,19 @@ const CustomerCatalog = () => {
                       }`}>
                         {product.stock_qty} in stock
                       </span>
-                      <span className="text-muted-foreground">{product.sku}</span>
+                      <span className="text-muted-foreground hidden sm:inline">{product.sku}</span>
                     </div>
                   </div>
                   
                   <Button 
                     onClick={() => handleAddToCart(product)}
                     disabled={product.stock_qty === 0}
-                    className="w-full text-sm bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 border-0 shadow-md"
+                    className="w-full text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 border-0 shadow-md btn-mobile"
                     size="sm"
                   >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    {product.stock_qty === 0 ? 'Out of Stock' : 'Add to Cart'}
+                    <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">{product.stock_qty === 0 ? 'Out of Stock' : 'Add to Cart'}</span>
+                    <span className="sm:hidden">{product.stock_qty === 0 ? 'Out' : 'Add'}</span>
                   </Button>
                 </CardContent>
               </Card>
