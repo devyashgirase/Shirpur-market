@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu, Settings } from "lucide-react";
+import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu, Settings, Brain } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
 
@@ -84,6 +84,17 @@ const AdminLayout = () => {
                     Live
                   </Button>
                 </Link>
+                
+                <Link to="/admin/features">
+                  <Button 
+                    variant={isActive('/admin/features') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/features') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
+                    size="sm"
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Features
+                  </Button>
+                </Link>
               </nav>
               
               <ProfileDropdown />
@@ -152,6 +163,17 @@ const AdminLayout = () => {
                       >
                         <Truck className="w-4 h-4 mr-3" />
                         Live Tracking
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/admin/features" className="w-full">
+                      <Button 
+                        variant={isActive('/admin/features') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <Brain className="w-4 h-4 mr-3" />
+                        Smart Features
                       </Button>
                     </Link>
                     

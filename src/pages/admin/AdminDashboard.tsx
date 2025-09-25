@@ -15,12 +15,21 @@ import {
   Clock,
   Settings,
   Users,
-  Star
+  Star,
+  Gift,
+  Route,
+  MessageSquare,
+  Brain
 } from "lucide-react";
 import { AdminDataService } from "@/lib/adminDataService";
 import { realTimeDataService } from "@/lib/realTimeDataService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 import DatabaseStatus from "@/components/DatabaseStatus";
+import LoyaltyRewards from "@/components/LoyaltyRewards";
+import AdvancedAnalytics from "@/components/AdvancedAnalytics";
+import SmartInventory from "@/components/SmartInventory";
+import FeedbackSystem from "@/components/FeedbackSystem";
+import RouteOptimization from "@/components/RouteOptimization";
 
 const AdminDashboard = () => {
   const [adminOrders, setAdminOrders] = useState([]);
@@ -341,7 +350,7 @@ const AdminDashboard = () => {
               </Link>
               <Button variant="outline" className="w-full">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                View Reports
+                Analytics
               </Button>
             </div>
           </CardContent>
