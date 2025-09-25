@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile styles integrated */
+/* Import mobile styles */
+@import './styles/mobile.css';
 
 /* Delivery System Design System */
 

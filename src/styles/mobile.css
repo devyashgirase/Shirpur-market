@@ -13,20 +13,17 @@ body {
 
 /* Mobile-first responsive breakpoints */
 @media (max-width: 640px) {
-  /* Extra small screens */
   .container {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
   
-  /* Touch-friendly interactive elements */
   .btn-mobile {
     min-height: 44px;
     min-width: 44px;
     padding: 0.75rem 1rem;
   }
   
-  /* Mobile typography */
   .mobile-text {
     font-size: 0.875rem;
     line-height: 1.5;
@@ -37,14 +34,12 @@ body {
     line-height: 1.4;
   }
   
-  /* Mobile cards */
   .mobile-card {
     margin: 0.5rem;
     padding: 0.75rem;
     border-radius: 0.5rem;
   }
   
-  /* Mobile grids */
   .mobile-grid-1 {
     grid-template-columns: 1fr;
     gap: 0.75rem;
@@ -57,7 +52,6 @@ body {
 }
 
 @media (min-width: 641px) and (max-width: 768px) {
-  /* Small tablets */
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -74,32 +68,6 @@ body {
   }
 }
 
-@media (min-width: 769px) and (max-width: 1024px) {
-  /* Large tablets / small desktops */
-  .desktop-grid-3 {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
-  
-  .desktop-grid-4 {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-  }
-}
-
-@media (min-width: 1025px) {
-  /* Large desktops */
-  .desktop-large-grid-4 {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-  }
-  
-  .desktop-large-grid-5 {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 2rem;
-  }
-}
-
 /* Form inputs - prevent zoom on iOS */
 input, textarea, select {
   font-size: 16px;
@@ -109,85 +77,6 @@ input, textarea, select {
 @media (min-width: 768px) {
   input, textarea, select {
     font-size: 0.875rem;
-  }
-}
-
-/* Responsive navigation */
-.nav-mobile {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  border-top: 1px solid #e5e7eb;
-  z-index: 50;
-}
-
-@media (min-width: 768px) {
-  .nav-mobile {
-    position: static;
-    border-top: none;
-    background: transparent;
-  }
-}
-
-/* Responsive spacing utilities */
-.responsive-padding {
-  padding: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .responsive-padding {
-    padding: 1rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .responsive-padding {
-    padding: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .responsive-padding {
-    padding: 2rem;
-  }
-}
-
-/* Responsive text sizes */
-.responsive-text-sm {
-  font-size: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .responsive-text-sm {
-    font-size: 0.875rem;
-  }
-}
-
-.responsive-text-base {
-  font-size: 0.875rem;
-}
-
-@media (min-width: 640px) {
-  .responsive-text-base {
-    font-size: 1rem;
-  }
-}
-
-.responsive-text-lg {
-  font-size: 1rem;
-}
-
-@media (min-width: 640px) {
-  .responsive-text-lg {
-    font-size: 1.125rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .responsive-text-lg {
-    font-size: 1.25rem;
   }
 }
 
@@ -212,17 +101,6 @@ input, textarea, select {
   height: auto;
   object-fit: cover;
   border-radius: 0.5rem;
-}
-
-/* Safe area for mobile devices with notches */
-@supports (padding: max(0px)) {
-  .safe-area-top {
-    padding-top: max(1rem, env(safe-area-inset-top));
-  }
-  
-  .safe-area-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  }
 }
 
 /* Smooth transitions for responsive elements */
