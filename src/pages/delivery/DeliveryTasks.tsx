@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package } from "lucide-react";
 import { DeliveryDataService } from "@/lib/deliveryDataService";
 import { Link } from "react-router-dom";
+import DeliveryPerformance from "@/components/DeliveryPerformance";
+import SmartRouteSuggestions from "@/components/SmartRouteSuggestions";
 
 const DeliveryTasks = () => {
   const [deliveryTasks, setDeliveryTasks] = useState([]);
@@ -55,6 +57,41 @@ const DeliveryTasks = () => {
       </div>
 
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+        {/* Performance Dashboard */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-4">Performance Dashboard</h2>
+          <DeliveryPerformance />
+        </div>
+        
+        {/* Smart Route Suggestions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <SmartRouteSuggestions />
+          </div>
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Avg Delivery Time</span>
+                    <span className="font-semibold">28 min</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Customer Rating</span>
+                    <span className="font-semibold">4.8 ⭐</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Weekly Earnings</span>
+                    <span className="font-semibold text-green-600">₹4,250</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">

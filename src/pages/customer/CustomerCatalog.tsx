@@ -12,6 +12,9 @@ import { sweetAlert } from "@/components/ui/sweet-alert";
 import { realTimeDataService } from "@/lib/realTimeDataService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 import DynamicPrice from "@/components/DynamicPrice";
+import CustomerLoyalty from "@/components/CustomerLoyalty";
+import QuickReorder from "@/components/QuickReorder";
+import ProductSearch from "@/components/ProductSearch";
 
 const CustomerCatalog = () => {
   const { toast } = useToast();
@@ -19,6 +22,7 @@ const CustomerCatalog = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadCustomerProducts = async () => {
@@ -93,9 +97,16 @@ const CustomerCatalog = () => {
     };
   }, []);
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products.filter(p => p.is_active)
-    : products.filter(p => p.is_active && p.category_id === selectedCategory);
+  const filteredProducts = products.filter(p => {
+    if (!p.is_active) return false;
+    
+    const matchesCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesCategory && matchesSearch;
+  });
   
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'Unknown';
@@ -188,6 +199,15 @@ const CustomerCatalog = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Customer Features Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <QuickReorder />
+          </div>
+          <div>
+            <CustomerLoyalty />
+          </div>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
           <Card className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mx-auto mb-1 sm:mb-2" />
@@ -244,6 +264,11 @@ const CustomerCatalog = () => {
             </div>
           </div>
         )}
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <ProductSearch onSearch={setSearchQuery} placeholder="Search rice, dal, vegetables..." />
+        </div>
 
         {categories.length > 0 && (
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6 md:mb-8">
@@ -334,7 +359,18 @@ const CustomerCatalog = () => {
           <div className="text-center py-12">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No products found</h3>
-            <p className="text-muted-foreground">Try selecting a different category or check your database</p>
+            <p className="text-muted-foreground">
+              {searchQuery ? `No results for "${searchQuery}"` : 'Try selecting a different category'}
+            </p>
+            {searchQuery && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSearchQuery('')}
+                className="mt-4"
+              >
+                Clear search
+              </Button>
+            )}
           </div>
         )}
       </div>
