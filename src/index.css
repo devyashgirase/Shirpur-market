@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import mobile styles */
-@import './styles/mobile.css';
+/* Mobile styles integrated directly */
 
 /* Delivery System Design System */
 
@@ -223,5 +222,37 @@
   
   .grid-responsive-auto {
     @apply grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5;
+  }
+  
+  /* Mobile specific styles */
+  .btn-mobile {
+    @apply min-h-[44px] min-w-[44px] p-3;
+  }
+  
+  .loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid #e5e7eb;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .responsive-image {
+    @apply w-full h-auto object-cover rounded-lg;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
