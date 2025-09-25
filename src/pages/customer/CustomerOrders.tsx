@@ -1,10 +1,55 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Package, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
-import { mockOrders } from "@/lib/mockData";
+import { unifiedDB } from "@/lib/database";
+import { OrderService } from "@/lib/orderService";
 
 const CustomerOrders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCustomerOrders();
+  }, []);
+
+  const loadCustomerOrders = async () => {
+    try {
+      setLoading(true);
+      console.log('📊 Loading customer orders from database...');
+      
+      // Get customer phone from localStorage
+      const customerPhone = localStorage.getItem('customerPhone');
+      
+      // Load from unified database (auto-switches MySQL/Supabase)
+      const dbOrders = await unifiedDB.getOrders();
+      
+      // Filter orders for current customer if phone available
+      let customerOrders = dbOrders;
+      if (customerPhone) {
+        customerOrders = dbOrders.filter(order => order.customerPhone === customerPhone);
+      }
+      
+      // Also get orders from localStorage for current session
+      const localOrders = OrderService.getAllOrders();
+      
+      // Combine and deduplicate orders
+      const allOrders = [...customerOrders, ...localOrders];
+      const uniqueOrders = allOrders.filter((order, index, self) => 
+        index === self.findIndex(o => o.orderId === order.orderId)
+      );
+      
+      console.log(`✅ Loaded ${uniqueOrders.length} customer orders`);
+      setOrders(uniqueOrders);
+    } catch (error) {
+      console.error('❌ Failed to load customer orders:', error);
+      // Fallback to localStorage orders
+      setOrders(OrderService.getAllOrders());
+    } finally {
+      setLoading(false);
+    }
+  };
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -57,18 +102,23 @@ const CustomerOrders = () => {
       </div>
 
       <div className="space-y-6">
-        {mockOrders.map((order) => (
-          <Card key={order.id} className="hover:shadow-md transition-shadow">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="loading-spinner mx-auto mb-4"></div>
+            <p className="text-lg text-gray-600">Loading your orders from database...</p>
+          </div>
+        ) : orders.length > 0 ? orders.map((order) => (
+          <Card key={order.orderId || order.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Order #{order.id}</CardTitle>
+                <CardTitle className="text-lg">Order #{order.orderId || order.id}</CardTitle>
                 <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
                   {getStatusIcon(order.status)}
                   {formatStatus(order.status)}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Placed on {formatDate(order.created_at)}
+                Placed on {formatDate(order.createdAt || order.created_at || order.timestamp)}
               </p>
             </CardHeader>
             
@@ -77,13 +127,13 @@ const CustomerOrders = () => {
                 <div>
                   <p className="font-semibold">Delivery Address</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.customer_address}
+                    {order.deliveryAddress || order.customerAddress?.address || order.customer_address}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">${order.total.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">₹{parseFloat(order.total).toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground">
-                    Payment: {order.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
+                    Payment: {(order.paymentStatus || order.payment_status) === 'paid' ? '✓ Paid' : 'Pending'}
                   </p>
                 </div>
               </div>
@@ -137,9 +187,20 @@ const CustomerOrders = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+        )) : (
+          <div className="text-center py-12">
+            <Package className="w-24 h-24 text-muted-foreground mx-auto mb-6" />
+            <h3 className="text-xl font-semibold mb-4">No orders yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Start shopping to see your orders here
+            </p>
+            <Button className="bg-gradient-primary">
+              Browse Products
+            </Button>
+          </div>
+        )}
 
-        {mockOrders.length === 0 && (
+        {orders.length === 0 && !loading && (
           <div className="text-center py-12">
             <Package className="w-24 h-24 text-muted-foreground mx-auto mb-6" />
             <h3 className="text-xl font-semibold mb-4">No orders yet</h3>

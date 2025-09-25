@@ -20,6 +20,7 @@ import {
 import { AdminDataService } from "@/lib/adminDataService";
 import { realTimeDataService } from "@/lib/realTimeDataService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
+import DatabaseStatus from "@/components/DatabaseStatus";
 
 const AdminDashboard = () => {
   const [adminOrders, setAdminOrders] = useState([]);
@@ -153,7 +154,9 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Database Status */}
+          <DatabaseStatus />
           {/* Total Revenue Summary */}
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>

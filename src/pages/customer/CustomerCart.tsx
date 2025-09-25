@@ -23,6 +23,7 @@ import { FreeWhatsAppService } from "@/lib/freeWhatsAppService";
 import { FreeSmsService } from "@/lib/freeSmsService";
 import { DataGenerator } from "@/lib/dataGenerator";
 import { apiService } from "@/lib/apiService";
+import { unifiedDB } from "@/lib/database";
 
 
 const CustomerCart = () => {
@@ -145,10 +146,9 @@ const CustomerCart = () => {
       paymentStatus: 'paid'
     };
     
-    // Save order to MySQL database
+    // Save order to real database (Supabase)
     try {
       const dbOrderData = {
-        orderId,
         customerName: dynamicCustomer.name,
         customerPhone: dynamicCustomer.phone,
         deliveryAddress: `${dynamicCustomer.address}, ${dynamicCustomer.city}, ${dynamicCustomer.state} - ${dynamicCustomer.pincode}`,
@@ -163,8 +163,16 @@ const CustomerCart = () => {
         }))
       };
       
-      await apiService.createOrder(dbOrderData);
-      console.log('✅ Order saved to database:', orderId);
+      console.log('💾 Saving order to database:', orderId);
+      
+      // Save to unified database (auto-switches MySQL/Supabase)
+      const dbOrder = await unifiedDB.createOrder(dbOrderData);
+      if (dbOrder) {
+        console.log('✅ Order saved to database with ID:', dbOrder.id);
+        orderData.databaseId = dbOrder.id;
+      } else {
+        console.error('❌ Failed to save order to database');
+      }
     } catch (error) {
       console.error('❌ Failed to save order to database:', error);
     }

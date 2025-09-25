@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, Plus, Upload, X } from "lucide-react";
 import { AdminDataService } from "@/lib/adminDataService";
 import { apiService } from "@/lib/apiService";
+import { unifiedDB } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminProducts = () => {
@@ -33,10 +34,13 @@ const AdminProducts = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const adminProducts = await AdminDataService.getAdminProducts();
-      setProducts(adminProducts || []);
+      console.log('📊 Loading products from database...');
+      
+      // Load from unified database (auto-switches between MySQL/Supabase)
+      const dbProducts = await unifiedDB.getProducts();
+      setProducts(dbProducts || []);
     } catch (error) {
-      console.error('Failed to load products:', error);
+      console.error('❌ Failed to load products:', error);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -106,12 +110,23 @@ const AdminProducts = () => {
         isActive: true
       };
 
-      await apiService.createProduct(productData);
+      console.log('💾 Adding product to database:', productData.name);
       
-      toast({
-        title: "Product Added",
-        description: "Product has been added successfully",
-      });
+      // Save to unified database
+      const dbProduct = await unifiedDB.createProduct(productData);
+      if (dbProduct) {
+        toast({
+          title: "Product Added to Database",
+          description: `${productData.name} has been saved successfully`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add product to database",
+          variant: "destructive"
+        });
+        return;
+      }
 
       setNewProduct({
         name: '',
@@ -124,10 +139,10 @@ const AdminProducts = () => {
       setIsDialogOpen(false);
       loadProducts();
     } catch (error) {
-      console.error('Failed to add product:', error);
+      console.error('❌ Failed to add product:', error);
       toast({
-        title: "Error",
-        description: "Failed to add product. Please check your database connection.",
+        title: "Database Error",
+        description: "Failed to add product to database. Check your Supabase configuration.",
         variant: "destructive"
       });
     }
@@ -152,7 +167,18 @@ const AdminProducts = () => {
     const newStatus = !product.isActive;
     
     try {
-      await apiService.updateProduct(productId, { isActive: newStatus });
+      console.log('🔄 Updating product status in database:', productId, '→', newStatus);
+      
+      // Update in unified database
+      const dbUpdated = await unifiedDB.updateProduct(parseInt(productId), { isActive: newStatus });
+      if (!dbUpdated) {
+        toast({
+          title: "Database Error",
+          description: "Failed to update product status",
+          variant: "destructive"
+        });
+        return;
+      }
       
       const updatedProducts = products.map(p => 
         p.id === productId ? { ...p, isActive: newStatus } : p
@@ -160,13 +186,14 @@ const AdminProducts = () => {
       setProducts(updatedProducts);
       
       toast({
-        title: "Product Status Updated",
-        description: `Product ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+        title: "Database Updated",
+        description: `Product ${newStatus ? 'enabled' : 'disabled'} in database successfully.`,
       });
     } catch (error) {
+      console.error('❌ Failed to update product status:', error);
       toast({
-        title: "Error",
-        description: "Failed to update product status.",
+        title: "Database Error",
+        description: "Failed to update product status in database.",
         variant: "destructive"
       });
     }

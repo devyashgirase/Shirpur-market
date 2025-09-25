@@ -13,6 +13,7 @@ import SMSHistory from "@/components/SMSHistory";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { apiService } from "@/lib/apiService";
+import { unifiedDB } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -36,61 +37,89 @@ const AdminOrders = () => {
   
   const loadOrders = async () => {
     try {
-      const dbOrders = await apiService.getOrders();
-      // Convert database orders to Order format
+      console.log('📊 Loading orders from database...');
+      
+      // Load from unified database (auto-switches MySQL/Supabase)
+      const dbOrders = await unifiedDB.getOrders();
       const formattedOrders = dbOrders.map(order => ({
-        orderId: order.order_id,
+        orderId: order.orderId || order.order_id,
         status: order.status,
-        timestamp: order.created_at,
+        timestamp: order.createdAt || order.created_at,
         customerAddress: {
-          name: order.customer_name,
-          phone: order.customer_phone,
-          address: order.delivery_address,
-          coordinates: { lat: 21.3487, lng: 74.8831 } // Default Shirpur coordinates
+          name: order.customerName || order.customer_name,
+          phone: order.customerPhone || order.customer_phone,
+          address: order.deliveryAddress || order.delivery_address,
+          coordinates: { lat: 21.3487, lng: 74.8831 }
         },
         items: order.items ? order.items.map(item => ({
           product: {
-            id: item.product_id,
+            id: item.product_id?.toString() || '0',
             name: item.product_name,
             price: parseFloat(item.price)
           },
           quantity: item.quantity
         })) : [],
         total: parseFloat(order.total),
-        paymentStatus: order.payment_status || 'paid'
+        paymentStatus: order.paymentStatus || order.payment_status || 'paid',
+        databaseId: order.id
       }));
       setOrders(formattedOrders);
     } catch (error) {
-      console.error('Failed to load orders:', error);
+      console.error('❌ Failed to load orders from database:', error);
       // Fallback to localStorage orders
       setOrders([...OrderService.getAllOrders()].reverse());
     }
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: keyof typeof OrderService.prototype) => {
-    const success = await OrderService.updateOrderStatus(orderId, newStatus as any);
-    
-    if (success) {
-      // Create delivery notification for nearby agents when status is packing
-      if (newStatus === 'packing') {
-        const order = OrderService.getOrderById(orderId);
-        if (order) {
-          OrderService.createDeliveryNotification(order);
-          NotificationService.sendDeliveryRequestNotification(
-            orderId, 
-            order.customerAddress.address, 
-            order.total
-          );
+    try {
+      console.log('🔄 Updating order status in database:', orderId, '→', newStatus);
+      
+      // Find order to get database ID
+      const order = orders.find(o => o.orderId === orderId);
+      if (order && order.databaseId) {
+        // Update in unified database
+        const dbUpdated = await unifiedDB.updateOrderStatus(order.databaseId, newStatus as string);
+        if (!dbUpdated) {
+          console.error('❌ Failed to update order status in database');
         }
       }
       
-      toast({
-        title: "Order Updated",
-        description: `Order ${orderId} status updated to ${newStatus.replace('_', ' ')}`,
-      });
+      // Update in OrderService for real-time updates
+      const success = await OrderService.updateOrderStatus(orderId, newStatus as any);
       
-      // Send admin notification
-      NotificationService.sendOrderStatusNotification(orderId, newStatus, 'admin');
+      if (success) {
+        // Create delivery notification for nearby agents when status is packing
+        if (newStatus === 'packing') {
+          const orderData = OrderService.getOrderById(orderId);
+          if (orderData) {
+            OrderService.createDeliveryNotification(orderData);
+            NotificationService.sendDeliveryRequestNotification(
+              orderId, 
+              orderData.customerAddress.address, 
+              orderData.total
+            );
+          }
+        }
+        
+        toast({
+          title: "Database Updated",
+          description: `Order ${orderId} status updated to ${newStatus.replace('_', ' ')} in database`,
+        });
+        
+        // Reload orders from database
+        loadOrders();
+        
+        // Send admin notification
+        NotificationService.sendOrderStatusNotification(orderId, newStatus, 'admin');
+      }
+    } catch (error) {
+      console.error('❌ Failed to update order status:', error);
+      toast({
+        title: "Database Error",
+        description: "Failed to update order status in database",
+        variant: "destructive"
+      });
     }
   };
 
