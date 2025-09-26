@@ -6,7 +6,7 @@ import { ShoppingCart, Package, Home, ArrowLeft, MapPin, Menu } from "lucide-rea
 import { getCartFromStorage } from "@/lib/mockData";
 import { useState, useEffect } from "react";
 import ProfileDropdown from "@/components/ProfileDropdown";
-import RealTimeNotifications from "@/components/RealTimeNotifications";
+
 import MobileBottomNav from "@/components/MobileBottomNav";
 
 const CustomerLayout = () => {
@@ -44,7 +44,6 @@ const CustomerLayout = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-              <RealTimeNotifications userType="customer" />
               <nav className="flex items-center space-x-2 xl:space-x-4">
                 <Link to="/customer">
                   <Button 
@@ -101,7 +100,6 @@ const CustomerLayout = () => {
 
             {/* Mobile Navigation */}
             <div className="flex lg:hidden items-center space-x-2">
-              <RealTimeNotifications userType="customer" />
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 btn-mobile">

@@ -57,8 +57,6 @@ const AdminDashboard = () => {
     
     const loadAdminData = async () => {
       try {
-        setLoading(true);
-        
         // Load products
         const products = await AdminDataService.getAdminProducts();
         setAdminProducts(products);
@@ -92,7 +90,10 @@ const AdminDashboard = () => {
     adminRealTimeService.startRealTimeUpdates();
     
     loadAdminData();
-    const interval = setInterval(loadAdminData, 5000); // More frequent updates
+    const interval = setInterval(() => {
+      adminRealTimeService.fetchRealTimeStats().then(setRealTimeStats);
+      adminRealTimeService.fetchRecentOrders().then(setRecentOrders);
+    }, 10000);
     
     return () => {
       clearInterval(interval);
