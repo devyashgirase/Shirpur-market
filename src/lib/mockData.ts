@@ -109,6 +109,19 @@ export const removeFromCart = (productId: string) => {
 
 export const clearCart = () => {
   localStorage.setItem('cart', '[]');
+  window.dispatchEvent(new CustomEvent('cartUpdated'));
+};
+
+export const saveLastOrder = (orderData: any) => {
+  localStorage.setItem('lastOrder', JSON.stringify({
+    ...orderData,
+    timestamp: Date.now()
+  }));
+};
+
+export const getLastOrder = () => {
+  const lastOrder = localStorage.getItem('lastOrder');
+  return lastOrder ? JSON.parse(lastOrder) : null;
 };
 
 export const updateProductStock = (productId: string, quantityUsed: number): Product[] => {

@@ -15,6 +15,7 @@ import DynamicPrice from "@/components/DynamicPrice";
 import CustomerLoyalty from "@/components/CustomerLoyalty";
 import QuickReorder from "@/components/QuickReorder";
 import ProductSearch from "@/components/ProductSearch";
+import AttractiveLoader from "@/components/AttractiveLoader";
 
 const CustomerCatalog = () => {
   const { toast } = useToast();
@@ -129,14 +130,7 @@ const CustomerCatalog = () => {
   const popularProducts = products.filter(p => p.stock_qty > 20).slice(0, 8);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="loading-spinner mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Loading products from database...</p>
-        </div>
-      </div>
-    );
+    return <AttractiveLoader type="customer" message="Loading fresh products..." />;
   }
 
   if (products.length === 0) {

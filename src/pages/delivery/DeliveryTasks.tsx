@@ -7,9 +7,14 @@ import { DeliveryDataService } from "@/lib/deliveryDataService";
 import { Link } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
 import SmartRouteSuggestions from "@/components/SmartRouteSuggestions";
+import AttractiveLoader from "@/components/AttractiveLoader";
+import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryCoordinationService";
 
 const DeliveryTasks = () => {
   const [deliveryTasks, setDeliveryTasks] = useState([]);
+  const [nearbyOrders, setNearbyOrders] = useState<OrderLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [agentId] = useState('agent-001'); // Current agent ID
   const [metrics, setMetrics] = useState({
     activeTasks: 0,
     availableOrders: 0,
@@ -18,30 +23,75 @@ const DeliveryTasks = () => {
   });
 
   useEffect(() => {
+    // Set agent location on login (simulate GPS)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          deliveryCoordinationService.setAgentLocation(
+            agentId,
+            position.coords.latitude,
+            position.coords.longitude
+          );
+        },
+        () => {
+          // Fallback to Shirpur coordinates
+          deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
+        }
+      );
+    } else {
+      deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
+    }
+
     const loadDeliveryData = async () => {
       try {
+        setLoading(true);
         const tasks = await DeliveryDataService.getAvailableDeliveries();
         setDeliveryTasks(tasks);
         setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+        
+        // Load nearby orders within 10km
+        const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
+        setNearbyOrders(nearby);
       } catch (error) {
         console.error('Failed to load delivery data:', error);
+      } finally {
+        setLoading(false);
       }
     };
     
     loadDeliveryData();
     const interval = setInterval(loadDeliveryData, 10000);
-    return () => clearInterval(interval);
+    
+    // Subscribe to coordination service events
+    const handleOrderAccepted = () => {
+      loadDeliveryData();
+    };
+    
+    deliveryCoordinationService.subscribe('orderAccepted', handleOrderAccepted);
+    
+    return () => {
+      clearInterval(interval);
+      deliveryCoordinationService.unsubscribe('orderAccepted', handleOrderAccepted);
+    };
   }, []);
 
   const handleAcceptDelivery = async (orderId: string) => {
-    const success = await DeliveryDataService.acceptDelivery(orderId);
+    const success = deliveryCoordinationService.acceptOrder(agentId, orderId);
     if (success) {
       // Refresh data
       const tasks = await DeliveryDataService.getAvailableDeliveries();
       setDeliveryTasks(tasks);
       setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+      
+      // Update nearby orders
+      const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
+      setNearbyOrders(nearby);
     }
   };
+
+  if (loading) {
+    return <AttractiveLoader type="delivery" message="Loading delivery tasks..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
@@ -143,10 +193,66 @@ const DeliveryTasks = () => {
           </Card>
         </div>
 
-        {/* Tasks List */}
+        {/* Nearby Orders (Within 10km) */}
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-bold text-gray-800">Nearby Orders (Within 10km)</h2>
+            <Badge variant="secondary" className="bg-green-100 text-green-700">
+              {nearbyOrders.length}
+            </Badge>
+          </div>
+
+          {nearbyOrders.length === 0 ? (
+            <Card className="border-2 border-dashed border-gray-200">
+              <CardContent className="p-8 text-center">
+                <MapPin className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No nearby orders</h3>
+                <p className="text-gray-500">Orders within 10km will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {nearbyOrders.map((order) => (
+                <Card key={order.orderId} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-green-50 border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800">Order #{order.orderId}</h3>
+                        <Badge className="bg-green-500 text-white mt-1">Nearby Order</Badge>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-green-600">₹{order.total.toFixed(0)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded-lg mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4 text-red-500" />
+                        <span className="font-semibold text-gray-700">Customer Details</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-800">{order.customerName}</p>
+                      <p className="text-sm text-gray-600">{order.customerAddress}</p>
+                      <p className="text-sm text-gray-600">{order.customerPhone}</p>
+                    </div>
+
+                    <Button 
+                      className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md"
+                      onClick={() => handleAcceptDelivery(order.orderId)}
+                    >
+                      <Package className="w-4 h-4 mr-2" />
+                      Accept Delivery
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Regular Tasks List */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Available Tasks</h2>
+            <h2 className="text-xl font-bold text-gray-800">All Available Tasks</h2>
             <Badge variant="secondary" className="bg-blue-100 text-blue-700">
               {deliveryTasks.length}
             </Badge>

@@ -7,8 +7,10 @@ import { MapPin, Truck, Clock, CheckCircle, Package, Bell, RefreshCw } from "luc
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import RouteMap from "@/components/RouteMap";
+import LiveDeliveryTracking from "@/components/LiveDeliveryTracking";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
+import { liveTrackingService } from "@/lib/liveTrackingService";
 import { useToast } from "@/hooks/use-toast";
 
 const CustomerOrderTracking = () => {
@@ -133,6 +135,9 @@ const CustomerOrderTracking = () => {
                 description: message,
               });
             }
+            
+            // Start live tracking when status changes to out_for_delivery
+            liveTrackingService.onOrderStatusChange(updatedOrder.orderId, updatedOrder.status);
           }
           
           setLastStatus(updatedOrder.status);
@@ -244,12 +249,21 @@ const CustomerOrderTracking = () => {
           </CardContent>
         </Card>
 
+        {/* Live GPS Tracking */}
+        {currentOrder && currentOrder.status === 'out_for_delivery' && customerAddress?.coordinates && (
+          <LiveDeliveryTracking 
+            orderId={currentOrder.orderId}
+            customerLat={customerAddress.coordinates.lat}
+            customerLng={customerAddress.coordinates.lng}
+          />
+        )}
+
         {currentOrder && currentOrder.status === 'out_for_delivery' && currentOrder.deliveryAgent?.location && customerAddress?.coordinates && (
           <Card>
             <CardHeader className="p-6">
               <CardTitle className="flex items-center text-lg">
                 <MapPin className="w-5 h-5 mr-2" />
-                Live Tracking
+                Live Map View
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 pt-0">

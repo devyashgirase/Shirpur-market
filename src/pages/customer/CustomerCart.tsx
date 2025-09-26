@@ -10,11 +10,14 @@ import {
   removeFromCart, 
   clearCart, 
   getCartTotal,
+  saveLastOrder,
   type CartItem 
 } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
+import OrderSuccessModal from "@/components/OrderSuccessModal";
+import PendingPaymentOrders from "@/components/PendingPaymentOrders";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { WhatsAppService } from "@/lib/whatsappService";
@@ -32,6 +35,9 @@ const CustomerCart = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState('');
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
 
 
   useEffect(() => {
@@ -61,6 +67,24 @@ const CustomerCart = () => {
   const handleAddressSubmit = (addressData: AddressData) => {
     setCustomerAddress(addressData);
     
+    // Create pending order
+    const pendingOrder = {
+      id: Date.now().toString(),
+      orderId: `ORD-${Date.now()}`,
+      items: cart.map(item => ({
+        name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price
+      })),
+      total: getTotalAmount(),
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save to pending orders
+    const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
+    pendingOrders.push(pendingOrder);
+    localStorage.setItem('pendingPaymentOrders', JSON.stringify(pendingOrders));
+    
     // Store customer phone for notifications
     localStorage.setItem('customerPhone', addressData.phone);
     
@@ -81,6 +105,10 @@ const CustomerCart = () => {
       description: 'Order Payment',
       handler: function (response: any) {
         console.log('Payment successful:', response.razorpay_payment_id);
+        // Remove from pending orders
+        const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
+        const updatedOrders = pendingOrders.filter((order: any) => order.orderId !== pendingOrder.orderId);
+        localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
         handlePaymentSuccess();
       },
       modal: {
@@ -208,24 +236,34 @@ const CustomerCart = () => {
     NotificationService.sendOrderStatusNotification(orderId, 'confirmed', 'customer');
     NotificationService.sendOrderStatusNotification(orderId, 'confirmed', 'admin');
     
-    toast({
-      title: "Order Placed Successfully!",
-      description: `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed. You'll receive real-time updates.`,
-    });
+    // Save order for tracking
+    saveLastOrder(orderData);
     
     // Clear cart
-    const clearedCart = clearCart();
-    setCart(clearedCart);
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
+    clearCart();
+    setCart([]);
     
-    // Redirect to tracking page
-    setTimeout(() => {
-      navigate('/customer/track');
-    }, 2000);
+    // Show success modal
+    setLastOrderId(orderId);
+    setShowSuccessModal(true);
+    
+    toast({
+      title: "Order Placed Successfully!",
+      description: `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed.`,
+    });
   };
 
   const getTotalAmount = () => {
     return getCartTotal(cart) + 4.99 + (getCartTotal(cart) * 0.08);
+  };
+
+  const handlePayPendingOrder = (order: any) => {
+    setPendingPaymentOrder(order);
+    setShowAddressForm(true);
+  };
+
+  const handleRemovePendingOrder = (orderId: string) => {
+    // Order already removed in component
   };
 
   if (cart.length === 0) {
@@ -249,6 +287,14 @@ const CustomerCart = () => {
 
   return (
     <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+      {/* Pending Payment Orders */}
+      <div className="mb-6">
+        <PendingPaymentOrders 
+          onPayNow={handlePayPendingOrder}
+          onRemove={handleRemovePendingOrder}
+        />
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
@@ -434,6 +480,13 @@ const CustomerCart = () => {
         isOpen={showAddressForm}
         onClose={() => setShowAddressForm(false)}
         onSubmit={handleAddressSubmit}
+      />
+      
+      {/* Order Success Modal */}
+      <OrderSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        orderId={lastOrderId}
       />
     </div>
   );

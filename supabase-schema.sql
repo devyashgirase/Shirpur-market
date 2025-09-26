@@ -1,125 +1,153 @@
--- Supabase Schema for Shirpur Delivery System
--- Run this in Supabase SQL Editor
+-- Supabase Database Schema for Shirpur Delivery System
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Products table
 CREATE TABLE products (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  price DECIMAL(10,2) NOT NULL,
-  image_url TEXT,
-  category VARCHAR(100),
-  category_id INTEGER,
-  stock_quantity INTEGER DEFAULT 0,
-  min_stock_level INTEGER DEFAULT 5,
-  is_active BOOLEAN DEFAULT true,
-  sku VARCHAR(50),
-  unit VARCHAR(20) DEFAULT 'kg',
-  weight DECIMAL(8,2),
-  discount DECIMAL(5,2) DEFAULT 0,
-  rating DECIMAL(3,2) DEFAULT 0,
-  review_count INTEGER DEFAULT 0,
-  is_featured BOOLEAN DEFAULT false,
-  is_seasonal BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    image TEXT,
+    description TEXT,
+    stock INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Orders table
 CREATE TABLE orders (
-  id SERIAL PRIMARY KEY,
-  order_id VARCHAR(50) UNIQUE,
-  customer_name VARCHAR(255) NOT NULL,
-  customer_phone VARCHAR(20) NOT NULL,
-  delivery_address TEXT NOT NULL,
-  total DECIMAL(10,2) NOT NULL,
-  status VARCHAR(50) DEFAULT 'pending',
-  payment_status VARCHAR(50) DEFAULT 'pending',
-  delivery_agent_id INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Order items table
-CREATE TABLE order_items (
-  id SERIAL PRIMARY KEY,
-  order_id INTEGER REFERENCES orders(id),
-  product_id INTEGER,
-  product_name VARCHAR(255),
-  price DECIMAL(10,2),
-  quantity INTEGER,
-  total DECIMAL(10,2),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Customers table
-CREATE TABLE customers (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  phone VARCHAR(20) UNIQUE NOT NULL,
-  email VARCHAR(255),
-  address TEXT,
-  total_orders INTEGER DEFAULT 0,
-  total_spent DECIMAL(10,2) DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    order_id VARCHAR(50) UNIQUE NOT NULL,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(20) NOT NULL,
+    customer_address TEXT NOT NULL,
+    items JSONB NOT NULL,
+    total DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    payment_status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Delivery agents table
 CREATE TABLE delivery_agents (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  phone VARCHAR(20) UNIQUE NOT NULL,
-  email VARCHAR(255),
-  vehicle_type VARCHAR(50),
-  license_number VARCHAR(50),
-  is_active BOOLEAN DEFAULT true,
-  current_lat DECIMAL(10,8),
-  current_lng DECIMAL(11,8),
-  total_deliveries INTEGER DEFAULT 0,
-  rating DECIMAL(3,2) DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    is_available BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Categories table
-CREATE TABLE categories (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Customers table (for loyalty program)
+CREATE TABLE customers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    email VARCHAR(255),
+    address TEXT,
+    loyalty_points INTEGER DEFAULT 0,
+    total_orders INTEGER DEFAULT 0,
+    total_spent DECIMAL(10,2) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert sample data
-INSERT INTO products (name, description, price, category, stock_quantity, sku, unit, is_featured) VALUES
-('Basmati Rice Premium', 'Premium quality aged basmati rice', 120.00, 'Grains & Cereals', 50, 'RICE001', 'kg', true),
-('Toor Dal', 'Fresh toor dal from Maharashtra', 85.00, 'Pulses & Lentils', 30, 'DAL001', 'kg', false),
-('Sunflower Oil', 'Pure sunflower cooking oil', 150.00, 'Cooking Oil', 25, 'OIL001', 'liter', false),
-('Fresh Milk', 'Farm fresh full cream milk', 28.00, 'Dairy Products', 100, 'MILK001', 'liter', true),
-('Red Onions', 'Fresh red onions from Nashik', 35.00, 'Fresh Vegetables', 40, 'VEG001', 'kg', false),
-('Bananas', 'Fresh ripe bananas', 60.00, 'Fresh Fruits', 20, 'FRUIT001', 'dozen', false);
+-- Order items table (normalized)
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id),
+    product_name VARCHAR(255) NOT NULL,
+    quantity INTEGER NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Enable Row Level Security
+-- Feedback table
+CREATE TABLE feedback (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id),
+    customer_phone VARCHAR(20) NOT NULL,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    delivery_rating INTEGER CHECK (delivery_rating >= 1 AND delivery_rating <= 5),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Inventory logs table
+CREATE TABLE inventory_logs (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER REFERENCES products(id),
+    action VARCHAR(50) NOT NULL, -- 'restock', 'sale', 'adjustment'
+    quantity_change INTEGER NOT NULL,
+    previous_stock INTEGER NOT NULL,
+    new_stock INTEGER NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_orders_customer_phone ON orders(customer_phone);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX idx_orders_created_at ON orders(created_at);
+CREATE INDEX idx_products_category ON products(category);
+CREATE INDEX idx_delivery_agents_phone ON delivery_agents(phone);
+CREATE INDEX idx_delivery_agents_available ON delivery_agents(is_available);
+CREATE INDEX idx_customers_phone ON customers(phone);
+
+-- Insert sample products
+INSERT INTO products (name, price, category, image, description, stock) VALUES
+('Fresh Tomatoes', 40.00, 'Vegetables', '/api/placeholder/300/200', 'Fresh red tomatoes from local farms', 100),
+('Basmati Rice', 120.00, 'Grains', '/api/placeholder/300/200', 'Premium quality basmati rice', 50),
+('Organic Milk', 60.00, 'Dairy', '/api/placeholder/300/200', 'Fresh organic milk from local dairy', 30),
+('Whole Wheat Bread', 35.00, 'Bakery', '/api/placeholder/300/200', 'Freshly baked whole wheat bread', 25),
+('Fresh Bananas', 50.00, 'Fruits', '/api/placeholder/300/200', 'Sweet and ripe bananas', 80),
+('Chicken Breast', 250.00, 'Meat', '/api/placeholder/300/200', 'Fresh chicken breast meat', 20),
+('Onions', 30.00, 'Vegetables', '/api/placeholder/300/200', 'Fresh red onions', 120),
+('Cooking Oil', 180.00, 'Pantry', '/api/placeholder/300/200', 'Refined sunflower oil', 40);
+
+-- Insert sample delivery agents
+INSERT INTO delivery_agents (name, phone, is_available) VALUES
+('Rahul Sharma', '9876543210', true),
+('Priya Patel', '9876543211', true),
+('Amit Kumar', '9876543212', false),
+('Sneha Singh', '9876543213', true);
+
+-- Create updated_at trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for updated_at
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_delivery_agents_updated_at BEFORE UPDATE ON delivery_agents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security (RLS)
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE delivery_agents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_logs ENABLE ROW LEVEL SECURITY;
 
--- Create policies for public access (adjust as needed)
-CREATE POLICY "Allow public read access on products" ON products FOR SELECT USING (true);
-CREATE POLICY "Allow public read access on orders" ON orders FOR SELECT USING (true);
-CREATE POLICY "Allow public read access on order_items" ON order_items FOR SELECT USING (true);
-CREATE POLICY "Allow public read access on customers" ON customers FOR SELECT USING (true);
-CREATE POLICY "Allow public read access on delivery_agents" ON delivery_agents FOR SELECT USING (true);
-CREATE POLICY "Allow public read access on categories" ON categories FOR SELECT USING (true);
-
--- Allow inserts and updates
-CREATE POLICY "Allow public insert on orders" ON orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public insert on order_items" ON order_items FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public insert on customers" ON customers FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update on orders" ON orders FOR UPDATE USING (true);
-CREATE POLICY "Allow public update on products" ON products FOR UPDATE USING (true);
+-- Create policies for public access (adjust as needed for your security requirements)
+CREATE POLICY "Allow all operations on products" ON products FOR ALL USING (true);
+CREATE POLICY "Allow all operations on orders" ON orders FOR ALL USING (true);
+CREATE POLICY "Allow all operations on delivery_agents" ON delivery_agents FOR ALL USING (true);
+CREATE POLICY "Allow all operations on customers" ON customers FOR ALL USING (true);
+CREATE POLICY "Allow all operations on order_items" ON order_items FOR ALL USING (true);
+CREATE POLICY "Allow all operations on feedback" ON feedback FOR ALL USING (true);
+CREATE POLICY "Allow all operations on inventory_logs" ON inventory_logs FOR ALL USING (true);
