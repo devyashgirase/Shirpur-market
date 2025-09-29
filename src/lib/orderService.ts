@@ -57,7 +57,50 @@ export class OrderService {
 
   // Get all orders
   static getAllOrders(): Order[] {
-    return JSON.parse(localStorage.getItem('allOrders') || '[]');
+    const storedOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+    
+    // Add mock order with out_for_delivery status if not already present
+    const mockOrderId = 'ORD_DEMO_DELIVERY';
+    const hasMockOrder = storedOrders.some((order: Order) => order.orderId === mockOrderId);
+    
+    if (!hasMockOrder) {
+      const mockOrder: Order = {
+        orderId: mockOrderId,
+        status: 'out_for_delivery',
+        timestamp: new Date(Date.now() - 15 * 60000).toISOString(), // 15 minutes ago
+        customerAddress: {
+          name: 'Demo Customer',
+          phone: '+91 98765 43210',
+          address: 'Shirpur Market, Near Bus Stand, Shirpur, Maharashtra 425405',
+          coordinates: { lat: 21.3099, lng: 75.1178 }
+        },
+        items: [
+          {
+            product: { id: '1', name: 'Fresh Tomatoes', price: 40 },
+            quantity: 2
+          },
+          {
+            product: { id: '2', name: 'Onions', price: 30 },
+            quantity: 1
+          }
+        ],
+        total: 114.99,
+        paymentStatus: 'paid',
+        deliveryAgent: {
+          id: 'AGENT_DEMO',
+          name: 'Rahul Sharma',
+          phone: '+91 98765 43210',
+          location: {
+            lat: 21.3099 + (Math.random() - 0.5) * 0.01,
+            lng: 75.1178 + (Math.random() - 0.5) * 0.01
+          }
+        }
+      };
+      
+      storedOrders.unshift(mockOrder); // Add at beginning
+    }
+    
+    return storedOrders;
   }
 
   // Get orders from API
@@ -71,7 +114,8 @@ export class OrderService {
         customerAddress: {
           name: order.customerName,
           phone: order.customerPhone,
-          address: order.deliveryAddress
+          address: order.deliveryAddress,
+          coordinates: order.coordinates || { lat: 21.3099, lng: 75.1178 }
         },
         items: order.items?.map(item => ({
           product: { id: item.productId.toString(), name: item.productName, price: item.price },

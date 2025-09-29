@@ -191,6 +191,50 @@ CREATE POLICY "Allow all operations on inventory_logs" ON inventory_logs FOR ALL
 CREATE POLICY "Allow all operations on users" ON users FOR ALL USING (true);
 CREATE POLICY "Allow all operations on otp_verifications" ON otp_verifications FOR ALL USING (true);
 
+-- Cart items table
+CREATE TABLE cart_items (
+    id SERIAL PRIMARY KEY,
+    user_phone VARCHAR(20) NOT NULL,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User preferences table for personalization
+CREATE TABLE user_preferences (
+    id SERIAL PRIMARY KEY,
+    user_phone VARCHAR(20) NOT NULL,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+    category_id VARCHAR(100) NOT NULL,
+    added_to_cart_count INTEGER DEFAULT 0,
+    purchased_count INTEGER DEFAULT 0,
+    last_interaction TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    score DECIMAL(10,2) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for cart and preferences
+CREATE INDEX idx_cart_items_user_phone ON cart_items(user_phone);
+CREATE INDEX idx_cart_items_product_id ON cart_items(product_id);
+CREATE INDEX idx_user_preferences_user_phone ON user_preferences(user_phone);
+CREATE INDEX idx_user_preferences_product_id ON user_preferences(product_id);
+CREATE INDEX idx_user_preferences_category_id ON user_preferences(category_id);
+CREATE INDEX idx_user_preferences_score ON user_preferences(score);
+
+-- Enable RLS for new tables
+ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for new tables
+CREATE POLICY "Allow all operations on cart_items" ON cart_items FOR ALL USING (true);
+CREATE POLICY "Allow all operations on user_preferences" ON user_preferences FOR ALL USING (true);
+
+-- Create triggers for updated_at
+CREATE TRIGGER update_cart_items_updated_at BEFORE UPDATE ON cart_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Clean up expired OTPs function
 CREATE OR REPLACE FUNCTION cleanup_expired_otps()
 RETURNS void AS $$

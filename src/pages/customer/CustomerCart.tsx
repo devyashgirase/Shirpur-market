@@ -4,15 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
-import { 
-  getCartFromStorage, 
-  updateCartQuantity, 
-  removeFromCart, 
-  clearCart, 
-  getCartTotal,
-  saveLastOrder,
-  type CartItem 
-} from "@/lib/mockData";
+import { cartService, type CartItem } from "@/lib/cartService";
+import { saveLastOrder } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
@@ -41,23 +34,42 @@ const CustomerCart = () => {
 
 
   useEffect(() => {
-    setCart(getCartFromStorage());
+    const loadCart = async () => {
+      try {
+        const cartItems = await cartService.getCartItems();
+        setCart(cartItems);
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+        setCart([]);
+      }
+    };
+    loadCart();
   }, []);
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    const updatedCart = updateCartQuantity(productId, newQuantity);
-    setCart(updatedCart);
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  const updateQuantity = async (productId: string, newQuantity: number) => {
+    try {
+      await cartService.updateCartQuantity(productId, newQuantity);
+      const updatedCart = await cartService.getCartItems();
+      setCart(updatedCart);
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+    }
   };
 
-  const removeItem = (productId: string) => {
-    const updatedCart = removeFromCart(productId);
-    setCart(updatedCart);
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-    toast({
-      title: "Item removed",
-      description: "Item has been removed from your cart",
-    });
+  const removeItem = async (productId: string) => {
+    try {
+      await cartService.removeFromCart(productId);
+      const updatedCart = await cartService.getCartItems();
+      setCart(updatedCart);
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      toast({
+        title: "Item removed",
+        description: "Item has been removed from your cart",
+      });
+    } catch (error) {
+      console.error('Failed to remove item:', error);
+    }
   };
 
   const handleCheckout = () => {
@@ -164,11 +176,8 @@ const CustomerCart = () => {
     // Generate unique order ID using DataGenerator
     const orderId = DataGenerator.generateOrderId();
     
-    // Generate dynamic customer data if not provided
-    const dynamicCustomer = customerAddress.name ? customerAddress : {
-      ...DataGenerator.generateCustomer(),
-      ...customerAddress
-    };
+    // Use only real customer data from address form
+    const dynamicCustomer = customerAddress;
     
     // Create order using OrderService
     const orderData: Order = {
@@ -257,7 +266,7 @@ const CustomerCart = () => {
     saveLastOrder(orderData);
     
     // Clear cart only after successful order creation
-    clearCart();
+    await cartService.clearCart();
     setCart([]);
     window.dispatchEvent(new CustomEvent('cartUpdated'));
     
@@ -275,7 +284,12 @@ const CustomerCart = () => {
   };
 
   const getTotalAmount = () => {
-    return getCartTotal(cart) + 4.99 + (getCartTotal(cart) * 0.08);
+    const subtotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    return subtotal + 4.99 + (subtotal * 0.08);
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   };
 
   const handlePayPendingOrder = (order: any) => {
@@ -461,7 +475,7 @@ const CustomerCart = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm md:text-base">
                   <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                  <span>₹{getCartTotal(cart).toFixed(2)}</span>
+                  <span>₹{getCartTotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm md:text-base">
                   <span>Delivery Fee</span>
@@ -469,7 +483,7 @@ const CustomerCart = () => {
                 </div>
                 <div className="flex justify-between text-sm md:text-base">
                   <span>Tax</span>
-                  <span>₹{(getCartTotal(cart) * 0.08).toFixed(2)}</span>
+                  <span>₹{(getCartTotal() * 0.08).toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base md:text-lg font-bold">

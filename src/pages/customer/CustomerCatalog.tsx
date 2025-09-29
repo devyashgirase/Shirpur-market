@@ -17,6 +17,8 @@ import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 
 import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
+import { personalizationService } from "@/lib/personalizationService";
+import PersonalizedRecommendations from "@/components/PersonalizedRecommendations";
 
 const CustomerCatalog = () => {
   const { toast } = useToast();
@@ -114,16 +116,31 @@ const CustomerCatalog = () => {
     return categories.find(c => c.id === categoryId)?.name || 'Unknown';
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = async (product: Product) => {
     if (product.stock_qty > 0) {
-      addToCart(product, 1);
-      
-      sweetAlert.success(
-        "Added to Cart!",
-        `${product.name} has been added to your cart successfully`
-      );
-      
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      try {
+        const success = await addToCart(product, 1);
+        
+        if (success) {
+          sweetAlert.success(
+            "Added to Cart!",
+            `${product.name} has been added to your cart successfully`
+          );
+          
+          window.dispatchEvent(new CustomEvent('cartUpdated'));
+        } else {
+          sweetAlert.error(
+            "Error!",
+            "Failed to add item to cart. Please try again."
+          );
+        }
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+        sweetAlert.error(
+          "Error!",
+          "Failed to add item to cart. Please try again."
+        );
+      }
     }
   };
 
@@ -152,7 +169,14 @@ const CustomerCatalog = () => {
   };
   
   const featuredProducts = getCarouselItems();
-  const popularProducts = products.filter(p => p.stock_qty > 20).slice(0, 8);
+  const [popularProducts, setPopularProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const personalized = personalizationService.getPersonalizedProducts(products, 8);
+      setPopularProducts(personalized);
+    }
+  }, [products]);
 
   if (loading) {
     return <AttractiveLoader type="customer" message="Loading fresh products..." />;
@@ -264,10 +288,13 @@ const CustomerCatalog = () => {
           </Card>
         </div>
 
+        {/* Personalized Recommendations */}
+        <PersonalizedRecommendations products={products} />
+
         {popularProducts.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-              🔥 Popular Products
+              🔥 Popular Items
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8">
               {popularProducts.map((product) => (
@@ -325,63 +352,59 @@ const CustomerCatalog = () => {
         )}
 
         <div className="mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">All Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            🛍️ All Products
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map(product => (
-              <Card key={product.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white border-0 shadow-md responsive-transition">
-                <CardHeader className="p-3 sm:p-4 pb-2">
-                  <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-50 to-green-100 rounded-xl mb-2 sm:mb-3 flex items-center justify-center overflow-hidden relative">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover responsive-image" />
-                    ) : (
-                      <Package className="w-8 h-8 sm:w-12 sm:h-12 text-blue-600" />
-                    )}
-                    {product.stock_qty < 10 && (
-                      <Badge className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-red-500 text-white text-xs">
-                        Low Stock
-                      </Badge>
-                    )}
-                  </div>
-                  <CardTitle className="text-sm sm:text-base leading-tight line-clamp-2">{product.name}</CardTitle>
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                      {getCategoryName(product.category_id)}
-                    </Badge>
-                    {product.is_age_restricted && (
-                      <Badge variant="destructive" className="text-xs">
-                        21+
-                      </Badge>
-                    )}
+              <Card key={product.id} className="bg-gradient-to-br from-white via-blue-50 to-green-50 border-2 border-blue-200 hover:border-green-400 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start gap-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-yellow-200 to-orange-200 rounded-2xl flex items-center justify-center text-3xl animate-pulse flex-shrink-0">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-2xl" />
+                      ) : (
+                        '🥬'
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-lg font-bold text-gray-800 mb-1">{product.name}</CardTitle>
+                      <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          {getCategoryName(product.category_id)}
+                        </Badge>
+                        {product.stock_qty > 50 && (
+                          <Badge className="bg-gradient-to-r from-green-500 to-blue-500 text-white animate-pulse">
+                            🔥 In Stock
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
-                
-                <CardContent className="p-3 sm:p-4 pt-0">
-                  <div className="mb-3">
-                    <div className="mb-2">
-                      <p className="text-lg sm:text-xl font-bold text-green-600 mb-1">₹{product.price}</p>
-                      <p className="text-xs text-muted-foreground">per {product.unit}</p>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <DynamicPrice currentPrice={product.price} productId={product.id} />
+                      <p className="text-sm text-gray-500">per {product.unit}</p>
                     </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className={`font-medium ${
-                        product.stock_qty > 20 ? 'text-green-600' : 
-                        product.stock_qty > 5 ? 'text-orange-600' : 'text-red-600'
-                      }`}>
-                        {product.stock_qty} in stock
-                      </span>
-                      <span className="text-muted-foreground hidden sm:inline">{product.sku}</span>
+                    <div className="flex items-center gap-2">
+                      {product.stock_qty === 0 ? (
+                        <Badge variant="destructive" className="animate-pulse">
+                          😞 Out of Stock
+                        </Badge>
+                      ) : (
+                        <Button 
+                          onClick={() => handleAddToCart(product)}
+                          className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold px-6 py-2 rounded-full transform hover:scale-110 transition-all duration-200 shadow-lg"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Add to Cart 🛒
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  
-                  <Button 
-                    onClick={() => handleAddToCart(product)}
-                    disabled={product.stock_qty === 0}
-                    className="w-full text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 border-0 shadow-md btn-mobile"
-                    size="sm"
-                  >
-                    <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">{product.stock_qty === 0 ? 'Out of Stock' : 'Add to Cart'}</span>
-                    <span className="sm:hidden">{product.stock_qty === 0 ? 'Out' : 'Add'}</span>
-                  </Button>
                 </CardContent>
               </Card>
             ))}

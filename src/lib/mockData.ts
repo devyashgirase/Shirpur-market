@@ -1,5 +1,7 @@
 // Database-only data service - No hardcoded data
 import { apiService } from './apiService';
+import { cartService } from './cartService';
+import { personalizationService } from './personalizationService';
 
 export interface Product {
   id: string;
@@ -65,51 +67,37 @@ export const getDynamicCategories = async () => {
 export const mockOrders = [];
 export const mockDeliveryTasks = [];
 
-export const getCartFromStorage = () => {
-  return JSON.parse(localStorage.getItem('cart') || '[]');
+// Database-based cart functions
+export const getCartFromStorage = async () => {
+  return await cartService.getCartItems();
 };
 
-export const getCartTotal = () => {
-  const cart = getCartFromStorage();
-  return cart.reduce((total: number, item: any) => total + (item.product.price * item.quantity), 0);
+export const getCartTotal = async () => {
+  return await cartService.getCartTotal();
 };
 
-export const addToCart = (product: Product, quantity: number) => {
-  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const existingItem = cart.find((item: any) => item.product.id === product.id);
-  
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    cart.push({ product, quantity });
+export const addToCart = async (product: Product, quantity: number) => {
+  const success = await cartService.addToCart(product.id, quantity);
+  if (success) {
+    await personalizationService.trackAddToCart(product);
   }
-  
-  localStorage.setItem('cart', JSON.stringify(cart));
+  return success;
 };
 
-export const updateCartQuantity = (productId: string, newQuantity: number) => {
-  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const item = cart.find((item: any) => item.product.id === productId);
-  
-  if (item) {
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-    } else {
-      item.quantity = newQuantity;
-      localStorage.setItem('cart', JSON.stringify(cart));
-    }
+export const updateCartQuantity = async (productId: string, newQuantity: number) => {
+  return await cartService.updateCartQuantity(productId, newQuantity);
+};
+
+export const removeFromCart = async (productId: string) => {
+  return await cartService.removeFromCart(productId);
+};
+
+export const clearCart = async () => {
+  const success = await cartService.clearCart();
+  if (success) {
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
   }
-};
-
-export const removeFromCart = (productId: string) => {
-  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const updatedCart = cart.filter((item: any) => item.product.id !== productId);
-  localStorage.setItem('cart', JSON.stringify(updatedCart));
-};
-
-export const clearCart = () => {
-  localStorage.setItem('cart', '[]');
-  window.dispatchEvent(new CustomEvent('cartUpdated'));
+  return success;
 };
 
 export const saveLastOrder = (orderData: any) => {
@@ -126,6 +114,5 @@ export const getLastOrder = () => {
 
 export const updateProductStock = (productId: string, quantityUsed: number): Product[] => {
   // This should update stock in database via API
-  // For now, return empty array as we're using database-only approach
   return [];
 };

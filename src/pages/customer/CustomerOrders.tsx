@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Package, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
 import { unifiedDB } from "@/lib/database";
 import { OrderService } from "@/lib/orderService";
+import { useNavigate } from "react-router-dom";
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadCustomerOrders();
@@ -94,6 +96,20 @@ const CustomerOrders = () => {
     return new Date(dateString).toLocaleString();
   };
 
+  const handleViewDetails = (order: any) => {
+    // Store the selected order for details view
+    localStorage.setItem('selectedOrderDetails', JSON.stringify(order));
+    // Navigate to order details page
+    navigate(`/customer/order-details/${order.orderId || order.id}`);
+  };
+
+  const handleTrackOrder = (order: any) => {
+    // Store the selected order for tracking
+    localStorage.setItem('currentOrder', JSON.stringify(order));
+    // Navigate to tracking page
+    navigate('/customer/track');
+  };
+
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
@@ -170,10 +186,15 @@ const CustomerOrders = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleViewDetails(order)}>
                   View Details
                 </Button>
+                {['out_for_delivery', 'confirmed', 'preparing'].includes(order.status) && (
+                  <Button variant="outline" size="sm" onClick={() => handleTrackOrder(order)} className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
+                    Track Order
+                  </Button>
+                )}
                 {order.status === 'delivered' && (
                   <Button variant="outline" size="sm">
                     Reorder

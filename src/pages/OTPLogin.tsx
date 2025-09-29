@@ -303,42 +303,48 @@ const OTPLogin = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"></div>
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-      
-      {/* Floating Elements */}
-      <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-      <div className="absolute top-32 right-16 w-16 h-16 bg-yellow-300/20 rounded-full blur-lg animate-bounce"></div>
-      <div className="absolute bottom-20 left-20 w-24 h-24 bg-pink-300/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-      <div className="absolute bottom-32 right-10 w-12 h-12 bg-blue-300/20 rounded-full blur-md animate-bounce delay-500"></div>
-      
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-24 h-24 bg-gradient-to-r from-white to-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl backdrop-blur-sm border border-white/20 animate-pulse">
-            <span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">S</span>
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">Shirpur Delivery</h1>
-          <p className="text-white/90 text-lg drop-shadow-md">🔐 Secure Login with OTP</p>
-        </div>
-
-        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-md border border-white/20">
-          <CardHeader className="space-y-1 pb-6 text-center">
-            <div className="text-4xl mb-2">
-              {step === 'phone' && '📱'}
-              {step === 'otp' && '🔐'}
-              {step === 'setup' && '👤'}
+    <div className="min-h-screen bg-white flex">
+      {/* Left Side - Illustration */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-400 to-red-500 items-center justify-center p-12">
+        <div className="text-center text-white">
+          <div className="w-64 h-64 mx-auto mb-8 relative">
+            <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+            <div className="absolute inset-4 bg-white/30 rounded-full animate-pulse delay-300"></div>
+            <div className="absolute inset-8 bg-white rounded-full flex items-center justify-center">
+              <span className="text-6xl text-orange-500">🍽️</span>
             </div>
-            <CardTitle className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {step === 'phone' && 'Enter Phone Number'}
-              {step === 'otp' && 'Verify OTP'}
-              {step === 'setup' && 'Complete Setup'}
-            </CardTitle>
-          </CardHeader>
+          </div>
+          <h2 className="text-4xl font-bold mb-4">Shirpur Delivery</h2>
+          <p className="text-xl opacity-90">Fresh food delivered in 30 minutes</p>
+        </div>
+      </div>
+      
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl text-white">🍽️</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800">Shirpur Delivery</h1>
+          </div>
+
+          <div className="bg-white">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                {step === 'phone' && 'Login'}
+                {step === 'otp' && 'Verify OTP'}
+                {step === 'setup' && 'Complete Profile'}
+              </h2>
+              <p className="text-gray-600">
+                {step === 'phone' && 'Enter your phone number to continue'}
+                {step === 'otp' && `We've sent an OTP to +91 ${phone}`}
+                {step === 'setup' && 'Tell us a bit about yourself'}
+              </p>
+            </div>
           
-          <CardContent className="px-6">
+            <div>
             {/* Phone Number Step */}
             {step === 'phone' && (
               <form onSubmit={handleSendOTP} className="space-y-4">
@@ -362,7 +368,7 @@ const OTPLogin = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-medium"
                   disabled={loading || phone.length !== 10}
                 >
                   {loading ? "Sending OTP..." : "Send OTP"}
@@ -401,7 +407,7 @@ const OTPLogin = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-medium"
                   disabled={loading || otp.length !== 6}
                 >
                   {loading ? "Verifying..." : "Verify OTP"}
@@ -498,24 +504,25 @@ const OTPLogin = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-medium"
                   disabled={loading || !name.trim()}
                 >
-                  {loading ? "Setting up..." : "Complete Setup"}
+                  {loading ? "Setting up..." : "Get Started"}
                 </Button>
               </form>
             )}
-          </CardContent>
-        </Card>
+            </div>
 
-        {/* Demo Info */}
-        {step === 'phone' && (
-          <div className="mt-6 p-4 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg">
-            <p className="text-sm text-white text-center drop-shadow-md">
-              <strong>📱 Demo Mode:</strong> OTP will be displayed in an alert for testing
-            </p>
+            {/* Demo Info */}
+            {step === 'phone' && (
+              <div className="mt-6 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-sm text-orange-800 text-center">
+                  <strong>Demo Mode:</strong> OTP will be displayed in an alert for testing
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

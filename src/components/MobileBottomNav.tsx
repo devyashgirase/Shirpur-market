@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Home, ShoppingCart, Package, MapPin } from "lucide-react";
-import { getCartFromStorage } from "@/lib/mockData";
+import { cartService } from "@/lib/cartService";
 import { useState, useEffect } from "react";
 
 interface MobileBottomNavProps {
@@ -15,10 +15,14 @@ const MobileBottomNav = ({ userType }: MobileBottomNavProps) => {
 
   useEffect(() => {
     if (userType === 'customer') {
-      const updateCartCount = () => {
-        const cart = getCartFromStorage();
-        const count = cart.reduce((total, item) => total + item.quantity, 0);
-        setCartItemCount(count);
+      const updateCartCount = async () => {
+        try {
+          const count = await cartService.getCartItemCount();
+          setCartItemCount(count);
+        } catch (error) {
+          console.error('Failed to get cart count:', error);
+          setCartItemCount(0);
+        }
       };
 
       updateCartCount();

@@ -12,6 +12,8 @@ import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { liveTrackingService } from "@/lib/liveTrackingService";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 const CustomerOrderTracking = () => {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -19,6 +21,7 @@ const CustomerOrderTracking = () => {
   const [lastStatus, setLastStatus] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const refreshOrderData = async () => {
     setIsLoading(true);
@@ -80,15 +83,42 @@ const CustomerOrderTracking = () => {
         const storedAddress = localStorage.getItem('customerAddress');
         
         if (storedOrder) {
-          const orderData = JSON.parse(storedOrder);
+          let orderData = JSON.parse(storedOrder);
           const apiOrder = apiOrders.find(order => order.orderId === orderData.orderId);
           if (apiOrder) {
-            setCurrentOrder(apiOrder);
-            setLastStatus(apiOrder.status);
-          } else {
-            setCurrentOrder(orderData);
-            setLastStatus(orderData.status);
+            orderData = apiOrder;
           }
+          
+          // Add mock delivery agent and customer address for demo
+          if (orderData.status === 'out_for_delivery') {
+            if (!orderData.deliveryAgent) {
+              orderData.deliveryAgent = {
+                name: 'Rahul Sharma',
+                phone: '+91 98765 43210',
+                location: {
+                  lat: 21.3099 + (Math.random() - 0.5) * 0.01,
+                  lng: 75.1178 + (Math.random() - 0.5) * 0.01
+                }
+              };
+            }
+            
+            if (!customerAddress) {
+              const mockAddress = {
+                name: 'Customer',
+                phone: orderData.customerPhone || '+91 98765 43210',
+                address: orderData.deliveryAddress || 'Shirpur, Maharashtra',
+                coordinates: {
+                  lat: 21.3099,
+                  lng: 75.1178
+                }
+              };
+              setCustomerAddress(mockAddress);
+              localStorage.setItem('customerAddress', JSON.stringify(mockAddress));
+            }
+          }
+          
+          setCurrentOrder(orderData);
+          setLastStatus(orderData.status);
         }
         
         if (storedAddress) {
@@ -100,7 +130,36 @@ const CustomerOrderTracking = () => {
         const storedAddress = localStorage.getItem('customerAddress');
         
         if (storedOrder) {
-          const orderData = JSON.parse(storedOrder);
+          let orderData = JSON.parse(storedOrder);
+          
+          // Add mock data for demo even in error case
+          if (orderData.status === 'out_for_delivery') {
+            if (!orderData.deliveryAgent) {
+              orderData.deliveryAgent = {
+                name: 'Rahul Sharma',
+                phone: '+91 98765 43210',
+                location: {
+                  lat: 21.3099 + (Math.random() - 0.5) * 0.01,
+                  lng: 75.1178 + (Math.random() - 0.5) * 0.01
+                }
+              };
+            }
+            
+            if (!customerAddress) {
+              const mockAddress = {
+                name: 'Customer',
+                phone: orderData.customerPhone || '+91 98765 43210',
+                address: orderData.deliveryAddress || 'Shirpur, Maharashtra',
+                coordinates: {
+                  lat: 21.3099,
+                  lng: 75.1178
+                }
+              };
+              setCustomerAddress(mockAddress);
+              localStorage.setItem('customerAddress', JSON.stringify(mockAddress));
+            }
+          }
+          
           setCurrentOrder(orderData);
           setLastStatus(orderData.status);
         }
@@ -173,9 +232,15 @@ const CustomerOrderTracking = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
-        <div className="text-center mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-center gap-2 md:gap-4 mb-4">
-            <h1 className="text-2xl md:text-3xl font-bold">Track Your Order</h1>
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl md:text-3xl font-bold">Track Your Order</h1>
+            </div>
             <Button 
               variant="outline" 
               size="sm" 
@@ -215,6 +280,9 @@ const CustomerOrderTracking = () => {
                   <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-lg font-medium text-muted-foreground mb-2">No Active Orders</p>
                   <p className="text-sm text-muted-foreground px-4">Place an order from our products to start tracking</p>
+                  <Button className="mt-4" onClick={() => navigate('/customer')}>
+                    Browse Products
+                  </Button>
                 </div>
               )}
             </div>
@@ -249,7 +317,98 @@ const CustomerOrderTracking = () => {
           </CardContent>
         </Card>
 
-        {/* Live GPS Tracking */}
+        {/* Live GPS Tracking - Show when out for delivery */}
+        {currentOrder && currentOrder.status === 'out_for_delivery' && (
+          <Card>
+            <CardHeader className="p-6">
+              <CardTitle className="flex items-center text-lg">
+                <MapPin className="w-5 h-5 mr-2" />
+                🚚 Live GPS Tracking
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="mb-4 bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-800 font-medium">Live Tracking Active</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  📍 Your delivery partner is on the way! Track their real-time location below.
+                </p>
+              </div>
+              
+              {customerAddress?.coordinates && currentOrder.deliveryAgent?.location ? (
+                <div className="h-96 rounded-lg overflow-hidden border">
+                  <MapContainer
+                    center={[
+                      currentOrder.deliveryAgent.location.lat,
+                      currentOrder.deliveryAgent.location.lng
+                    ]}
+                    zoom={14}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    />
+                    
+                    <Marker 
+                      position={[
+                        currentOrder.deliveryAgent.location.lat,
+                        currentOrder.deliveryAgent.location.lng
+                      ]} 
+                      icon={deliveryIcon}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <p className="font-semibold">🚚 {currentOrder.deliveryAgent.name}</p>
+                          <p className="text-sm">On the way to your location</p>
+                          <p className="text-sm text-muted-foreground">
+                            📞 {currentOrder.deliveryAgent.phone}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Last updated: {new Date().toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+
+                    <Marker 
+                      position={[
+                        customerAddress.coordinates.lat,
+                        customerAddress.coordinates.lng
+                      ]} 
+                      icon={customerIcon}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <p className="font-semibold">📍 Your Location</p>
+                          <p className="text-sm">{customerAddress.name}</p>
+                          <p className="text-sm text-muted-foreground">{customerAddress.address}</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+
+                    <RouteMap 
+                      start={currentOrder.deliveryAgent.location}
+                      end={customerAddress.coordinates}
+                      isActive={true}
+                    />
+                  </MapContainer>
+                </div>
+              ) : (
+                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">Initializing GPS tracking...</p>
+                    <p className="text-sm text-gray-500">Please wait while we locate your delivery partner</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {currentOrder && currentOrder.status === 'out_for_delivery' && customerAddress?.coordinates && (
           <LiveDeliveryTracking 
             orderId={currentOrder.orderId}
@@ -258,7 +417,7 @@ const CustomerOrderTracking = () => {
           />
         )}
 
-        {currentOrder && currentOrder.status === 'out_for_delivery' && currentOrder.deliveryAgent?.location && customerAddress?.coordinates && (
+        {false && currentOrder && currentOrder.status === 'out_for_delivery' && currentOrder.deliveryAgent?.location && customerAddress?.coordinates && (
           <Card>
             <CardHeader className="p-6">
               <CardTitle className="flex items-center text-lg">
