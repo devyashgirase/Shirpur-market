@@ -8,7 +8,7 @@ import "@/components/ui/animations.css";
 
 import { useEffect } from "react";
 import { startNotificationDemo } from "@/lib/testNotifications";
-import Login from "./pages/Login";
+import OTPLogin from "./pages/OTPLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import CustomerLayout from "./pages/customer/CustomerLayout";
@@ -23,6 +23,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminTracking from "./pages/admin/AdminTracking";
 import AdminLiveTracking from "./pages/admin/AdminLiveTracking";
 import AdminFeatures from "./pages/admin/AdminFeatures";
+import AdminCarousel from "./pages/admin/AdminCarousel";
 import DeliveryLayout from "./pages/delivery/DeliveryLayout";
 import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
@@ -52,9 +53,9 @@ const App = () => {
           <Sonner />
         <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<OTPLogin />} />
           <Route path="/home" element={<Index />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<OTPLogin />} />
           
           {/* Customer Routes */}
           <Route path="/customer" element={
@@ -79,6 +80,7 @@ const App = () => {
             <Route path="orders" element={<AdminOrders />} />
             <Route path="tracking" element={<AdminTracking />} />
             <Route path="live-tracking" element={<AdminLiveTracking />} />
+            <Route path="carousel" element={<AdminCarousel />} />
             <Route path="features" element={<AdminFeatures />} />
           </Route>
           

@@ -5,52 +5,66 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, LogOut, Shield, Truck, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/lib/authService";
 
 const ProfileDropdown = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const userRole = localStorage.getItem('userRole') || 'guest';
+  const session = authService.getCurrentSession();
 
   const getUserInfo = () => {
-    switch (userRole) {
+    if (!session) {
+      return {
+        name: 'Guest User',
+        phone: '',
+        role: 'Guest',
+        icon: <User className="w-4 h-4" />,
+        initials: 'GU'
+      };
+    }
+
+    const initials = session.name 
+      ? session.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+      : session.phone.slice(-2);
+
+    switch (session.role) {
       case 'customer':
         return {
-          name: 'Customer User',
-          email: 'customer@shirpur.com',
+          name: session.name || 'Customer',
+          phone: session.phone,
           role: 'Customer',
           icon: <ShoppingBag className="w-4 h-4" />,
-          initials: 'CU'
+          initials
         };
       case 'admin':
         return {
-          name: 'Admin User',
-          email: 'admin@shirpur.com',
+          name: session.name || 'Admin',
+          phone: session.phone,
           role: 'Administrator',
           icon: <Shield className="w-4 h-4" />,
-          initials: 'AU'
+          initials
         };
       case 'delivery':
         return {
-          name: 'Delivery Partner',
-          email: 'delivery@shirpur.com',
+          name: session.name || 'Delivery Partner',
+          phone: session.phone,
           role: 'Delivery Partner',
           icon: <Truck className="w-4 h-4" />,
-          initials: 'DP'
+          initials
         };
       default:
         return {
-          name: 'Guest User',
-          email: 'guest@shirpur.com',
-          role: 'Guest',
+          name: session.name || 'User',
+          phone: session.phone,
+          role: 'User',
           icon: <User className="w-4 h-4" />,
-          initials: 'GU'
+          initials
         };
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userRole');
+    authService.clearSession();
     
     toast({
       title: "Logged out successfully",
@@ -81,7 +95,7 @@ const ProfileDropdown = () => {
               <p className="text-sm font-medium leading-none">{userInfo.name}</p>
             </div>
             <p className="text-xs leading-none text-muted-foreground">
-              {userInfo.email}
+              +91 {userInfo.phone}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               Role: {userInfo.role}

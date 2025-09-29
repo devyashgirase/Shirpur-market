@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService } from "@/lib/authService";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,18 +11,27 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    const userRole = localStorage.getItem('userRole');
+    const session = authService.getCurrentSession();
+    
+    if (!session || !authService.isLoggedIn()) {
+      navigate('/');
+      return;
+    }
 
-    if (!isLoggedIn || !userRole || !allowedRoles.includes(userRole)) {
-      navigate('/login');
+    if (!allowedRoles.includes(session.role)) {
+      navigate('/');
+      return;
+    }
+
+    if (!session.isFirstLoginComplete) {
+      navigate('/');
+      return;
     }
   }, [navigate, allowedRoles]);
 
-  const isLoggedIn = localStorage.getItem('isLoggedIn');
-  const userRole = localStorage.getItem('userRole');
-
-  if (!isLoggedIn || !userRole || !allowedRoles.includes(userRole)) {
+  const session = authService.getCurrentSession();
+  
+  if (!session || !authService.isLoggedIn() || !allowedRoles.includes(session.role) || !session.isFirstLoginComplete) {
     return null;
   }
 

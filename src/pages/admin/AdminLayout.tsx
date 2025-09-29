@@ -85,6 +85,17 @@ const AdminLayout = () => {
                   </Button>
                 </Link>
                 
+                <Link to="/admin/carousel">
+                  <Button 
+                    variant={isActive('/admin/carousel') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/carousel') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
+                    size="sm"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Carousel
+                  </Button>
+                </Link>
+                
                 <Link to="/admin/features">
                   <Button 
                     variant={isActive('/admin/features') ? "secondary" : "ghost"} 
@@ -163,6 +174,17 @@ const AdminLayout = () => {
                       >
                         <Truck className="w-4 h-4 mr-3" />
                         Live Tracking
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/admin/carousel" className="w-full">
+                      <Button 
+                        variant={isActive('/admin/carousel') ? "default" : "ghost"} 
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <Settings className="w-4 h-4 mr-3" />
+                        Carousel
                       </Button>
                     </Link>
                     

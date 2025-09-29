@@ -34,6 +34,7 @@ import AdvancedAnalytics from "@/components/AdvancedAnalytics";
 import SmartInventory from "@/components/SmartInventory";
 import FeedbackSystem from "@/components/FeedbackSystem";
 import RouteOptimization from "@/components/RouteOptimization";
+import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 
 const AdminDashboard = () => {
   const [adminOrders, setAdminOrders] = useState([]);
@@ -127,6 +128,8 @@ const AdminDashboard = () => {
       </div>
 
       <div className="p-4 sm:p-6 space-y-6">
+        {/* Personalized Welcome */}
+        <PersonalizedWelcome />
 
         {/* Key Metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">

@@ -13,6 +13,7 @@ import { realTimeDataService } from "@/lib/realTimeDataService";
 
 import DynamicPrice from "@/components/DynamicPrice";
 import CustomerLoyalty from "@/components/CustomerLoyalty";
+import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 
 import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
@@ -126,7 +127,31 @@ const CustomerCatalog = () => {
     }
   };
 
-  const featuredProducts = products.slice(0, 5);
+  // Get carousel items from localStorage or use featured products as fallback
+  const getCarouselItems = () => {
+    const saved = localStorage.getItem('carouselItems');
+    if (saved) {
+      const carouselItems = JSON.parse(saved).filter((item: any) => item.isActive);
+      if (carouselItems.length > 0) {
+        return carouselItems.map((item: any) => ({
+          id: item.productId.toString(),
+          name: item.title,
+          description: item.description,
+          price: item.price,
+          image_url: item.imageUrl,
+          category_id: 'featured',
+          stock_qty: 100,
+          is_active: true,
+          sku: `SKU${item.productId}`,
+          unit: 'kg',
+          is_age_restricted: false
+        }));
+      }
+    }
+    return products.slice(0, 5);
+  };
+  
+  const featuredProducts = getCarouselItems();
   const popularProducts = products.filter(p => p.stock_qty > 20).slice(0, 8);
 
   if (loading) {
@@ -156,42 +181,62 @@ const CustomerCatalog = () => {
           </div>
           
           {featuredProducts.length > 0 && (
-            <Carousel className="max-w-4xl mx-auto" autoPlay autoPlayInterval={4000}>
+            <Carousel className="w-full" autoPlay autoPlayInterval={4000}>
               <CarouselContent>
                 {featuredProducts.map((product) => (
                   <CarouselItem key={product.id}>
-                    <Card className="bg-white/10 backdrop-blur border-white/20">
-                      <CardContent className="p-6 text-center">
-                        <div className="w-32 h-32 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
-                          {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-full" />
-                          ) : (
-                            <Package className="w-16 h-16 text-white" />
-                          )}
+                    <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 w-full rounded-lg sm:rounded-2xl overflow-hidden">
+                      {/* Background Image */}
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600"></div>
+                      )}
+                      
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-black/40"></div>
+                      
+                      {/* Content */}
+                      <div className="relative z-10 h-full flex flex-col justify-center px-4 sm:px-8 md:px-16">
+                        <div className="text-white max-w-xs sm:max-w-lg md:max-w-2xl">
+                          <h3 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4">{product.name}</h3>
+                          <p className="text-sm sm:text-base md:text-lg lg:text-xl opacity-90 mb-4 sm:mb-6 line-clamp-2">{product.description}</p>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+                            <span className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-yellow-300">₹{product.price}</span>
+                            <Badge className="bg-white/20 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-3 py-1 w-fit">
+                              {product.stock_qty} in stock
+                            </Badge>
+                          </div>
                         </div>
-                        <h3 className="text-2xl font-bold mb-2">{product.name}</h3>
-                        <p className="text-3xl font-bold text-yellow-300 mb-4">₹{product.price}</p>
+                      </div>
+                      
+                      {/* Floating Add to Cart Button */}
+                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8">
                         <Button 
                           onClick={() => handleAddToCart(product)}
-                          className="bg-white text-blue-600 hover:bg-gray-100"
+                          className="bg-white text-blue-600 hover:bg-gray-100 text-sm sm:text-base md:text-lg px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105"
                         >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Add to Cart
+                          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+                          <span className="hidden xs:inline">Add to Cart</span>
+                          <span className="xs:hidden">Add</span>
                         </Button>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="bg-white/20 border-white/30 text-white hover:bg-white/30" />
-              <CarouselNext className="bg-white/20 border-white/30 text-white hover:bg-white/30" />
-              <CarouselDots />
+              <CarouselPrevious className="left-4 bg-white/20 border-white/30 text-white hover:bg-white/30" />
+              <CarouselNext className="right-4 bg-white/20 border-white/30 text-white hover:bg-white/30" />
+              <CarouselDots className="mt-4" />
             </Carousel>
           )}
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Personalized Welcome */}
+        <PersonalizedWelcome />
+        
         {/* Customer Features Section */}
         <div className="mb-8">
           <CustomerLoyalty />

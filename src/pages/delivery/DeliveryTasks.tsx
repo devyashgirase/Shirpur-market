@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
 import SmartRouteSuggestions from "@/components/SmartRouteSuggestions";
 import AttractiveLoader from "@/components/AttractiveLoader";
+import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryCoordinationService";
 
 const DeliveryTasks = () => {
@@ -107,6 +108,9 @@ const DeliveryTasks = () => {
       </div>
 
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+        {/* Personalized Welcome */}
+        <PersonalizedWelcome />
+        
         {/* Performance Dashboard */}
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">Performance Dashboard</h2>
