@@ -109,15 +109,11 @@ const CustomerCart = () => {
         const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
         const updatedOrders = pendingOrders.filter((order: any) => order.orderId !== pendingOrder.orderId);
         localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
-        handlePaymentSuccess();
+        handlePaymentSuccess(response.razorpay_payment_id);
       },
       modal: {
         ondismiss: function() {
-          toast({
-            title: "Payment Cancelled",
-            description: "Payment was cancelled. Your cart is still saved.",
-            variant: "destructive"
-          });
+          handlePaymentFailure();
         }
       },
       prefill: {
@@ -134,14 +130,35 @@ const CustomerCart = () => {
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
     } else {
-      // Fallback for development - simulate successful payment
+      // Fallback for development - simulate payment process
+      toast({
+        title: "Development Mode",
+        description: "Simulating payment process...",
+      });
+      
       setTimeout(() => {
-        handlePaymentSuccess();
-      }, 1000);
+        // Simulate payment success (you can change this to test failure)
+        const simulateSuccess = true; // Change to false to test payment failure
+        
+        if (simulateSuccess) {
+          handlePaymentSuccess('dev_payment_' + Date.now());
+        } else {
+          handlePaymentFailure();
+        }
+      }, 2000);
     }
   };
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentFailure = () => {
+    toast({
+      title: "Payment Failed",
+      description: "Payment failed, please try again.",
+      variant: "destructive"
+    });
+    setShowAddressForm(false);
+  };
+
+  const handlePaymentSuccess = async (paymentId?: string) => {
     if (!customerAddress) return;
     
     // Generate unique order ID using DataGenerator
@@ -239,9 +256,13 @@ const CustomerCart = () => {
     // Save order for tracking
     saveLastOrder(orderData);
     
-    // Clear cart
+    // Clear cart only after successful order creation
     clearCart();
     setCart([]);
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+    
+    // Close address form
+    setShowAddressForm(false);
     
     // Show success modal
     setLastOrderId(orderId);

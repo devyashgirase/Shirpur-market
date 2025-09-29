@@ -6,6 +6,7 @@ import { ShoppingCart, Package, Home, ArrowLeft, MapPin, Menu } from "lucide-rea
 import { getCartFromStorage } from "@/lib/mockData";
 import { useState, useEffect } from "react";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import CustomerLocation from "@/components/CustomerLocation";
 
 import MobileBottomNav from "@/components/MobileBottomNav";
 
@@ -39,7 +40,10 @@ const CustomerLayout = () => {
               <Link to="/" className="text-primary-foreground hover:text-primary-foreground/80 flex-shrink-0">
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
-              <h1 className="text-base sm:text-lg md:text-2xl font-bold truncate">🛒 Shirpur Delivery</h1>
+              <div className="flex flex-col min-w-0 flex-1">
+                <h1 className="text-base sm:text-lg md:text-2xl font-bold truncate">🛒 Shirpur Delivery</h1>
+                <CustomerLocation />
+              </div>
             </div>
             
             {/* Desktop Navigation */}

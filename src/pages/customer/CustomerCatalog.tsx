@@ -10,10 +10,10 @@ import { CustomerDataService } from "@/lib/customerDataService";
 import { useToast } from "@/hooks/use-toast";
 import { sweetAlert } from "@/components/ui/sweet-alert";
 import { realTimeDataService } from "@/lib/realTimeDataService";
-import RealTimeIndicator from "@/components/RealTimeIndicator";
+
 import DynamicPrice from "@/components/DynamicPrice";
 import CustomerLoyalty from "@/components/CustomerLoyalty";
-import QuickReorder from "@/components/QuickReorder";
+
 import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
 
@@ -147,7 +147,6 @@ const CustomerCatalog = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <RealTimeIndicator />
       
       <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white">
         <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -194,13 +193,8 @@ const CustomerCatalog = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Customer Features Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2">
-            <QuickReorder />
-          </div>
-          <div>
-            <CustomerLoyalty />
-          </div>
+        <div className="mb-8">
+          <CustomerLoyalty />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
           <Card className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
