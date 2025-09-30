@@ -8,9 +8,10 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import RouteMap from "@/components/RouteMap";
 import LiveDeliveryTracking from "@/components/LiveDeliveryTracking";
+import { LiveTrackingMap } from "@/components/LiveTrackingMap";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
-import { liveTrackingService } from "@/lib/liveTrackingService";
+import { LiveTrackingService } from "@/lib/liveTrackingService";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -196,7 +197,9 @@ const CustomerOrderTracking = () => {
             }
             
             // Start live tracking when status changes to out_for_delivery
-            liveTrackingService.onOrderStatusChange(updatedOrder.orderId, updatedOrder.status);
+            if (updatedOrder.status === 'out_for_delivery') {
+              LiveTrackingService.assignAgent(updatedOrder.orderId, 'agent_001');
+            }
           }
           
           setLastStatus(updatedOrder.status);
@@ -319,94 +322,7 @@ const CustomerOrderTracking = () => {
 
         {/* Live GPS Tracking - Show when out for delivery */}
         {currentOrder && currentOrder.status === 'out_for_delivery' && (
-          <Card>
-            <CardHeader className="p-6">
-              <CardTitle className="flex items-center text-lg">
-                <MapPin className="w-5 h-5 mr-2" />
-                🚚 Live GPS Tracking
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="mb-4 bg-green-50 p-4 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-800 font-medium">Live Tracking Active</span>
-                </div>
-                <p className="text-sm text-green-700">
-                  📍 Your delivery partner is on the way! Track their real-time location below.
-                </p>
-              </div>
-              
-              {customerAddress?.coordinates && currentOrder.deliveryAgent?.location ? (
-                <div className="h-96 rounded-lg overflow-hidden border">
-                  <MapContainer
-                    center={[
-                      currentOrder.deliveryAgent.location.lat,
-                      currentOrder.deliveryAgent.location.lng
-                    ]}
-                    zoom={14}
-                    style={{ height: "100%", width: "100%" }}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    />
-                    
-                    <Marker 
-                      position={[
-                        currentOrder.deliveryAgent.location.lat,
-                        currentOrder.deliveryAgent.location.lng
-                      ]} 
-                      icon={deliveryIcon}
-                    >
-                      <Popup>
-                        <div className="p-2">
-                          <p className="font-semibold">🚚 {currentOrder.deliveryAgent.name}</p>
-                          <p className="text-sm">On the way to your location</p>
-                          <p className="text-sm text-muted-foreground">
-                            📞 {currentOrder.deliveryAgent.phone}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Last updated: {new Date().toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </Popup>
-                    </Marker>
-
-                    <Marker 
-                      position={[
-                        customerAddress.coordinates.lat,
-                        customerAddress.coordinates.lng
-                      ]} 
-                      icon={customerIcon}
-                    >
-                      <Popup>
-                        <div className="p-2">
-                          <p className="font-semibold">📍 Your Location</p>
-                          <p className="text-sm">{customerAddress.name}</p>
-                          <p className="text-sm text-muted-foreground">{customerAddress.address}</p>
-                        </div>
-                      </Popup>
-                    </Marker>
-
-                    <RouteMap 
-                      start={currentOrder.deliveryAgent.location}
-                      end={customerAddress.coordinates}
-                      isActive={true}
-                    />
-                  </MapContainer>
-                </div>
-              ) : (
-                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600">Initializing GPS tracking...</p>
-                    <p className="text-sm text-gray-500">Please wait while we locate your delivery partner</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <LiveTrackingMap orderId={currentOrder.orderId} userType="customer" />
         )}
 
         {currentOrder && currentOrder.status === 'out_for_delivery' && customerAddress?.coordinates && (

@@ -11,6 +11,7 @@ import { OrderService } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { WhatsAppService } from "@/lib/whatsappService";
 import { FreeSmsService } from "@/lib/freeSmsService";
+import { DeliveryAgentTracker } from "@/components/DeliveryAgentTracker";
 
 const DeliveryTaskDetail = () => {
   const { taskId } = useParams();
@@ -212,44 +213,8 @@ const DeliveryTaskDetail = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg">Live Tracking</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0 space-y-3 md:space-y-4">
-            <div className="flex flex-col gap-2 md:flex-row md:gap-4">
-              {!isDeliveryStarted ? (
-                <Button 
-                  onClick={handleStartDelivery}
-                  className="bg-green-500 hover:bg-green-600 flex-1 text-sm"
-                  size="sm"
-                >
-                  <Play className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                  Start Delivery Tracking
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleStopDelivery}
-                  variant="destructive"
-                  className="flex-1 text-sm"
-                  size="sm"
-                >
-                  <Square className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                  Stop Tracking
-                </Button>
-              )}
-            </div>
-            
-            {isDeliveryStarted && currentLocation && (
-              <div className="bg-green-50 p-3 rounded text-xs md:text-sm text-green-800 border border-green-200">
-                📍 <strong>Live tracking active</strong> - Your location is being shared with customer and admin in real-time.
-                <div className="mt-1 text-xs">
-                  Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Live Tracking Component */}
+        <DeliveryAgentTracker orderId={task.order_id} agentId="agent_001" />
 
         <Card>
           <CardHeader className="p-4 md:p-6">
