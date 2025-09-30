@@ -49,6 +49,66 @@ export class OrderService {
     };
   }
 
+  // Create order from cart after payment
+  static async createOrderFromCart(customerInfo: any, cartItems: any[], total: number, paymentId?: string): Promise<string> {
+    const orderId = `ORD-${Date.now()}`;
+    const isTestMode = !paymentId || paymentId.includes('test');
+    
+    const newOrder: Order = {
+      orderId,
+      status: 'confirmed',
+      timestamp: new Date().toISOString(),
+      customerAddress: {
+        name: customerInfo.name,
+        phone: customerInfo.phone,
+        address: customerInfo.address,
+        coordinates: customerInfo.coordinates
+      },
+      items: cartItems.map(item => ({
+        product: {
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price
+        },
+        quantity: item.quantity
+      })),
+      total,
+      paymentStatus: isTestMode ? 'paid' : 'pending'
+    };
+
+    try {
+      // Save to database via API
+      await apiService.createOrder({
+        orderId,
+        customerName: customerInfo.name,
+        customerPhone: customerInfo.phone,
+        deliveryAddress: customerInfo.address,
+        items: newOrder.items,
+        total,
+        status: 'confirmed',
+        paymentStatus: isTestMode ? 'paid' : 'pending'
+      });
+    } catch (error) {
+      console.error('Failed to save order to database:', error);
+    }
+
+    // Save to local storage
+    const orders = this.getAllOrders();
+    orders.unshift(newOrder);
+    localStorage.setItem('allOrders', JSON.stringify(orders));
+    
+    // Set as current order
+    localStorage.setItem('currentOrder', JSON.stringify(newOrder));
+    
+    // Create delivery notification
+    this.createDeliveryNotification(newOrder);
+    
+    // Notify subscribers
+    this.notifyListeners();
+    
+    return orderId;
+  }
+
   // Notify all subscribers
   private static notifyListeners() {
     const orders = this.getAllOrders();
@@ -63,7 +123,7 @@ export class OrderService {
     const mockOrderId = 'ORD_DEMO_DELIVERY';
     const hasMockOrder = storedOrders.some((order: Order) => order.orderId === mockOrderId);
     
-    if (!hasMockOrder) {
+    if (!hasMockOrder && storedOrders.length === 0) {
       const mockOrder: Order = {
         orderId: mockOrderId,
         status: 'out_for_delivery',
@@ -366,5 +426,41 @@ export class OrderService {
   static getOrdersByStatus(status: keyof OrderStatus): Order[] {
     const orders = this.getAllOrders();
     return orders.filter(order => order.status === status);
+  }
+
+  // Clear cart after successful order
+  static async clearCartAfterOrder(userPhone: string): Promise<void> {
+    localStorage.removeItem(`cart_${userPhone}`);
+  }
+
+  // Update payment status
+  static async updatePaymentStatus(orderId: string, paymentStatus: string, paymentId?: string): Promise<boolean> {
+    const orders = this.getAllOrders();
+    const orderIndex = orders.findIndex(order => order.orderId === orderId);
+    
+    if (orderIndex === -1) return false;
+
+    try {
+      // Update via API
+      const dbId = parseInt(orderId.replace(/\D/g, '')) || 1;
+      await apiService.updatePaymentStatus(dbId, paymentStatus);
+    } catch (error) {
+      console.error('Failed to update payment status via API:', error);
+    }
+    
+    // Update local storage
+    orders[orderIndex].paymentStatus = paymentStatus;
+    orders[orderIndex].timestamp = new Date().toISOString();
+    localStorage.setItem('allOrders', JSON.stringify(orders));
+
+    // Update current order
+    const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+    if (currentOrder.orderId === orderId) {
+      currentOrder.paymentStatus = paymentStatus;
+      localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
+    }
+
+    this.notifyListeners();
+    return true;
   }
 }

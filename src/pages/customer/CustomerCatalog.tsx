@@ -14,6 +14,7 @@ import { realTimeDataService } from "@/lib/realTimeDataService";
 import DynamicPrice from "@/components/DynamicPrice";
 import CustomerLoyalty from "@/components/CustomerLoyalty";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
+import { RealTimeLocation } from "@/components/RealTimeLocation";
 
 import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
@@ -258,6 +259,9 @@ const CustomerCatalog = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Real-time Location Tracking */}
+        <RealTimeLocation />
+        
         {/* Personalized Welcome */}
         <PersonalizedWelcome />
         

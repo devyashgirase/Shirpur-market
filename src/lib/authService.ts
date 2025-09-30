@@ -238,6 +238,11 @@ class AuthService {
     return !!session;
   }
 
+  // Save user (public method)
+  saveUser(user: User): void {
+    this.saveUserToStorage(user);
+  }
+
   // Helper methods for localStorage user management
   private getUserFromStorage(phone: string): User | null {
     const users = this.getAllUsersFromStorage();

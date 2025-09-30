@@ -35,27 +35,50 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
+      // Add user agent to avoid rate limiting
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'Shirpur-Delivery-App/1.0'
+          }
+        }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data && data.display_name) {
-        const address = data.display_name;
+        // Extract meaningful address parts
+        const addressParts = [];
+        if (data.address?.house_number) addressParts.push(data.address.house_number);
+        if (data.address?.road) addressParts.push(data.address.road);
+        if (data.address?.neighbourhood) addressParts.push(data.address.neighbourhood);
+        if (data.address?.suburb) addressParts.push(data.address.suburb);
+        if (data.address?.city || data.address?.town || data.address?.village) {
+          addressParts.push(data.address.city || data.address.town || data.address.village);
+        }
+        
+        const formattedAddress = addressParts.length > 0 ? addressParts.join(', ') : data.display_name;
         const pincode = data.address?.postcode || '';
         
         setFormData(prev => ({
           ...prev,
-          address: address,
+          address: formattedAddress,
           pincode: pincode
         }));
       }
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
+      throw error;
     }
   };
 
   const handleGetCurrentLocation = () => {
+    // Check if geolocation is supported
     if (!navigator.geolocation) {
       toast({
         title: "Location not supported",
@@ -65,7 +88,33 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
       return;
     }
 
+    // Check if we're on HTTPS (required for location)
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      toast({
+        title: "HTTPS Required",
+        description: "Location services require a secure connection. Please use HTTPS.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGettingLocation(true);
+    
+    // First check permissions
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'denied') {
+          setIsGettingLocation(false);
+          toast({
+            title: "Location Permission Denied",
+            description: "Please enable location access in your browser settings and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+      });
+    }
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const coordinates = {
@@ -75,28 +124,53 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
         
         setFormData(prev => ({ ...prev, coordinates }));
         
-        // Get address from coordinates
-        await reverseGeocode(coordinates.lat, coordinates.lng);
+        try {
+          // Get address from coordinates
+          await reverseGeocode(coordinates.lat, coordinates.lng);
+          
+          toast({
+            title: "Location captured!",
+            description: "Address has been filled automatically from your location.",
+          });
+        } catch (error) {
+          toast({
+            title: "Location captured!",
+            description: "Location saved, but couldn't auto-fill address. Please enter manually.",
+          });
+        }
         
         setIsGettingLocation(false);
-        
-        toast({
-          title: "Location captured!",
-          description: "Address has been filled automatically from your location.",
-        });
       },
       (error) => {
         setIsGettingLocation(false);
+        
+        let errorMessage = "Unable to get your current location. ";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Location access was denied. Please enable location permissions.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Location information is unavailable. Please check your GPS.";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Location request timed out. Please try again.";
+            break;
+          default:
+            errorMessage += "Please enter address manually.";
+            break;
+        }
+        
         toast({
-          title: "Location error",
-          description: "Unable to get your current location. Please enter address manually.",
+          title: "Location Error",
+          description: errorMessage,
           variant: "destructive",
         });
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
+        timeout: 15000,
+        maximumAge: 300000, // 5 minutes
       }
     );
   };
@@ -226,12 +300,24 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
                 </>
               )}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center leading-relaxed">
-              {formData.coordinates ? 
-                "Location captured! Address filled automatically." : 
-                "This will auto-fill your address and help delivery partners find you."
-              }
-            </p>
+            
+            {/* Location Status */}
+            <div className="mt-2 text-xs text-center">
+              {formData.coordinates ? (
+                <p className="text-green-600 font-medium">
+                  ✓ Location captured! Lat: {formData.coordinates.lat.toFixed(4)}, Lng: {formData.coordinates.lng.toFixed(4)}
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">
+                    📍 Auto-fill address using your current location
+                  </p>
+                  <p className="text-orange-600 text-xs">
+                    ⚠️ Requires location permission & HTTPS/localhost
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Submit Buttons */}

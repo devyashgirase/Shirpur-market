@@ -49,9 +49,11 @@ const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayPr
   const handleRazorpayPayment = () => {
     setIsProcessing(true);
     
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+    const isTestMode = razorpayKey.includes('test');
+    
     const options = {
-      key: 'rzp_test_1DP5mmOlF5G5ag', // TEST MODE - No real money charged
-      // For LIVE: Replace with 'rzp_live_YOUR_KEY_ID'
+      key: razorpayKey,
       amount: Math.round(amount * 100), // Amount in paise
       currency: 'INR',
       name: 'Shirpur Delivery',
@@ -61,10 +63,13 @@ const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayPr
         setIsProcessing(false);
         setIsSuccess(true);
         
+        // In test mode, automatically mark as paid
+        const isTestMode = options.key.includes('test');
+        
         setTimeout(() => {
           toast({
             title: "Payment Successful!",
-            description: `Payment ID: ${response.razorpay_payment_id}`,
+            description: isTestMode ? "Test payment completed - Order confirmed!" : `Payment ID: ${response.razorpay_payment_id}`,
           });
           onSuccess();
           onClose();

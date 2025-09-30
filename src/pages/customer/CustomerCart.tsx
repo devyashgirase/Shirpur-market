@@ -109,8 +109,11 @@ const CustomerCart = () => {
       description: "Redirecting to payment gateway...",
     });
     
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+    const isTestMode = razorpayKey.includes('test');
+    
     const options = {
-      key: 'rzp_test_1DP5mmOlF5G5ag',
+      key: razorpayKey,
       amount: Math.round(getTotalAmount() * 100),
       currency: 'INR',
       name: 'Shirpur Delivery',
@@ -149,14 +152,8 @@ const CustomerCart = () => {
       });
       
       setTimeout(() => {
-        // Simulate payment success (you can change this to test failure)
-        const simulateSuccess = true; // Change to false to test payment failure
-        
-        if (simulateSuccess) {
-          handlePaymentSuccess('dev_payment_' + Date.now());
-        } else {
-          handlePaymentFailure();
-        }
+        // In development mode, always simulate successful payment
+        handlePaymentSuccess('dev_payment_' + Date.now());
       }, 2000);
     }
   };
@@ -173,114 +170,53 @@ const CustomerCart = () => {
   const handlePaymentSuccess = async (paymentId?: string) => {
     if (!customerAddress) return;
     
-    // Generate unique order ID using DataGenerator
-    const orderId = DataGenerator.generateOrderId();
+    const isTestMode = !paymentId || paymentId.includes('test') || paymentId.includes('dev');
     
-    // Use only real customer data from address form
-    const dynamicCustomer = customerAddress;
-    
-    // Create order using OrderService
-    const orderData: Order = {
-      orderId,
-      status: 'confirmed',
-      timestamp: new Date().toISOString(),
-      customerAddress: {
-        ...dynamicCustomer,
-        coordinates: dynamicCustomer.coordinates || DataGenerator.generateShirpurCoordinates()
-      },
-      items: cart.map(item => ({
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price
+    try {
+      // Create order using OrderService
+      const orderId = await OrderService.createOrderFromCart(
+        {
+          name: customerAddress.name,
+          phone: customerAddress.phone,
+          address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
         },
-        quantity: item.quantity
-      })),
-      total: getTotalAmount(),
-      paymentStatus: 'paid'
-    };
-    
-    // Save order to real database (Supabase)
-    try {
-      const dbOrderData = {
-        customerName: dynamicCustomer.name,
-        customerPhone: dynamicCustomer.phone,
-        deliveryAddress: `${dynamicCustomer.address}, ${dynamicCustomer.city}, ${dynamicCustomer.state} - ${dynamicCustomer.pincode}`,
-        total: getTotalAmount(),
-        status: 'confirmed',
-        paymentStatus: 'paid',
-        items: cart.map(item => ({
-          productId: item.product.id,
-          productName: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity
-        }))
-      };
-      
-      console.log('💾 Saving order to database:', orderId);
-      
-      // Save to unified database (auto-switches MySQL/Supabase)
-      const dbOrder = await unifiedDB.createOrder(dbOrderData);
-      if (dbOrder) {
-        console.log('✅ Order saved to database with ID:', dbOrder.id);
-        orderData.databaseId = dbOrder.id;
-      } else {
-        console.error('❌ Failed to save order to database');
-      }
-    } catch (error) {
-      console.error('❌ Failed to save order to database:', error);
-    }
-    
-    // Store order data in localStorage for tracking
-    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-    allOrders.push(orderData);
-    localStorage.setItem('allOrders', JSON.stringify(allOrders));
-    localStorage.setItem('currentOrder', JSON.stringify(orderData));
-    
-    // Send FREE WhatsApp notification (no API costs)
-    try {
-      // Generate WhatsApp link for order confirmation
-      const whatsappLink = FreeWhatsAppService.sendOrderNotification(
-        dynamicCustomer.phone,
-        orderData
+        cart,
+        getTotalAmount(),
+        paymentId
       );
       
-      // Send OTP for delivery verification
-      const otp = Math.floor(1000 + Math.random() * 9000).toString();
-      localStorage.setItem(`otp_${orderId}`, otp);
+      // Clear cart after successful order
+      await OrderService.clearCartAfterOrder(customerAddress.phone);
+      await cartService.clearCart();
+      setCart([]);
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
       
-      // Send FREE SMS as primary notification
-      await FreeSmsService.sendOrderConfirmationSMS(dynamicCustomer, orderData, otp);
+      // Remove from pending orders if exists
+      const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
+      const updatedOrders = pendingOrders.filter((order: any) => order.id !== Date.now().toString());
+      localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
       
-      console.log('✅ FREE WhatsApp link generated & SMS sent');
-      console.log('📱 WhatsApp Link:', whatsappLink);
+      // Close address form and show success
+      setShowAddressForm(false);
+      setLastOrderId(orderId);
+      setShowSuccessModal(true);
+      
+      toast({
+        title: "Order Placed Successfully!",
+        description: isTestMode ? 
+          `Test order ${orderId} confirmed - No real payment charged!` :
+          `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed.`,
+      });
+      
     } catch (error) {
-      console.error('❌ Failed to send notifications:', error);
+      console.error('Failed to create order:', error);
+      toast({
+        title: "Order Creation Failed",
+        description: "Please try again or contact support.",
+        variant: "destructive"
+      });
     }
-    
-    // Send notifications
-    NotificationService.sendOrderStatusNotification(orderId, 'confirmed', 'customer');
-    NotificationService.sendOrderStatusNotification(orderId, 'confirmed', 'admin');
-    
-    // Save order for tracking
-    saveLastOrder(orderData);
-    
-    // Clear cart only after successful order creation
-    await cartService.clearCart();
-    setCart([]);
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-    
-    // Close address form
-    setShowAddressForm(false);
-    
-    // Show success modal
-    setLastOrderId(orderId);
-    setShowSuccessModal(true);
-    
-    toast({
-      title: "Order Placed Successfully!",
-      description: `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed.`,
-    });
   };
 
   const getTotalAmount = () => {
