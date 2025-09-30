@@ -109,7 +109,20 @@ const CustomerCart = () => {
       description: "Redirecting to payment gateway...",
     });
     
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+    
+    if (!razorpayKey || razorpayKey.includes('your_razorpay')) {
+      // Fallback to test mode with simulation
+      toast({
+        title: "Development Mode",
+        description: "Simulating payment process...",
+      });
+      
+      setTimeout(() => {
+        handlePaymentSuccess('dev_payment_' + Date.now());
+      }, 2000);
+      return;
+    }
     const isTestMode = razorpayKey.includes('test');
     
     const options = {

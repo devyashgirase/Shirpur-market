@@ -80,16 +80,25 @@ export const addToCart = async (product: Product, quantity: number) => {
   const success = await cartService.addToCart(product.id, quantity);
   if (success) {
     await personalizationService.trackAddToCart(product);
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
   }
   return success;
 };
 
 export const updateCartQuantity = async (productId: string, newQuantity: number) => {
-  return await cartService.updateCartQuantity(productId, newQuantity);
+  const success = await cartService.updateCartQuantity(productId, newQuantity);
+  if (success) {
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  }
+  return success;
 };
 
 export const removeFromCart = async (productId: string) => {
-  return await cartService.removeFromCart(productId);
+  const success = await cartService.removeFromCart(productId);
+  if (success) {
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  }
+  return success;
 };
 
 export const clearCart = async () => {
