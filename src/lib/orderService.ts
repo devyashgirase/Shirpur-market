@@ -103,6 +103,10 @@ export class OrderService {
     // Create delivery notification
     this.createDeliveryNotification(newOrder);
     
+    // Trigger admin panel real-time update
+    window.dispatchEvent(new CustomEvent('orderCreated', { detail: newOrder }));
+    window.dispatchEvent(new CustomEvent('ordersUpdated'));
+    
     // Notify subscribers
     this.notifyListeners();
     
@@ -119,47 +123,63 @@ export class OrderService {
   static getAllOrders(): Order[] {
     const storedOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
     
-    // Add mock order with out_for_delivery status if not already present
-    const mockOrderId = 'ORD_DEMO_DELIVERY';
-    const hasMockOrder = storedOrders.some((order: Order) => order.orderId === mockOrderId);
+    // Only add mock data in development environment
+    const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
     
-    if (!hasMockOrder && storedOrders.length === 0) {
-      const mockOrder: Order = {
-        orderId: mockOrderId,
-        status: 'out_for_delivery',
-        timestamp: new Date(Date.now() - 15 * 60000).toISOString(), // 15 minutes ago
-        customerAddress: {
-          name: 'Demo Customer',
-          phone: '+91 98765 43210',
-          address: 'Shirpur Market, Near Bus Stand, Shirpur, Maharashtra 425405',
-          coordinates: { lat: 21.3099, lng: 75.1178 }
-        },
-        items: [
-          {
-            product: { id: '1', name: 'Fresh Tomatoes', price: 40 },
-            quantity: 2
+    if (isDevelopment && storedOrders.length === 0) {
+      console.log('🧪 Development mode: Adding mock orders for testing');
+      const mockOrders = [
+        {
+          orderId: 'ORD_TEST_001',
+          status: 'out_for_delivery' as keyof OrderStatus,
+          timestamp: new Date(Date.now() - 10 * 60000).toISOString(),
+          customerAddress: {
+            name: 'Rajesh Patel',
+            phone: '+91 98765 43210',
+            address: 'Shop No. 15, Main Market Road, Near Bus Stand, Shirpur, Dhule, Maharashtra 425405',
+            coordinates: { lat: 21.3099, lng: 75.1178 }
           },
-          {
-            product: { id: '2', name: 'Onions', price: 30 },
-            quantity: 1
-          }
-        ],
-        total: 114.99,
-        paymentStatus: 'paid',
-        deliveryAgent: {
-          id: 'AGENT_DEMO',
-          name: 'Rahul Sharma',
-          phone: '+91 98765 43210',
-          location: {
-            lat: 21.3099 + (Math.random() - 0.5) * 0.01,
-            lng: 75.1178 + (Math.random() - 0.5) * 0.01
-          }
+          items: [
+            { product: { id: '1', name: 'Fresh Tomatoes', price: 40 }, quantity: 2 },
+            { product: { id: '2', name: 'Basmati Rice', price: 120 }, quantity: 1 }
+          ],
+          total: 200,
+          paymentStatus: 'paid'
+        },
+        {
+          orderId: 'ORD_TEST_002',
+          status: 'out_for_delivery' as keyof OrderStatus,
+          timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
+          customerAddress: {
+            name: 'Priya Sharma',
+            phone: '+91 87654 32109',
+            address: 'House No. 42, Gandhi Nagar Colony, Behind SBI Bank, Shirpur, Dhule, Maharashtra 425405',
+            coordinates: { lat: 21.3150, lng: 75.1200 }
+          },
+          items: [
+            { product: { id: '3', name: 'Organic Milk', price: 60 }, quantity: 2 },
+            { product: { id: '4', name: 'Bread', price: 25 }, quantity: 1 }
+          ],
+          total: 145,
+          paymentStatus: 'paid'
         }
-      };
+      ];
       
-      storedOrders.unshift(mockOrder); // Add at beginning
+      // Add mock orders for development testing
+      mockOrders.forEach(mockOrder => {
+        storedOrders.unshift(mockOrder);
+      });
     }
     
+    // Save updated orders with mock data
+    localStorage.setItem('allOrders', JSON.stringify(storedOrders));
+    const environment = isDevelopment ? 'Development' : 'Production';
+    console.log(`📦 ${environment} - Orders loaded:`, storedOrders.length, 'total orders');
+    console.log('🚚 Out for delivery orders:', storedOrders.filter(o => o.status === 'out_for_delivery').length);
+    
+    if (!isDevelopment && storedOrders.length === 0) {
+      console.log('🏭 Production mode: No mock data - waiting for real orders');
+    }
     return storedOrders;
   }
 
@@ -231,11 +251,18 @@ export class OrderService {
       localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
     }
 
+    // Create delivery notification when status changes to packing (ready for delivery)
+    if (newStatus === 'packing' && oldStatus !== 'packing') {
+      this.createDeliveryNotification(orders[orderIndex]);
+      window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', { detail: orders[orderIndex] }));
+    }
+
     // Send notifications based on status change
     await this.sendStatusNotifications(order, newStatus, oldStatus);
 
     // Notify all subscribers
     this.notifyListeners();
+    window.dispatchEvent(new CustomEvent('ordersUpdated'));
 
     return true;
   }
@@ -342,6 +369,19 @@ export class OrderService {
       const tasks = JSON.parse(localStorage.getItem('deliveryTasks') || '[]');
       tasks.push(deliveryTask);
       localStorage.setItem('deliveryTasks', JSON.stringify(tasks));
+      
+      // Start GPS tracking for live location
+      this.startGPSTracking(orderId, deliveryAgent.id);
+      
+      // Store tracking info for customer view
+      localStorage.setItem(`liveTracking_${orderId}`, JSON.stringify({
+        orderId,
+        agentId: deliveryAgent.id,
+        agentName: deliveryAgent.name,
+        agentPhone: deliveryAgent.phone,
+        startTime: new Date().toISOString(),
+        isActive: true
+      }));
     }
 
     // Remove from notifications
@@ -351,7 +391,91 @@ export class OrderService {
     );
     localStorage.setItem('deliveryNotifications', JSON.stringify(updatedNotifications));
 
+    // Trigger events for real-time updates
+    window.dispatchEvent(new CustomEvent('orderAccepted', { detail: { orderId, agentInfo } }));
+    window.dispatchEvent(new CustomEvent('deliveryNotificationsUpdated'));
+
     return true;
+  }
+
+  // Reject order by delivery agent
+  static async rejectOrder(orderId: string, agentInfo: any, reason?: string) {
+    // Update notification status
+    const notifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
+    const updatedNotifications = notifications.map((n: any) => 
+      n.orderId === orderId ? { ...n, status: 'rejected', rejectedBy: agentInfo.id, reason } : n
+    );
+    localStorage.setItem('deliveryNotifications', JSON.stringify(updatedNotifications));
+
+    // Trigger events for real-time updates
+    window.dispatchEvent(new CustomEvent('orderRejected', { detail: { orderId, agentInfo, reason } }));
+    window.dispatchEvent(new CustomEvent('deliveryNotificationsUpdated'));
+
+    return true;
+  }
+
+  // Start GPS tracking for delivery agent
+  static startGPSTracking(orderId: string, agentId: string) {
+    if (!navigator.geolocation) {
+      console.error('Geolocation not supported');
+      return;
+    }
+
+    console.log(`📍 Starting GPS tracking for order ${orderId}`);
+
+    const trackingId = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log(`📍 GPS Update for ${orderId}:`, location);
+          
+          // Update delivery location in order
+          this.updateDeliveryLocation(orderId, location);
+          
+          // Store for customer live tracking
+          localStorage.setItem(`customerTracking_${orderId}`, JSON.stringify({
+            orderId,
+            agentId,
+            agentLocation: location,
+            lastUpdate: new Date().toISOString(),
+            isLive: true
+          }));
+          
+          // Dispatch event for real-time updates
+          window.dispatchEvent(new CustomEvent('liveLocationUpdate', {
+            detail: { orderId, location, agentId }
+          }));
+        },
+        (error) => {
+          console.error('GPS tracking error:', error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
+        }
+      );
+    }, 5000); // Update every 5 seconds for live tracking
+
+    // Store tracking interval ID
+    localStorage.setItem(`trackingInterval_${orderId}`, trackingId.toString());
+    
+    return trackingId;
+  }
+
+  // Stop GPS tracking
+  static stopGPSTracking(orderId: string) {
+    const trackingId = localStorage.getItem(`trackingInterval_${orderId}`);
+    if (trackingId) {
+      clearInterval(parseInt(trackingId));
+      localStorage.removeItem(`trackingInterval_${orderId}`);
+      localStorage.removeItem(`gpsTracking_${orderId}`);
+    }
   }
 
   // Update delivery agent location

@@ -118,6 +118,7 @@ class AdminRealTimeService {
       }
       
       return orders
+        .filter(order => order.status !== 'packing') // Remove orders ready for delivery
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 20)
         .map(order => ({
@@ -317,6 +318,17 @@ export type { AdminStats, CustomerOrder };
 
 // Auto-start real-time updates when service is imported
 if (typeof window !== 'undefined') {
+  // Listen for new orders from payment success
+  window.addEventListener('orderCreated', (event: any) => {
+    console.log('🔔 New order detected, refreshing admin data');
+    adminRealTimeService.forceRefresh();
+  });
+  
+  window.addEventListener('ordersUpdated', () => {
+    console.log('🔄 Orders updated, refreshing admin data');
+    adminRealTimeService.forceRefresh();
+  });
+  
   // Only start in browser environment
   setTimeout(() => {
     adminRealTimeService.startRealTimeUpdates();

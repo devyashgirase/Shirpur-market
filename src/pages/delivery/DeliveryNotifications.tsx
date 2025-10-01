@@ -22,19 +22,54 @@ interface DeliveryNotification {
 
 const DeliveryNotifications = () => {
   const [notifications, setNotifications] = useState<DeliveryNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadNotifications = () => {
-      const allNotifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
-      const pendingNotifications = allNotifications.filter((n: DeliveryNotification) => n.status === 'pending');
-      setNotifications(pendingNotifications);
+      if (!isMounted) return;
+      
+      try {
+        const allNotifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
+        const pendingNotifications = allNotifications.filter((n: DeliveryNotification) => n.status === 'pending');
+        
+        // Only update if data actually changed
+        const currentData = JSON.stringify(pendingNotifications);
+        if (currentData !== lastUpdate) {
+          setNotifications(pendingNotifications);
+          setLastUpdate(currentData);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+        setLoading(false);
+      }
     };
 
+    // Initial load
     loadNotifications();
-    const interval = setInterval(loadNotifications, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    
+    // Listen for real-time events only
+    const handleNewNotification = () => {
+      if (isMounted) {
+        console.log('🔔 New delivery notification received');
+        loadNotifications();
+      }
+    };
+    
+    window.addEventListener('deliveryNotificationCreated', handleNewNotification);
+    window.addEventListener('deliveryNotificationsUpdated', handleNewNotification);
+    
+    return () => {
+      isMounted = false;
+      window.removeEventListener('deliveryNotificationCreated', handleNewNotification);
+      window.removeEventListener('deliveryNotificationsUpdated', handleNewNotification);
+    };
+  }, [lastUpdate]);
 
   const acceptOrder = async (notification: DeliveryNotification) => {
     // Generate dynamic delivery agent
@@ -67,19 +102,19 @@ const DeliveryNotifications = () => {
     }
   };
 
-  const rejectOrder = (notification: DeliveryNotification) => {
-    const allNotifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
-    const updatedNotifications = allNotifications.map((n: DeliveryNotification) => 
-      n.id === notification.id ? { ...n, status: 'rejected' } : n
-    );
-    localStorage.setItem('deliveryNotifications', JSON.stringify(updatedNotifications));
+  const rejectOrder = async (notification: DeliveryNotification) => {
+    const agentInfo = DataGenerator.generateDeliveryAgent();
+    
+    const success = await OrderService.rejectOrder(notification.orderId, agentInfo, 'Not available');
+    
+    if (success) {
+      toast({
+        title: "Order Rejected",
+        description: "Order will be offered to other delivery partners.",
+      });
 
-    toast({
-      title: "Order Rejected",
-      description: "Order will be offered to other delivery partners.",
-    });
-
-    setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }
   };
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -101,7 +136,17 @@ const DeliveryNotifications = () => {
         )}
       </div>
 
-      {notifications.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 md:p-8 text-center">
+            <div className="loading-spinner mx-auto mb-4"></div>
+            <h3 className="text-lg md:text-xl font-semibold mb-2">Loading Notifications</h3>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Checking for new delivery requests...
+            </p>
+          </CardContent>
+        </Card>
+      ) : notifications.length === 0 ? (
         <Card>
           <CardContent className="p-6 md:p-8 text-center">
             <Bell className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground mx-auto mb-3 md:mb-4" />

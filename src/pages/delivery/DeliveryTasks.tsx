@@ -4,18 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package } from "lucide-react";
 import { DeliveryDataService } from "@/lib/deliveryDataService";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
-import SmartRouteSuggestions from "@/components/SmartRouteSuggestions";
+
 import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryCoordinationService";
 
 const DeliveryTasks = () => {
+  const navigate = useNavigate();
   const [deliveryTasks, setDeliveryTasks] = useState([]);
   const [nearbyOrders, setNearbyOrders] = useState<OrderLocation[]>([]);
+  const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [agentId] = useState('agent-001'); // Current agent ID
+  const [agentId] = useState('agent-001');
   const [metrics, setMetrics] = useState({
     activeTasks: 0,
     availableOrders: 0,
@@ -24,69 +26,149 @@ const DeliveryTasks = () => {
   });
 
   useEffect(() => {
-    // Set agent location on login (simulate GPS)
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          deliveryCoordinationService.setAgentLocation(
-            agentId,
-            position.coords.latitude,
-            position.coords.longitude
-          );
-        },
-        () => {
-          // Fallback to Shirpur coordinates
-          deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
-        }
-      );
-    } else {
-      deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
-    }
+    let isMounted = true;
+    
+    const setLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (isMounted) {
+              const location = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              console.log('📍 Real GPS Location:', location);
+              deliveryCoordinationService.setAgentLocation(
+                agentId,
+                location.lat,
+                location.lng
+              );
+              
+              // Store real location
+              localStorage.setItem('agentRealLocation', JSON.stringify({
+                ...location,
+                timestamp: new Date().toISOString()
+              }));
+            }
+          },
+          (error) => {
+            console.error('GPS Error:', error);
+            if (isMounted) {
+              // Fallback to Shirpur coordinates only if GPS fails
+              deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+          }
+        );
+      } else {
+        console.warn('Geolocation not supported');
+        deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
+      }
+    };
+    
+    setLocation();
 
     const loadDeliveryData = async () => {
+      if (!isMounted) return;
+      
       try {
-        setLoading(true);
-        const tasks = await DeliveryDataService.getAvailableDeliveries();
-        setDeliveryTasks(tasks);
-        setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+        const cachedTasks = JSON.parse(localStorage.getItem('deliveryTasks') || '[]');
+        if (cachedTasks.length > 0) {
+          setDeliveryTasks(cachedTasks);
+          setMetrics(DeliveryDataService.getDeliveryMetrics(cachedTasks));
+          setLoading(false);
+        }
         
-        // Load nearby orders within 10km
+        const tasks = await DeliveryDataService.getAvailableDeliveries();
+        
+        if (isMounted) {
+          setDeliveryTasks(tasks);
+          setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+          localStorage.setItem('deliveryTasks', JSON.stringify(tasks));
+        }
+        
         const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
-        setNearbyOrders(nearby);
+        
+        if (isMounted) {
+          setNearbyOrders(nearby);
+        }
       } catch (error) {
         console.error('Failed to load delivery data:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     
     loadDeliveryData();
-    const interval = setInterval(loadDeliveryData, 10000);
     
-    // Subscribe to coordination service events
     const handleOrderAccepted = () => {
-      loadDeliveryData();
+      if (isMounted) {
+        console.log('🔄 Order status changed, refreshing delivery data');
+        loadDeliveryData();
+      }
     };
     
+    window.addEventListener('deliveryNotificationCreated', handleOrderAccepted);
+    window.addEventListener('orderAccepted', handleOrderAccepted);
+    window.addEventListener('ordersUpdated', handleOrderAccepted);
     deliveryCoordinationService.subscribe('orderAccepted', handleOrderAccepted);
     
     return () => {
-      clearInterval(interval);
+      isMounted = false;
+      window.removeEventListener('deliveryNotificationCreated', handleOrderAccepted);
+      window.removeEventListener('orderAccepted', handleOrderAccepted);
+      window.removeEventListener('ordersUpdated', handleOrderAccepted);
       deliveryCoordinationService.unsubscribe('orderAccepted', handleOrderAccepted);
     };
-  }, []);
+  }, [agentId]);
 
   const handleAcceptDelivery = async (orderId: string) => {
-    const success = deliveryCoordinationService.acceptOrder(agentId, orderId);
-    if (success) {
-      // Refresh data
-      const tasks = await DeliveryDataService.getAvailableDeliveries();
-      setDeliveryTasks(tasks);
-      setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+    try {
+      console.log(`🚚 Accepting delivery for order: ${orderId}`);
       
-      // Update nearby orders
-      const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
-      setNearbyOrders(nearby);
+      const success = deliveryCoordinationService.acceptOrder(agentId, orderId);
+      
+      if (success) {
+        console.log('✅ Order accepted successfully');
+        
+        // Refresh data
+        const tasks = await DeliveryDataService.getAvailableDeliveries();
+        setDeliveryTasks(tasks);
+        setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+        
+        // Update nearby orders
+        const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
+        setNearbyOrders(nearby);
+        
+        // Refresh pending deliveries
+        const ordersList = JSON.parse(localStorage.getItem('allOrders') || '[]');
+        const updatedPendingOrders = ordersList.filter((order: any) => 
+          order.status === 'accepted' && order.deliveryAgent?.id === agentId
+        );
+        setPendingDeliveries(updatedPendingOrders);
+        
+        // Load pending deliveries for this agent
+        const storedOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+        const agentPendingOrders = storedOrders.filter((order: any) => 
+          order.status === 'accepted' && order.deliveryAgent?.id === agentId
+        );
+        setPendingDeliveries(agentPendingOrders);
+        
+        // Navigate to GPS tracking page
+        navigate('/delivery/tracking');
+      } else {
+        console.error('❌ Failed to accept order');
+        alert('❌ Failed to accept order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error accepting delivery:', error);
+      alert('❌ Error accepting delivery. Please try again.');
     }
   };
 
@@ -96,57 +178,113 @@ const DeliveryTasks = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-      {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-orange-600 text-white p-4 sm:p-6 shadow-lg">
-        <div className="flex items-center gap-3">
-          <Truck className="h-8 w-8" />
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">My Delivery Tasks</h1>
-            <p className="text-blue-100 mt-1">Manage your deliveries and track earnings</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Truck className="h-8 w-8" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">My Delivery Tasks</h1>
+              <p className="text-blue-100 mt-1">Manage your deliveries and track earnings</p>
+            </div>
           </div>
+          <Button 
+            variant="outline" 
+            className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+            onClick={async () => {
+              console.log('🔄 Refreshing delivery data...');
+              const tasks = await DeliveryDataService.getAvailableDeliveries();
+              setDeliveryTasks(tasks);
+              setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+              const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
+              setNearbyOrders(nearby);
+            }}
+          >
+            🔄 Refresh
+          </Button>
         </div>
       </div>
 
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
-        {/* Personalized Welcome */}
         <PersonalizedWelcome />
         
-        {/* Performance Dashboard */}
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">Performance Dashboard</h2>
           <DeliveryPerformance />
         </div>
         
-        {/* Smart Route Suggestions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2">
-            <SmartRouteSuggestions />
-          </div>
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Avg Delivery Time</span>
-                    <span className="font-semibold">28 min</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Customer Rating</span>
-                    <span className="font-semibold">4.8 ⭐</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Weekly Earnings</span>
-                    <span className="font-semibold text-green-600">₹4,250</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        {/* Stats Cards */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Quick Stats</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex justify-between">
+                <span className="text-sm">Avg Delivery Time</span>
+                <span className="font-semibold">28 min</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm">Customer Rating</span>
+                <span className="font-semibold">4.8 ⭐</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm">Weekly Earnings</span>
+                <span className="font-semibold text-green-600">₹4,250</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6 border-l-4 border-l-blue-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              System Status - Live Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="font-semibold text-blue-800">Agent GPS</p>
+                <p className="text-blue-600">
+                  {(() => {
+                    const realLocation = JSON.parse(localStorage.getItem('agentRealLocation') || 'null');
+                    if (realLocation) {
+                      return `📍 ${realLocation.lat.toFixed(4)}, ${realLocation.lng.toFixed(4)}`;
+                    }
+                    return deliveryTasks[0]?.agentLocation ? 
+                      `${deliveryTasks[0].agentLocation.lat.toFixed(4)}, ${deliveryTasks[0].agentLocation.lng.toFixed(4)}` : 
+                      'Getting location...';
+                  })()
+                  }
+                </p>
+                <p className="text-xs text-blue-500 mt-1">
+                  {deliveryTasks[0]?.debugInfo?.lastUpdate || 'No updates'}
+                </p>
+              </div>
+              
+              <div className="bg-green-50 p-3 rounded">
+                <p className="font-semibold text-green-800">Orders Available</p>
+                <p className="text-green-600 text-xl font-bold">
+                  {deliveryTasks.length}
+                </p>
+                <p className="text-xs text-green-500 mt-1">
+                  Out for delivery status
+                </p>
+              </div>
+              
+              <div className="bg-orange-50 p-3 rounded">
+                <p className="font-semibold text-orange-800">Total Orders</p>
+                <p className="text-orange-600 text-xl font-bold">
+                  {deliveryTasks[0]?.debugInfo?.totalOrders || 0}
+                </p>
+                <p className="text-xs text-orange-500 mt-1">
+                  All statuses combined
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-3 md:p-6">
@@ -197,10 +335,84 @@ const DeliveryTasks = () => {
           </Card>
         </div>
 
-        {/* Nearby Orders (Within 10km) */}
+        {/* Pending Deliveries Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Nearby Orders (Within 10km)</h2>
+            <h2 className="text-xl font-bold text-gray-800">My Pending Deliveries</h2>
+            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+              {pendingDeliveries.length}
+            </Badge>
+          </div>
+
+          {pendingDeliveries.length === 0 ? (
+            <Card className="border-2 border-dashed border-gray-200">
+              <CardContent className="p-8 text-center">
+                <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No pending deliveries</h3>
+                <p className="text-gray-500">Accepted orders will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {pendingDeliveries.map((order) => (
+                <Card key={order.orderId} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-orange-50 border-l-4 border-l-orange-500">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800">Order #{order.orderId}</h3>
+                        <Badge className="bg-orange-500 text-white mt-1">Accepted - Ready to Deliver</Badge>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-orange-600">₹{order.total.toFixed(0)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded-lg mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4 text-red-500" />
+                        <span className="font-semibold text-gray-700">Customer Details</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-800">{order.customerAddress.name}</p>
+                      <p className="text-sm text-gray-600">{order.customerAddress.address}</p>
+                      <p className="text-sm text-gray-600">{order.customerAddress.phone}</p>
+                    </div>
+
+                    <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Package className="w-4 h-4 text-blue-500" />
+                        <span className="font-semibold text-blue-700">Order Items</span>
+                      </div>
+                      {order.items.slice(0, 2).map((item: any, idx: number) => (
+                        <p key={idx} className="text-sm text-blue-600">
+                          {item.quantity}x {item.product.name} - ₹{item.product.price}
+                        </p>
+                      ))}
+                      {order.items.length > 2 && (
+                        <p className="text-xs text-blue-500">+{order.items.length - 2} more items</p>
+                      )}
+                    </div>
+
+                    <Button 
+                      className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
+                      onClick={() => {
+                        localStorage.setItem('currentOrder', JSON.stringify(order));
+                        navigate('/delivery/tracking');
+                      }}
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Start Route for Delivery
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Nearby Orders Section */}
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-bold text-gray-800">Available Orders (Within 10km)</h2>
             <Badge variant="secondary" className="bg-green-100 text-green-700">
               {nearbyOrders.length}
             </Badge>
@@ -253,7 +465,6 @@ const DeliveryTasks = () => {
           )}
         </div>
 
-        {/* Regular Tasks List */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-xl font-bold text-gray-800">All Available Tasks</h2>
@@ -273,14 +484,14 @@ const DeliveryTasks = () => {
           ) : (
             <div className="grid gap-4">
               {deliveryTasks.map((task) => (
-                <Card key={task.id} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                <Card key={task.id} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm border-l-4 border-l-blue-500">
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-bold text-gray-800">Order #{task.order_id || task.orderId}</h3>
-                          <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
-                            Pending
+                          <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+                            Ready for Pickup
                           </Badge>
                         </div>
                         
@@ -292,7 +503,35 @@ const DeliveryTasks = () => {
                             </div>
                             <p className="text-sm font-medium text-gray-800">{task.customer_name || task.customerAddress?.name}</p>
                             <p className="text-sm text-gray-600">{task.customer_address || task.customerAddress?.address}</p>
+                            <p className="text-sm text-blue-600 mt-1">📞 {task.customer_phone}</p>
                           </div>
+                          
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Navigation className="w-4 h-4 text-blue-500" />
+                              <span className="font-semibold text-blue-700">Distance & Location</span>
+                            </div>
+                            <p className="text-sm text-blue-600">Distance: {task.distance?.toFixed(2)} km</p>
+                            <p className="text-sm text-blue-600">ETA: ~{Math.round((task.distance || 0) * 3)} minutes</p>
+                            <p className="text-xs text-blue-500 mt-1">From your GPS location</p>
+                          </div>
+                          
+                          {task.items && (
+                            <div className="bg-orange-50 p-3 rounded-lg">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Package className="w-4 h-4 text-orange-500" />
+                                <span className="font-semibold text-orange-700">Items ({task.items.length})</span>
+                              </div>
+                              {task.items.slice(0, 2).map((item, idx) => (
+                                <p key={idx} className="text-sm text-orange-600">
+                                  {item.quantity}x {item.product.name}
+                                </p>
+                              ))}
+                              {task.items.length > 2 && (
+                                <p className="text-xs text-orange-500">+{task.items.length - 2} more items</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -303,26 +542,21 @@ const DeliveryTasks = () => {
                           <p className="text-lg font-bold text-green-700">₹{task.estimatedEarning}</p>
                           <p className="text-xs text-gray-500">Your Earning (15%)</p>
                         </div>
+                        <div className="mt-2 pt-2 border-t border-green-200">
+                          <p className="text-xs text-gray-500">Status: Out for Delivery</p>
+                          <p className="text-xs text-gray-500">Admin Approved</p>
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex gap-3">
-                      {task.status === 'confirmed' ? (
-                        <Button 
-                          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md"
-                          onClick={() => handleAcceptDelivery(task.orderId)}
-                        >
-                          <Package className="w-4 h-4 mr-2" />
-                          Accept Delivery
-                        </Button>
-                      ) : (
-                        <Link to={`/delivery/task/${task.id}`} className="flex-1">
-                          <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md">
-                            <Navigation className="w-4 h-4 mr-2" />
-                            View Details & Navigate
-                          </Button>
-                        </Link>
-                      )}
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md"
+                        onClick={() => handleAcceptDelivery(task.orderId)}
+                      >
+                        <Package className="w-4 h-4 mr-2" />
+                        Accept & Start GPS Tracking
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

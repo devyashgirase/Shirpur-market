@@ -14,6 +14,22 @@ const CustomerOrders = () => {
 
   useEffect(() => {
     loadCustomerOrders();
+    
+    // Listen for order updates
+    const handleOrderUpdate = () => {
+      console.log('🔄 Order update detected, refreshing customer orders');
+      loadCustomerOrders();
+    };
+    
+    window.addEventListener('orderCreated', handleOrderUpdate);
+    window.addEventListener('ordersUpdated', handleOrderUpdate);
+    window.addEventListener('cartUpdated', handleOrderUpdate);
+    
+    return () => {
+      window.removeEventListener('orderCreated', handleOrderUpdate);
+      window.removeEventListener('ordersUpdated', handleOrderUpdate);
+      window.removeEventListener('cartUpdated', handleOrderUpdate);
+    };
   }, []);
 
   const loadCustomerOrders = async () => {

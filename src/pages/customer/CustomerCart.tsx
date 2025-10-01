@@ -118,7 +118,12 @@ const CustomerCart = () => {
         description: "Simulating payment process...",
       });
       
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Clear cart in development mode
+        await cartService.clearCart();
+        setCart([]);
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
         handlePaymentSuccess('dev_payment_' + Date.now());
       }, 2000);
       return;
@@ -131,12 +136,19 @@ const CustomerCart = () => {
       currency: 'INR',
       name: 'Shirpur Delivery',
       description: 'Order Payment',
-      handler: function (response: any) {
+      handler: async function (response: any) {
         console.log('Payment successful:', response.razorpay_payment_id);
+        
+        // Clear cart immediately on payment success
+        await cartService.clearCart();
+        setCart([]);
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
         // Remove from pending orders
         const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
         const updatedOrders = pendingOrders.filter((order: any) => order.orderId !== pendingOrder.orderId);
         localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
+        
         handlePaymentSuccess(response.razorpay_payment_id);
       },
       modal: {
@@ -164,7 +176,12 @@ const CustomerCart = () => {
         description: "Simulating payment process...",
       });
       
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Clear cart in development mode
+        await cartService.clearCart();
+        setCart([]);
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
         // In development mode, always simulate successful payment
         handlePaymentSuccess('dev_payment_' + Date.now());
       }, 2000);
@@ -199,11 +216,13 @@ const CustomerCart = () => {
         paymentId
       );
       
-      // Clear cart after successful order
-      await OrderService.clearCartAfterOrder(customerAddress.phone);
+      // Clear cart immediately after successful payment
       await cartService.clearCart();
       setCart([]);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
+      
+      // Also clear from OrderService
+      await OrderService.clearCartAfterOrder(customerAddress.phone);
       
       // Remove from pending orders if exists
       const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');

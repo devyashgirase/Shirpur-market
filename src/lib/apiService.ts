@@ -99,9 +99,15 @@ class ApiService {
       console.log(`API Response for ${endpoint}:`, data);
       return data;
     } catch (error) {
-      console.error(`API Request failed for ${endpoint}:`, error);
-      // Return mock data when API is unavailable
-      return this.getMockData<T>(endpoint);
+      const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+      
+      if (isDevelopment) {
+        console.warn(`API Request failed for ${endpoint}, using mock data:`, error);
+        return this.getMockData<T>(endpoint);
+      } else {
+        console.error(`Production API Request failed for ${endpoint}:`, error);
+        throw error; // Don't use mock data in production
+      }
     }
   }
 
@@ -134,22 +140,60 @@ class ApiService {
   }
 
   private getMockData<T>(endpoint: string): T {
+    const now = new Date().toISOString();
     const mockData: Record<string, any> = {
       '/products': [
-        { id: 1, name: 'Fresh Tomatoes', price: 40, category: 'Vegetables', stockQuantity: 100, isActive: true, description: 'Fresh red tomatoes', imageUrl: '/api/placeholder/300/200' },
-        { id: 2, name: 'Basmati Rice', price: 120, category: 'Grains', stockQuantity: 50, isActive: true, description: 'Premium basmati rice', imageUrl: '/api/placeholder/300/200' },
-        { id: 3, name: 'Organic Milk', price: 60, category: 'Dairy', stockQuantity: 30, isActive: true, description: 'Fresh organic milk', imageUrl: '/api/placeholder/300/200' }
+        { id: 1, name: 'Fresh Tomatoes', price: 40, category: 'Vegetables', stockQuantity: 100, isActive: true, description: 'Fresh red tomatoes', imageUrl: '/api/placeholder/300/200', createdAt: now },
+        { id: 2, name: 'Basmati Rice', price: 120, category: 'Grains', stockQuantity: 50, isActive: true, description: 'Premium basmati rice', imageUrl: '/api/placeholder/300/200', createdAt: now },
+        { id: 3, name: 'Organic Milk', price: 60, category: 'Dairy', stockQuantity: 30, isActive: true, description: 'Fresh organic milk', imageUrl: '/api/placeholder/300/200', createdAt: now }
       ],
       '/orders': [
-        { id: 1, orderId: 'ORD001', customerName: 'John Doe', customerPhone: '9876543210', total: 250, status: 'pending', paymentStatus: 'pending', items: [], createdAt: new Date().toISOString() }
+        { 
+          id: 1, 
+          orderId: 'ORD001', 
+          customerName: 'John Doe', 
+          customerPhone: '9876543210', 
+          deliveryAddress: '123 Main St, Shirpur', 
+          total: 250, 
+          status: 'out_for_delivery', 
+          paymentStatus: 'paid', 
+          items: [
+            { id: 1, productId: 1, productName: 'Fresh Tomatoes', price: 40, quantity: 2 },
+            { id: 2, productId: 2, productName: 'Basmati Rice', price: 120, quantity: 1 }
+          ], 
+          createdAt: now 
+        },
+        { 
+          id: 2, 
+          orderId: 'ORD002', 
+          customerName: 'Jane Smith', 
+          customerPhone: '9876543211', 
+          deliveryAddress: '456 Oak Ave, Shirpur', 
+          total: 180, 
+          status: 'pending', 
+          paymentStatus: 'pending', 
+          items: [
+            { id: 3, productId: 3, productName: 'Organic Milk', price: 60, quantity: 3 }
+          ], 
+          createdAt: now 
+        }
       ],
       '/categories': [
-        { id: 1, name: 'Vegetables', slug: 'vegetables', isActive: true },
-        { id: 2, name: 'Grains', slug: 'grains', isActive: true },
-        { id: 3, name: 'Dairy', slug: 'dairy', isActive: true }
-      ]
+        { id: 1, name: 'Vegetables', slug: 'vegetables', isActive: true, createdAt: now },
+        { id: 2, name: 'Grains', slug: 'grains', isActive: true, createdAt: now },
+        { id: 3, name: 'Dairy', slug: 'dairy', isActive: true, createdAt: now }
+      ],
+      '/analytics/dashboard': {
+        totalOrders: 2,
+        totalRevenue: 430,
+        pendingOrders: 1,
+        completedOrders: 1,
+        totalProducts: 3,
+        lowStockProducts: 0
+      }
     };
     
+    console.log(`Returning mock data for ${endpoint}:`, mockData[endpoint] || []);
     return mockData[endpoint] || [] as T;
   }
 

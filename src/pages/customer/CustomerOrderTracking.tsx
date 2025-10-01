@@ -322,7 +322,18 @@ const CustomerOrderTracking = () => {
 
         {/* Live GPS Tracking - Show when out for delivery */}
         {currentOrder && currentOrder.status === 'out_for_delivery' && (
-          <LiveTrackingMap orderId={currentOrder.orderId} userType="customer" />
+          <Card>
+            <CardHeader className="p-6">
+              <CardTitle className="flex items-center text-lg">
+                <MapPin className="w-5 h-5 mr-2 text-green-600" />
+                Live GPS Tracking
+                <Badge className="ml-2 bg-green-500 text-white animate-pulse">LIVE</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <LiveTrackingComponent orderId={currentOrder.orderId} />
+            </CardContent>
+          </Card>
         )}
 
         {currentOrder && currentOrder.status === 'out_for_delivery' && customerAddress?.coordinates && (
@@ -466,6 +477,145 @@ const CustomerOrderTracking = () => {
           </Card>
         )}
       </div>
+    </div>
+  );
+};
+
+// Live Tracking Component for Customer
+const LiveTrackingComponent = ({ orderId }: { orderId: string }) => {
+  const [agentLocation, setAgentLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [customerLocation, setCustomerLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [distance, setDistance] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get customer location
+    const customerAddr = JSON.parse(localStorage.getItem('customerAddress') || '{}');
+    if (customerAddr.coordinates) {
+      setCustomerLocation(customerAddr.coordinates);
+    }
+
+    // Listen for live location updates
+    const handleLocationUpdate = (event: any) => {
+      const { orderId: updateOrderId, location } = event.detail;
+      if (updateOrderId === orderId) {
+        console.log('📍 Customer received live location update:', location);
+        setAgentLocation(location);
+        setLastUpdate(new Date().toLocaleTimeString());
+      }
+    };
+
+    // Load existing tracking data
+    const loadTrackingData = () => {
+      const trackingData = localStorage.getItem(`customerTracking_${orderId}`);
+      if (trackingData) {
+        const data = JSON.parse(trackingData);
+        if (data.agentLocation) {
+          setAgentLocation(data.agentLocation);
+          setLastUpdate(new Date(data.lastUpdate).toLocaleTimeString());
+        }
+      }
+    };
+
+    loadTrackingData();
+    window.addEventListener('liveLocationUpdate', handleLocationUpdate);
+
+    // Poll for updates every 5 seconds
+    const interval = setInterval(loadTrackingData, 5000);
+
+    return () => {
+      window.removeEventListener('liveLocationUpdate', handleLocationUpdate);
+      clearInterval(interval);
+    };
+  }, [orderId]);
+
+  // Calculate distance
+  useEffect(() => {
+    if (agentLocation && customerLocation) {
+      const R = 6371;
+      const dLat = (customerLocation.lat - agentLocation.lat) * Math.PI / 180;
+      const dLng = (customerLocation.lng - agentLocation.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+                Math.cos(agentLocation.lat * Math.PI / 180) * Math.cos(customerLocation.lat * Math.PI / 180) * 
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const dist = R * c;
+      setDistance(dist);
+    }
+  }, [agentLocation, customerLocation]);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-semibold text-green-800">🚚 Delivery Agent Location</h4>
+          <Badge className="bg-green-500 text-white">
+            {agentLocation ? 'LIVE' : 'Waiting...'}
+          </Badge>
+        </div>
+        
+        {agentLocation ? (
+          <div className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-green-700">Distance: <span className="font-bold">{distance ? `${distance.toFixed(2)} km` : 'Calculating...'}</span></p>
+                <p className="text-green-700">ETA: <span className="font-bold">{distance ? `${Math.round(distance * 3)} min` : 'Calculating...'}</span></p>
+              </div>
+              <div>
+                <p className="text-green-700">Last Update: <span className="font-bold">{lastUpdate}</span></p>
+                <p className="text-green-700">Status: <span className="font-bold text-green-600">On the way</span></p>
+              </div>
+            </div>
+            
+            <div className="mt-3 p-2 bg-white rounded border">
+              <p className="text-xs text-gray-600">GPS Coordinates:</p>
+              <p className="text-xs font-mono">Agent: {agentLocation.lat.toFixed(6)}, {agentLocation.lng.toFixed(6)}</p>
+              {customerLocation && (
+                <p className="text-xs font-mono">You: {customerLocation.lat.toFixed(6)}, {customerLocation.lng.toFixed(6)}</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <div className="loading-spinner mx-auto mb-2"></div>
+            <p className="text-green-700 text-sm">Waiting for delivery agent to accept order...</p>
+          </div>
+        )}
+      </div>
+      
+      {agentLocation && customerLocation && (
+        <div className="h-64 rounded-lg overflow-hidden border">
+          <MapContainer
+            center={[agentLocation.lat, agentLocation.lng]}
+            zoom={14}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; OpenStreetMap contributors'
+            />
+            
+            <Marker position={[agentLocation.lat, agentLocation.lng]}>
+              <Popup>
+                <div className="text-center">
+                  <strong>🚚 Delivery Agent</strong><br />
+                  Live Location<br />
+                  <small>Updated: {lastUpdate}</small>
+                </div>
+              </Popup>
+            </Marker>
+            
+            <Marker position={[customerLocation.lat, customerLocation.lng]}>
+              <Popup>
+                <div className="text-center">
+                  <strong>🏠 Your Location</strong><br />
+                  Delivery Address
+                </div>
+              </Popup>
+            </Marker>
+          </MapContainer>
+        </div>
+      )}
     </div>
   );
 };

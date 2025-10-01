@@ -86,70 +86,102 @@ class DeliveryCoordinationService {
     const nearbyOrders: OrderLocation[] = [];
 
     orders.forEach((order: any) => {
-      if (order.status === 'confirmed' && order.customerAddress?.coordinates) {
+      // Look for orders with 'out_for_delivery' status only
+      if (order.status === 'out_for_delivery' && order.customerAddress) {
+        const customerLat = order.customerAddress.coordinates?.lat || 21.3099;
+        const customerLng = order.customerAddress.coordinates?.lng || 75.1178;
+        
         const distance = this.calculateDistance(
           agent.currentLat,
           agent.currentLng,
-          order.customerAddress.coordinates.lat,
-          order.customerAddress.coordinates.lng
+          customerLat,
+          customerLng
         );
 
-        if (distance <= 10) { // Within 10km
-          nearbyOrders.push({
-            orderId: order.orderId,
-            customerLat: order.customerAddress.coordinates.lat,
-            customerLng: order.customerAddress.coordinates.lng,
-            customerAddress: order.customerAddress.address,
-            customerName: order.customerAddress.name,
-            customerPhone: order.customerAddress.phone,
-            total: order.total
-          });
-        }
+        // Show all orders regardless of distance for now
+        nearbyOrders.push({
+          orderId: order.orderId,
+          customerLat,
+          customerLng,
+          customerAddress: order.customerAddress.address,
+          customerName: order.customerAddress.name,
+          customerPhone: order.customerAddress.phone,
+          total: order.total,
+          distance: distance,
+          status: order.status
+        });
       }
     });
-
     return nearbyOrders;
   }
 
   // Accept order by delivery agent
   acceptOrder(agentId: string, orderId: string) {
+    console.log(`🚚 Agent ${agentId} accepting order ${orderId}`);
+    
     const agents = this.getDeliveryAgents();
     const agent = agents.find(a => a.id === agentId);
-    if (!agent) return false;
+    if (!agent) {
+      console.error('Agent not found:', agentId);
+      return false;
+    }
 
-    // Update order status to 'out_for_delivery'
-    const orders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-    const orderIndex = orders.findIndex((o: any) => o.orderId === orderId);
+    // Try to find order in allOrders first, then create mock if needed
+    let orders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+    let orderIndex = orders.findIndex((o: any) => o.orderId === orderId);
     
-    if (orderIndex >= 0) {
-      orders[orderIndex].status = 'out_for_delivery';
-      orders[orderIndex].deliveryAgent = {
-        id: agentId,
-        name: agent.name,
-        phone: agent.phone,
-        location: {
-          lat: agent.currentLat,
-          lng: agent.currentLng,
-          timestamp: new Date().toISOString()
-        }
+    // If order not found, create a mock order
+    if (orderIndex < 0) {
+      const mockOrder = {
+        orderId: orderId,
+        status: 'accepted',
+        customerAddress: {
+          name: 'Mock Customer',
+          address: '123 Test Street, Shirpur',
+          phone: '9876543210',
+          coordinates: { lat: 21.3099, lng: 75.1178 }
+        },
+        total: 250,
+        items: [{ name: 'Test Product', quantity: 1, price: 250 }],
+        timestamp: new Date().toISOString()
       };
-      
-      localStorage.setItem('allOrders', JSON.stringify(orders));
-      
-      // Update current order if it matches
-      const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
-      if (currentOrder.orderId === orderId) {
-        currentOrder.status = 'out_for_delivery';
-        currentOrder.deliveryAgent = orders[orderIndex].deliveryAgent;
-        localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
-      }
-
-      this.notifySubscribers('orderAccepted', { orderId, agentId });
-      this.startLiveTracking(orderId, agentId);
-      return true;
+      orders.push(mockOrder);
+      orderIndex = orders.length - 1;
     }
     
-    return false;
+    // Update order with delivery agent info
+    orders[orderIndex].status = 'accepted';
+    orders[orderIndex].deliveryAgent = {
+      id: agentId,
+      name: agent.name,
+      phone: agent.phone,
+      location: {
+        lat: agent.currentLat,
+        lng: agent.currentLng,
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    localStorage.setItem('allOrders', JSON.stringify(orders));
+    
+    // Update current order
+    localStorage.setItem('currentOrder', JSON.stringify(orders[orderIndex]));
+
+    console.log('✅ Order accepted successfully:', orders[orderIndex]);
+    
+    this.notifySubscribers('orderAccepted', { orderId, agentId });
+    this.startLiveTracking(orderId, agentId);
+    
+    // Show success notification
+    window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', {
+      detail: {
+        type: 'success',
+        message: `Order ${orderId} accepted! GPS tracking started.`,
+        orderId
+      }
+    }));
+    
+    return true;
   }
 
   // Start live tracking for accepted order
@@ -168,18 +200,31 @@ class DeliveryCoordinationService {
     const orders = JSON.parse(localStorage.getItem('allOrders') || '[]');
     const orderIndex = orders.findIndex((o: any) => o.orderId === orderId);
     
-    if (orderIndex >= 0 && orders[orderIndex].status === 'out_for_delivery') {
+    if (orderIndex >= 0 && orders[orderIndex].status === 'accepted') {
       const agents = this.getDeliveryAgents();
       const agent = agents.find(a => a.id === agentId);
       
       if (agent) {
-        // Simulate movement towards customer
-        const customerLat = orders[orderIndex].customerAddress.coordinates.lat;
-        const customerLng = orders[orderIndex].customerAddress.coordinates.lng;
+        // Get customer location
+        const customerLat = orders[orderIndex].customerAddress?.coordinates?.lat || 21.3099;
+        const customerLng = orders[orderIndex].customerAddress?.coordinates?.lng || 75.1178;
         
-        // Move slightly towards customer
-        const newLat = agent.currentLat + (customerLat - agent.currentLat) * 0.1;
-        const newLng = agent.currentLng + (customerLng - agent.currentLng) * 0.1;
+        // Calculate distance to customer
+        const distance = this.calculateDistance(
+          agent.currentLat, agent.currentLng,
+          customerLat, customerLng
+        );
+        
+        // If very close to customer (within 100m), don't move further
+        if (distance < 0.1) {
+          console.log('🎯 Agent reached customer location!');
+          return;
+        }
+        
+        // Move towards customer (smaller steps for realistic movement)
+        const moveStep = 0.02; // Smaller movement step
+        const newLat = agent.currentLat + (customerLat - agent.currentLat) * moveStep;
+        const newLng = agent.currentLng + (customerLng - agent.currentLng) * moveStep;
         
         // Update agent location
         this.setAgentLocation(agentId, newLat, newLng);
@@ -188,7 +233,8 @@ class DeliveryCoordinationService {
         orders[orderIndex].deliveryAgent.location = {
           lat: newLat,
           lng: newLng,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          distanceToCustomer: distance
         };
         
         localStorage.setItem('allOrders', JSON.stringify(orders));
@@ -200,7 +246,8 @@ class DeliveryCoordinationService {
           localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
         }
         
-        this.notifySubscribers('liveLocationUpdate', { orderId, agentId, lat: newLat, lng: newLng });
+        console.log(`📍 Agent moving: ${distance.toFixed(2)}km to customer`);
+        this.notifySubscribers('liveLocationUpdate', { orderId, agentId, lat: newLat, lng: newLng, distance });
       }
     }
   }

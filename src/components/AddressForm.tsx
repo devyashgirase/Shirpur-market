@@ -303,19 +303,10 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
             
             {/* Location Status */}
             <div className="mt-2 text-xs text-center">
-              {formData.coordinates ? (
+              {formData.coordinates && (
                 <p className="text-green-600 font-medium">
                   ✓ Location captured! Lat: {formData.coordinates.lat.toFixed(4)}, Lng: {formData.coordinates.lng.toFixed(4)}
                 </p>
-              ) : (
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">
-                    📍 Auto-fill address using your current location
-                  </p>
-                  <p className="text-orange-600 text-xs">
-                    ⚠️ Requires location permission & HTTPS/localhost
-                  </p>
-                </div>
               )}
             </div>
           </div>

@@ -59,11 +59,22 @@ const LiveOrderCounter = () => {
 
     adminRealTimeService.subscribe('statsUpdate', handleStatsUpdate);
     
+    // Listen for immediate order creation events
+    const handleOrderCreated = () => {
+      console.log('🔔 Order created event received in LiveOrderCounter');
+      adminRealTimeService.fetchRealTimeStats().then(handleStatsUpdate);
+    };
+    
+    window.addEventListener('orderCreated', handleOrderCreated);
+    window.addEventListener('ordersUpdated', handleOrderCreated);
+    
     // Initial load
     adminRealTimeService.fetchRealTimeStats().then(handleStatsUpdate);
 
     return () => {
       adminRealTimeService.unsubscribe('statsUpdate', handleStatsUpdate);
+      window.removeEventListener('orderCreated', handleOrderCreated);
+      window.removeEventListener('ordersUpdated', handleOrderCreated);
     };
   }, [stats, previousStats, soundEnabled]);
 

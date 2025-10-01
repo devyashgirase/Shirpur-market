@@ -29,6 +29,7 @@ import DeliveryLayout from "./pages/delivery/DeliveryLayout";
 import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
 import DeliveryNotifications from "./pages/delivery/DeliveryNotifications";
+import DeliveryTracking from "./pages/delivery/DeliveryTracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -95,6 +96,7 @@ const App = () => {
             <Route index element={<DeliveryTasks />} />
             <Route path="notifications" element={<DeliveryNotifications />} />
             <Route path="task/:taskId" element={<DeliveryTaskDetail />} />
+            <Route path="tracking" element={<DeliveryTracking />} />
           </Route>
           
           {/* Catch-all route */}

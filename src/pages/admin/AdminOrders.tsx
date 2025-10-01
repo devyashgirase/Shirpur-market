@@ -13,8 +13,9 @@ import SMSHistory from "@/components/SMSHistory";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
 import { apiService } from "@/lib/apiService";
-import { unifiedDB } from "@/lib/database";
+import { unifiedDB, useSupabase } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
+import { deliveryCoordinationService } from "@/lib/deliveryCoordinationService";
 
 
 
@@ -39,58 +40,65 @@ const AdminOrders = () => {
     try {
       console.log('📊 Loading orders from database...');
       
-      // Load from unified database (auto-switches MySQL/Supabase)
-      const dbOrders = await unifiedDB.getOrders();
-      const formattedOrders = dbOrders.map(order => ({
-        orderId: order.orderId || order.order_id,
-        status: order.status,
-        timestamp: order.createdAt || order.created_at,
-        customerAddress: {
-          name: order.customerName || order.customer_name,
-          phone: order.customerPhone || order.customer_phone,
-          address: order.deliveryAddress || order.delivery_address,
-          coordinates: { lat: 21.3487, lng: 74.8831 }
-        },
-        items: order.items ? order.items.map(item => ({
-          product: {
-            id: item.product_id?.toString() || '0',
-            name: item.product_name,
-            price: parseFloat(item.price)
+      // Always load from localStorage first for instant display
+      const localOrders = [...OrderService.getAllOrders()].reverse();
+      setOrders(localOrders);
+      
+      // Try to load from database if available
+      if (useSupabase) {
+        const dbOrders = await unifiedDB.getOrders();
+        const formattedOrders = dbOrders.map(order => ({
+          orderId: order.orderId || order.order_id,
+          status: order.status,
+          timestamp: order.createdAt || order.created_at,
+          customerAddress: {
+            name: order.customerName || order.customer_name,
+            phone: order.customerPhone || order.customer_phone,
+            address: order.deliveryAddress || order.delivery_address,
+            coordinates: { lat: 21.3487, lng: 74.8831 }
           },
-          quantity: item.quantity
-        })) : [],
-        total: parseFloat(order.total),
-        paymentStatus: order.paymentStatus || order.payment_status || 'paid',
-        databaseId: order.id
-      }));
-      setOrders(formattedOrders);
+          items: order.items ? order.items.map(item => ({
+            product: {
+              id: item.product_id?.toString() || '0',
+              name: item.product_name,
+              price: parseFloat(item.price)
+            },
+            quantity: item.quantity
+          })) : [],
+          total: parseFloat(order.total),
+          paymentStatus: order.paymentStatus || order.payment_status || 'paid',
+          databaseId: order.id
+        }));
+        setOrders(formattedOrders);
+      }
     } catch (error) {
-      console.error('❌ Failed to load orders from database:', error);
-      // Fallback to localStorage orders
-      setOrders([...OrderService.getAllOrders()].reverse());
+      console.warn('⚠️ Database connection failed, using local data:', error);
+      // Already loaded localStorage data above
     }
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: keyof typeof OrderService.prototype) => {
     try {
-      console.log('🔄 Updating order status in database:', orderId, '→', newStatus);
+      console.log('🔄 Updating order status:', orderId, '→', newStatus);
       
-      // Find order to get database ID
-      const order = orders.find(o => o.orderId === orderId);
-      if (order && order.databaseId) {
-        // Update in unified database
-        const dbUpdated = await unifiedDB.updateOrderStatus(order.databaseId, newStatus as string);
-        if (!dbUpdated) {
-          console.error('❌ Failed to update order status in database');
-        }
-      }
-      
-      // Update in OrderService for real-time updates
+      // Update in OrderService (localStorage) - this always works
       const success = await OrderService.updateOrderStatus(orderId, newStatus as any);
       
       if (success) {
-        // Create delivery notification for nearby agents when status is packing
-        if (newStatus === 'packing') {
+        // Try to update in database if available
+        if (useSupabase) {
+          try {
+            const order = orders.find(o => o.orderId === orderId);
+            if (order && order.databaseId) {
+              await unifiedDB.updateOrderStatus(order.databaseId, newStatus as string);
+            }
+          } catch (dbError) {
+            console.warn('⚠️ Database update failed, but local update succeeded:', dbError);
+          }
+        }
+        
+        // Create delivery notification for nearby agents when status is packing or out_for_delivery
+        if (newStatus === 'packing' || newStatus === 'out_for_delivery') {
           const orderData = OrderService.getOrderById(orderId);
           if (orderData) {
             OrderService.createDeliveryNotification(orderData);
@@ -99,15 +107,19 @@ const AdminOrders = () => {
               orderData.customerAddress.address, 
               orderData.total
             );
+            
+            // Trigger delivery agent refresh
+            window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', { detail: orderData }));
+            window.dispatchEvent(new CustomEvent('ordersUpdated'));
           }
         }
         
         toast({
-          title: "Database Updated",
-          description: `Order ${orderId} status updated to ${newStatus.replace('_', ' ')} in database`,
+          title: "Status Updated",
+          description: `Order ${orderId} status updated to ${newStatus.replace('_', ' ')}`,
         });
         
-        // Reload orders from database
+        // Reload orders
         loadOrders();
         
         // Send admin notification
@@ -116,8 +128,8 @@ const AdminOrders = () => {
     } catch (error) {
       console.error('❌ Failed to update order status:', error);
       toast({
-        title: "Database Error",
-        description: "Failed to update order status in database",
+        title: "Update Error",
+        description: "Failed to update order status",
         variant: "destructive"
       });
     }
@@ -292,42 +304,10 @@ const AdminOrders = () => {
                 </div>
 
                 {/* Status Management */}
-                <div>
-                  <h4 className="font-semibold mb-3">Order Status Management</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Button
-                      onClick={() => updateOrderStatus(selectedOrder.orderId, 'confirmed' as any)}
-                      disabled={selectedOrder.status !== 'pending'}
-                      className="bg-blue-500 hover:bg-blue-600"
-                    >
-                      Confirm Order
-                    </Button>
-                    
-                    <Button
-                      onClick={() => updateOrderStatus(selectedOrder.orderId, 'packing' as any)}
-                      disabled={selectedOrder.status !== 'confirmed'}
-                      className="bg-orange-500 hover:bg-orange-600"
-                    >
-                      Start Packing
-                    </Button>
-                    
-                    <Button
-                      onClick={() => updateOrderStatus(selectedOrder.orderId, 'out_for_delivery' as any)}
-                      disabled={selectedOrder.status !== 'packing'}
-                      className="bg-purple-500 hover:bg-purple-600"
-                    >
-                      Ready for Pickup
-                    </Button>
-                    
-                    <Button
-                      onClick={() => updateOrderStatus(selectedOrder.orderId, 'delivered' as any)}
-                      disabled={selectedOrder.status !== 'out_for_delivery'}
-                      className="bg-green-500 hover:bg-green-600"
-                    >
-                      Mark as Delivered
-                    </Button>
-                  </div>
-                </div>
+                <StatusManagement 
+                  order={selectedOrder} 
+                  onStatusUpdate={(orderId, status) => updateOrderStatus(orderId, status as any)}
+                />
               </TabsContent>
               
               <TabsContent value="tracking" className="space-y-4">
@@ -601,6 +581,116 @@ const LiveTrackingMap = ({ order }: { order: Order }) => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+// Status Management Component with Apply Button
+const StatusManagement = ({ order, onStatusUpdate }: { order: Order; onStatusUpdate: (orderId: string, status: string) => void }) => {
+  const [selectedStatus, setSelectedStatus] = useState(order.status);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const { toast } = useToast();
+
+  const statusOptions = [
+    { value: 'pending', label: 'Pending', color: 'bg-gray-500', disabled: false },
+    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500', disabled: order.status === 'pending' ? false : true },
+    { value: 'packing', label: 'Ready for Delivery', color: 'bg-orange-500', disabled: order.status === 'confirmed' ? false : true },
+    { value: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-purple-500', disabled: order.status === 'packing' ? false : true },
+    { value: 'delivered', label: 'Delivered', color: 'bg-green-500', disabled: order.status === 'out_for_delivery' ? false : true }
+  ];
+
+  const handleApplyStatus = () => {
+    if (selectedStatus === order.status) {
+      toast({
+        title: "No Change",
+        description: "Status is already set to this value",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowConfirmation(true);
+  };
+
+  const confirmStatusChange = () => {
+    onStatusUpdate(order.orderId, selectedStatus);
+    setShowConfirmation(false);
+    toast({
+      title: "Status Updated",
+      description: `Order status changed to ${selectedStatus.replace('_', ' ')}`
+    });
+  };
+
+  return (
+    <div>
+      <h4 className="font-semibold mb-3">Order Status Management</h4>
+      
+      <div className="space-y-4">
+        {/* Current Status Display */}
+        <div className="p-3 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground mb-1">Current Status:</p>
+          <Badge className={`${statusOptions.find(s => s.value === order.status)?.color} text-white`}>
+            {order.status.replace('_', ' ').toUpperCase()}
+          </Badge>
+        </div>
+
+        {/* Status Selection */}
+        <div>
+          <p className="text-sm font-medium mb-2">Change Status To:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {statusOptions.map((status) => (
+              <Button
+                key={status.value}
+                variant={selectedStatus === status.value ? "default" : "outline"}
+                onClick={() => setSelectedStatus(status.value)}
+                disabled={status.disabled && status.value !== order.status}
+                className={selectedStatus === status.value ? `${status.color} text-white` : ''}
+                size="sm"
+              >
+                {status.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Apply Button */}
+        <div className="flex justify-center">
+          <Button
+            onClick={handleApplyStatus}
+            disabled={selectedStatus === order.status}
+            className="bg-primary hover:bg-primary/90 px-8"
+            size="lg"
+          >
+            Apply Status Change
+          </Button>
+        </div>
+      </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Status Change</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to change the order status from "{order.status.replace('_', ' ')}" to "{selectedStatus.replace('_', ' ')}"?
+              {selectedStatus === 'packing' && (
+                <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200">
+                  <p className="text-orange-800 text-sm font-medium">
+                    ⚠️ This will send the order to delivery agents for pickup
+                  </p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmStatusChange} className="bg-primary">
+              Confirm Change
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
