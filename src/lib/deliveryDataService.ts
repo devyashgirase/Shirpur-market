@@ -44,7 +44,6 @@ export class DeliveryDataService {
           order.customerAddress.coordinates?.lat || 21.3099, 
           order.customerAddress.coordinates?.lng || 75.1178
         ),
-        customerAddress: order.customerAddress,
         agentLocation,
         debugInfo: {
           totalOrders: allOrders.length,
