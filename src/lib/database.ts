@@ -4,9 +4,18 @@ import { apiService } from './apiService';
 
 // Production Environment Detection
 const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
-const hasSupabaseConfig = import.meta.env.VITE_SUPABASE_URL && 
-  import.meta.env.VITE_SUPABASE_ANON_KEY && 
-  import.meta.env.VITE_SUPABASE_URL.includes('supabase.co');
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Debug environment variables
+console.log('🔍 Environment Debug:');
+console.log('- VITE_SUPABASE_URL:', supabaseUrl ? '✅ Present' : '❌ Missing');
+console.log('- VITE_SUPABASE_ANON_KEY:', supabaseKey ? '✅ Present' : '❌ Missing');
+console.log('- Is Production:', isProduction);
+console.log('- Hostname:', window.location.hostname);
+
+const hasSupabaseConfig = supabaseUrl && supabaseKey && 
+  supabaseUrl.includes('supabase.co') && supabaseKey.length > 50;
 
 // Force Supabase for production deployment
 export const useSupabase = hasSupabaseConfig;
@@ -15,8 +24,11 @@ export const API_BASE_URL = useSupabase ? '/api/supabase' : 'http://localhost:50
 export const DB_TYPE = useSupabase ? 'supabase' : 'mysql';
 
 console.log(`🚀 Database: ${currentDatabase} | Host: ${window.location.hostname}`);
+console.log('🔧 Supabase Config Check:', hasSupabaseConfig ? '✅ Valid' : '❌ Invalid');
+
 if (!useSupabase && isProduction) {
   console.warn('⚠️ Production detected but Supabase not configured!');
+  console.warn('📋 Check environment variables in build process');
 }
 
 // Unified Database API - Same interface, different backends
