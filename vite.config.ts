@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import path from "path";
 
 // https://vitejs.dev/config/
@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       onwarn: (warning, warn) => {
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
+        if (warning.code === 'UNRESOLVED_IMPORT') return;
         warn(warning);
       },
       output: {

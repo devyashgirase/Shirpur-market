@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "build:prod": "vite build --mode production",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build:prod && echo 'Ready for deployment!'",
+    "netlify": "npm run build:prod && echo 'Drag dist/ folder to netlify.com/drop'"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -20,7 +21,10 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-query": "^5.17.0",
+    "@vitejs/plugin-react-swc": "^4.1.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "leaflet": "^1.9.4",
@@ -31,7 +35,8 @@
     "react-router-dom": "^6.20.1",
     "recharts": "^2.8.0",
     "tailwind-merge": "^2.2.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "next-themes": "^0.2.1"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.8",
@@ -43,6 +48,7 @@
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "@rollup/rollup-linux-x64-gnu": "^4.9.0"
   }
 }
