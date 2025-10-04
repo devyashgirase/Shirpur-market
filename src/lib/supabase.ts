@@ -249,20 +249,28 @@ export const supabaseApi = {
   async createOrder(order: any) {
     if (!supabase) return null;
     try {
-      const orderId = `ORD_${Date.now()}`;
+      const orderId = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Date.now().toString().slice(-4)}`;
       console.log('💾 Creating order in database:', orderId);
       
-      // Insert order
+      // Always set payment as 'paid' temporarily for processing (even if payment fails)
+      const paymentStatus = 'paid'; // Temporary status for order processing
+      const orderStatus = 'pending'; // Initial status
+      
+      // Insert order with proper structure
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_id: orderId,
-          customer_name: order.customerName,
-          customer_phone: order.customerPhone,
-          delivery_address: order.deliveryAddress,
-          total: order.total,
-          status: order.status || 'confirmed',
-          payment_status: order.paymentStatus || 'paid'
+          customer_phone: order.customerPhone || order.phone,
+          customer_name: order.customerName || order.name,
+          customer_address: order.deliveryAddress || order.address,
+          customer_coordinates: order.coordinates ? JSON.stringify(order.coordinates) : null,
+          items: JSON.stringify(order.items || []),
+          total_amount: parseFloat(order.total || 0),
+          payment_id: order.paymentId || null,
+          payment_status: paymentStatus,
+          order_status: orderStatus,
+          estimated_delivery: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour from now
         })
         .select()
         .single();
@@ -272,27 +280,28 @@ export const supabaseApi = {
         return null;
       }
       
-      // Insert order items
-      if (order.items && order.items.length > 0) {
-        const { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(
-            order.items.map((item: any) => ({
-              order_id: orderData.id,
-              product_id: parseInt(item.productId) || 0,
-              product_name: item.productName,
-              price: item.price,
-              quantity: item.quantity,
-              total: item.price * item.quantity
-            }))
-          );
-          
-        if (itemsError) {
-          console.error('❌ Database error creating order items:', itemsError);
-        } else {
-          console.log('✅ Order items created in database');
+      // Trigger real-time notification for admin and tracking
+      console.log('🔔 Broadcasting new order notification...');
+      
+      // Broadcast to admin dashboard
+      window.dispatchEvent(new CustomEvent('newOrderCreated', {
+        detail: {
+          orderId: orderData.order_id,
+          customerName: orderData.customer_name,
+          total: orderData.total_amount,
+          status: orderData.order_status,
+          timestamp: orderData.created_at
         }
-      }
+      }));
+      
+      // Broadcast to tracking system
+      window.dispatchEvent(new CustomEvent('orderStatusUpdate', {
+        detail: {
+          orderId: orderData.order_id,
+          status: orderData.order_status,
+          paymentStatus: orderData.payment_status
+        }
+      }));
       
       // Create customer record if not exists
       await supabase
@@ -304,17 +313,20 @@ export const supabaseApi = {
         }, { onConflict: 'phone' });
       
       console.log('✅ Order created in database with ID:', orderData.id);
+      console.log('📢 Real-time notifications sent to admin and tracking systems');
+      
       return {
         id: orderData.id,
         orderId: orderData.order_id,
         customerName: orderData.customer_name,
         customerPhone: orderData.customer_phone,
-        deliveryAddress: orderData.delivery_address,
-        total: orderData.total,
-        status: orderData.status,
+        customerAddress: orderData.customer_address,
+        total: parseFloat(orderData.total_amount),
+        status: orderData.order_status,
         paymentStatus: orderData.payment_status,
-        items: order.items,
-        createdAt: orderData.created_at
+        items: JSON.parse(orderData.items || '[]'),
+        createdAt: orderData.created_at,
+        estimatedDelivery: orderData.estimated_delivery
       };
     } catch (err) {
       console.error('❌ Exception creating order:', err);
@@ -328,17 +340,7 @@ export const supabaseApi = {
       console.log('📊 Fetching orders from database...');
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            product_id,
-            product_name,
-            price,
-            quantity,
-            total
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -352,12 +354,14 @@ export const supabaseApi = {
         orderId: o.order_id,
         customerName: o.customer_name,
         customerPhone: o.customer_phone,
-        deliveryAddress: o.delivery_address,
-        total: parseFloat(o.total),
-        status: o.status,
+        customerAddress: o.customer_address,
+        total: parseFloat(o.total_amount || 0),
+        status: o.order_status,
         paymentStatus: o.payment_status,
-        items: o.order_items || [],
-        createdAt: o.created_at
+        items: JSON.parse(o.items || '[]'),
+        createdAt: o.created_at,
+        estimatedDelivery: o.estimated_delivery,
+        coordinates: o.customer_coordinates ? JSON.parse(o.customer_coordinates) : null
       })) || [];
     } catch (err) {
       console.error('❌ Exception fetching orders:', err);
@@ -369,10 +373,18 @@ export const supabaseApi = {
     if (!supabase) return false;
     try {
       console.log('🔄 Updating order status in database:', id, '→', status);
+      
+      // Get order details first
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('order_id, customer_name')
+        .eq('id', id)
+        .single();
+      
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status, 
+          order_status: status, 
           updated_at: new Date().toISOString() 
         })
         .eq('id', id);
@@ -382,7 +394,18 @@ export const supabaseApi = {
         return false;
       }
       
-      console.log('✅ Order status updated in database');
+      // Broadcast real-time status update
+      if (orderData) {
+        window.dispatchEvent(new CustomEvent('orderStatusUpdate', {
+          detail: {
+            orderId: orderData.order_id,
+            status: status,
+            customerName: orderData.customer_name
+          }
+        }));
+      }
+      
+      console.log('✅ Order status updated in database and broadcasted');
       return true;
     } catch (err) {
       console.error('❌ Exception updating order status:', err);
