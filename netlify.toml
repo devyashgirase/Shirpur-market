@@ -5,12 +5,7 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--force"
-  VITE_RAZORPAY_KEY_ID = "rzp_test_1DP5mmOlF5G5ag"
-  VITE_ENABLE_LOYALTY_PROGRAM = "true"
-  VITE_ENABLE_ROUTE_OPTIMIZATION = "true"
-  VITE_ENABLE_SMART_INVENTORY = "true"
-  VITE_ENABLE_FEEDBACK_SYSTEM = "true"
-  VITE_ENABLE_ADVANCED_ANALYTICS = "true"
+  # Environment variables are now in .env.production file
 
 [[redirects]]
   from = "/*"
