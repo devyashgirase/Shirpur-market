@@ -1,14 +1,13 @@
 {
   "name": "shirpur-delivery-system",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "build:prod": "vite build --mode production",
-    "preview": "vite preview",
-    "check-env": "node -e \"console.log('Environment Check:'); console.log('Supabase URL:', process.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing'); console.log('Supabase Key:', process.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'); console.log('Razorpay Key:', process.env.VITE_RAZORPAY_KEY_ID ? '✅ Set' : '❌ Missing');\""
+    "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
