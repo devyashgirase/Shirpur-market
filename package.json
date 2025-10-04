@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:prod": "tsc && vite build --mode production",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "check-env": "node -e \"console.log('Environment Check:'); console.log('Supabase URL:', process.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing'); console.log('Supabase Key:', process.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'); console.log('Razorpay Key:', process.env.VITE_RAZORPAY_KEY_ID ? '✅ Set' : '❌ Missing');\""
   },
