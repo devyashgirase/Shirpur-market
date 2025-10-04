@@ -4,7 +4,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Initialize Supabase client
-export const supabase = supabaseUrl && supabaseKey && supabaseKey !== 'YOUR_NEW_API_KEY_HERE'
+export const supabase = supabaseUrl && supabaseKey && supabaseKey.length > 50
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
@@ -19,7 +19,7 @@ if (supabase) {
   console.log('3. Update .env file with real values');
   console.log('4. Run the supabase-schema.sql in your Supabase SQL editor');
   console.log('VITE_SUPABASE_URL:', supabaseUrl ? '✅ Present' : '❌ Missing');
-  console.log('VITE_SUPABASE_ANON_KEY:', supabaseKey && supabaseKey !== 'GET_FROM_SUPABASE_DASHBOARD_SETTINGS_API' ? '✅ Present' : '❌ Missing/Placeholder');
+  console.log('VITE_SUPABASE_ANON_KEY:', supabaseKey && supabaseKey.length > 50 ? '✅ Present' : '❌ Missing/Placeholder');
 }
 
 // Database verification and setup
@@ -94,7 +94,7 @@ export const testConnection = async () => {
   if (!supabase) {
     console.error('❌ Supabase not initialized. Check environment variables:');
     console.error('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Present' : '❌ Missing');
-    console.error('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'GET_FROM_SUPABASE_DASHBOARD_SETTINGS_API' ? '✅ Present' : '❌ Missing/Placeholder');
+    console.error('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY.length > 50 ? '✅ Present' : '❌ Missing/Placeholder');
     return false;
   }
   
