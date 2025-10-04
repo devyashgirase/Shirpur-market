@@ -1,35 +1,12 @@
-import * as signalR from '@microsoft/signalr';
-
+// Mock SignalR service for deployment
 class RealTimeService {
-  private connection: signalR.HubConnection | null = null;
   private listeners: Map<string, Function[]> = new Map();
   private currentUserType: string | null = null;
 
   async connect(userType: 'admin' | 'delivery' | 'customer', userId?: string) {
-    if (this.connection) return;
-
     this.currentUserType = userType;
-    this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5000/notificationHub')
-      .build();
-
-    await this.connection.start();
-    await this.connection.invoke('JoinGroup', userType, userId);
-
-    // Role-specific notification handlers
-    if (userType === 'admin') {
-      this.connection.on('AdminNotification', (notification) => {
-        this.notifyListeners('AdminNotification', notification);
-      });
-    } else if (userType === 'delivery') {
-      this.connection.on('DeliveryNotification', (notification) => {
-        this.notifyListeners('DeliveryNotification', notification);
-      });
-    } else if (userType === 'customer') {
-      this.connection.on('CustomerNotification', (notification) => {
-        this.notifyListeners('CustomerNotification', notification);
-      });
-    }
+    console.log(`Mock connection established for ${userType}`);
+    return Promise.resolve();
   }
 
   subscribe(event: string, callback: Function) {
@@ -49,10 +26,7 @@ class RealTimeService {
   }
 
   disconnect() {
-    if (this.connection) {
-      this.connection.stop();
-      this.connection = null;
-    }
+    console.log('Mock disconnection');
   }
 }
 
