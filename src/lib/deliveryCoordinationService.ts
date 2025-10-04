@@ -115,6 +115,26 @@ class DeliveryCoordinationService {
     return nearbyOrders;
   }
 
+  // Generate OTP for delivery verification
+  private generateDeliveryOTP(orderId: string, customerPhone: string): string {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP with order details
+    localStorage.setItem(`delivery_otp_${orderId}`, JSON.stringify({
+      otp: otp,
+      timestamp: Date.now(),
+      phone: customerPhone,
+      orderId: orderId
+    }));
+    
+    console.log(`📱 Generated delivery OTP ${otp} for order ${orderId}`);
+    
+    // In real app, send SMS here
+    // await this.sendSMS(customerPhone, `Your delivery OTP is: ${otp}. Share this with delivery agent to confirm delivery.`);
+    
+    return otp;
+  }
+
   // Accept order by delivery agent
   acceptOrder(agentId: string, orderId: string) {
     console.log(`🚚 Agent ${agentId} accepting order ${orderId}`);
@@ -162,6 +182,18 @@ class DeliveryCoordinationService {
       }
     };
     
+    // Generate OTP for delivery verification
+    const customerPhone = orders[orderIndex].customerAddress?.phone;
+    if (customerPhone) {
+      const otp = this.generateDeliveryOTP(orderId, customerPhone);
+      orders[orderIndex].deliveryOTP = {
+        generated: true,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`🔐 Delivery OTP generated for order ${orderId}: ${otp}`);
+    }
+    
     localStorage.setItem('allOrders', JSON.stringify(orders));
     
     // Update current order
@@ -176,7 +208,7 @@ class DeliveryCoordinationService {
     window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', {
       detail: {
         type: 'success',
-        message: `Order ${orderId} accepted! GPS tracking started.`,
+        message: `Order ${orderId} accepted! GPS tracking started. OTP sent to customer.`,
         orderId
       }
     }));

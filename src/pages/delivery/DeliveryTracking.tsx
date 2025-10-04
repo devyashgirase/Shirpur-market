@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Navigation, MapPin, Phone, Package, CheckCircle, Map } from 'lucide-react';
 import { deliveryCoordinationService } from '@/lib/deliveryCoordinationService';
+import DeliveryOTPVerification from '@/components/DeliveryOTPVerification';
 
 const DeliveryTracking = () => {
   const [currentOrder, setCurrentOrder] = useState<any>(null);
@@ -12,6 +13,7 @@ const DeliveryTracking = () => {
   const [agentLocationName, setAgentLocationName] = useState('Getting location...');
   const [route, setRoute] = useState<[number, number][]>([]);
   const [isDelivered, setIsDelivered] = useState(false);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
   
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
     const R = 6371;
@@ -131,11 +133,21 @@ const DeliveryTracking = () => {
   }, [isDelivered]);
 
   const handleMarkDelivered = () => {
+    // Show OTP verification instead of directly marking as delivered
+    setShowOTPVerification(true);
+  };
+
+  const handleOTPVerificationSuccess = () => {
     if (currentOrder?.orderId) {
       deliveryCoordinationService.markAsDelivered(currentOrder.orderId);
       setIsDelivered(true);
-      alert('✅ Order marked as delivered!');
+      setShowOTPVerification(false);
+      alert('✅ Order delivered successfully with OTP verification!');
     }
+  };
+
+  const handleOTPVerificationCancel = () => {
+    setShowOTPVerification(false);
   };
 
   if (!currentOrder?.orderId) {
@@ -244,15 +256,28 @@ const DeliveryTracking = () => {
           </CardContent>
         </Card>
 
+        {/* OTP Verification Modal */}
+        {showOTPVerification && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <DeliveryOTPVerification
+              orderId={currentOrder.orderId}
+              customerPhone={currentOrder.customerAddress?.phone || ''}
+              customerName={currentOrder.customerAddress?.name || ''}
+              onVerificationSuccess={handleOTPVerificationSuccess}
+              onCancel={handleOTPVerificationCancel}
+            />
+          </div>
+        )}
+
         {/* Action Button */}
-        {!isDelivered && (
+        {!isDelivered && !showOTPVerification && (
           <Button
             onClick={handleMarkDelivered}
             className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3"
             size="lg"
           >
             <CheckCircle className="w-5 h-5 mr-2" />
-            Mark as Delivered
+            Complete Delivery (OTP Required)
           </Button>
         )}
 
