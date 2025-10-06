@@ -180,72 +180,8 @@ const AdminLiveTracking = () => {
                 </CardContent>
               </Card>
 
-              {/* Live Map */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    Live Tracking Map
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-96 rounded-lg overflow-hidden">
-                    <MapContainer
-                      center={[20.7516, 74.2297]}
-                      zoom={13}
-                      style={{ height: '100%', width: '100%' }}
-                    >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
-                      
-                      {/* Delivery Agent Location */}
-                      {selectedOrder.deliveryAgent?.location && (
-                        <Marker
-                          position={[selectedOrder.deliveryAgent.location.lat, selectedOrder.deliveryAgent.location.lng]}
-                          icon={createCustomIcon('🚚', '#3b82f6')}
-                        >
-                          <Popup>
-                            <div className="text-center">
-                              <strong>{selectedOrder.deliveryAgent.name}</strong><br />
-                              <span className="text-sm">Delivery Agent</span><br />
-                              <span className="text-xs">{selectedOrder.deliveryAgent.phone}</span>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      )}
-                      
-                      {/* Customer Location */}
-                      {selectedOrder.customerAddress?.coordinates && (
-                        <Marker
-                          position={[selectedOrder.customerAddress.coordinates.lat, selectedOrder.customerAddress.coordinates.lng]}
-                          icon={createCustomIcon('📍', '#ef4444')}
-                        >
-                          <Popup>
-                            <div className="text-center">
-                              <strong>{selectedOrder.customerAddress.name}</strong><br />
-                              <span className="text-sm">Delivery Address</span><br />
-                              <span className="text-xs">{selectedOrder.customerAddress.address}</span>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      )}
-                      
-                      {/* Route Line */}
-                      {getRouteCoordinates(selectedOrder).length > 0 && (
-                        <Polyline
-                          positions={getRouteCoordinates(selectedOrder)}
-                          color="#8b5cf6"
-                          weight={3}
-                          opacity={0.7}
-                          dashArray="10, 10"
-                        />
-                      )}
-                    </MapContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Advanced Live Map */}
+              <AdvancedTrackingMap orderId={selectedOrder.orderId} userType="admin" />
             </>
           ) : (
             <Card>

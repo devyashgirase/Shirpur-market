@@ -2,19 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { MapPin, Truck, Clock, CheckCircle, Package, Bell, RefreshCw } from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import RouteMap from "@/components/RouteMap";
-import LiveDeliveryTracking from "@/components/LiveDeliveryTracking";
-import { LiveTrackingMap } from "@/components/LiveTrackingMap";
+import { MapPin, Truck, Clock, CheckCircle, Package, RefreshCw, ArrowLeft } from "lucide-react";
+import { TrackingDashboard } from "@/components/TrackingDashboard";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
-import { LiveTrackingService } from "@/lib/liveTrackingService";
+import { EnhancedTrackingService } from "@/lib/enhancedTrackingService";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 
 const CustomerOrderTracking = () => {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -196,9 +190,43 @@ const CustomerOrderTracking = () => {
               });
             }
             
-            // Start live tracking when status changes to out_for_delivery
+            // Start enhanced tracking when status changes to out_for_delivery
             if (updatedOrder.status === 'out_for_delivery') {
-              LiveTrackingService.assignAgent(updatedOrder.orderId, 'agent_001');
+              // Get real customer GPS location
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const customerLocation = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude,
+                      accuracy: position.coords.accuracy,
+                      timestamp: Date.now()
+                    };
+                    EnhancedTrackingService.startOrderTracking(updatedOrder.orderId, 'agent_001', customerLocation);
+                  },
+                  (error) => {
+                    console.error('GPS error:', error);
+                    // Fallback to Shirpur Main Market location
+                    const customerLocation = {
+                      lat: 21.3486,
+                      lng: 74.8811,
+                      accuracy: 10,
+                      timestamp: Date.now()
+                    };
+                    EnhancedTrackingService.startOrderTracking(updatedOrder.orderId, 'agent_001', customerLocation);
+                  },
+                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                );
+              } else {
+                // Fallback if geolocation not supported
+                const customerLocation = {
+                  lat: 21.3486,
+                  lng: 74.8811,
+                  accuracy: 10,
+                  timestamp: Date.now()
+                };
+                EnhancedTrackingService.startOrderTracking(updatedOrder.orderId, 'agent_001', customerLocation);
+              }
             }
           }
           
@@ -320,28 +348,26 @@ const CustomerOrderTracking = () => {
           </CardContent>
         </Card>
 
-        {/* Live GPS Tracking - Show when out for delivery */}
+        {/* Enhanced Live Tracking Dashboard - Show when out for delivery */}
         {currentOrder && currentOrder.status === 'out_for_delivery' && (
-          <Card>
-            <CardHeader className="p-6">
-              <CardTitle className="flex items-center text-lg">
-                <MapPin className="w-5 h-5 mr-2 text-green-600" />
-                Live GPS Tracking
-                <Badge className="ml-2 bg-green-500 text-white animate-pulse">LIVE</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <LiveTrackingComponent orderId={currentOrder.orderId} />
-            </CardContent>
-          </Card>
-        )}
-
-        {currentOrder && currentOrder.status === 'out_for_delivery' && customerAddress?.coordinates && (
-          <LiveDeliveryTracking 
-            orderId={currentOrder.orderId}
-            customerLat={customerAddress.coordinates.lat}
-            customerLng={customerAddress.coordinates.lng}
-          />
+          <div className="space-y-4">
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50">
+              <CardHeader className="p-6">
+                <CardTitle className="flex items-center text-lg">
+                  <MapPin className="w-6 h-6 mr-2 text-green-600" />
+                  Enhanced Live Tracking System
+                  <Badge className="ml-2 bg-green-500 text-white animate-pulse px-3 py-1">
+                    🔴 LIVE
+                  </Badge>
+                </CardTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Real-time GPS tracking with AI-powered route optimization and traffic analysis
+                </p>
+              </CardHeader>
+            </Card>
+            
+            <TrackingDashboard orderId={currentOrder.orderId} userType="customer" />
+          </div>
         )}
 
         {false && currentOrder && currentOrder.status === 'out_for_delivery' && currentOrder.deliveryAgent?.location && customerAddress?.coordinates && (

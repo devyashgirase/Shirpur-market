@@ -88,8 +88,8 @@ class DeliveryCoordinationService {
     orders.forEach((order: any) => {
       // Look for orders with 'out_for_delivery' status only
       if (order.status === 'out_for_delivery' && order.customerAddress) {
-        const customerLat = order.customerAddress.coordinates?.lat || 21.3099;
-        const customerLng = order.customerAddress.coordinates?.lng || 75.1178;
+        const customerLat = order.customerAddress.coordinates?.lat || 21.3486;
+        const customerLng = order.customerAddress.coordinates?.lng || 74.8811;
         
         const distance = this.calculateDistance(
           agent.currentLat,
@@ -98,18 +98,20 @@ class DeliveryCoordinationService {
           customerLng
         );
 
-        // Show all orders regardless of distance for now
-        nearbyOrders.push({
-          orderId: order.orderId,
-          customerLat,
-          customerLng,
-          customerAddress: order.customerAddress.address,
-          customerName: order.customerAddress.name,
-          customerPhone: order.customerAddress.phone,
-          total: order.total,
-          distance: distance,
-          status: order.status
-        });
+        // Only show orders within 10km
+        if (distance <= 10) {
+          nearbyOrders.push({
+            orderId: order.orderId,
+            customerLat,
+            customerLng,
+            customerAddress: order.customerAddress.address,
+            customerName: order.customerAddress.name,
+            customerPhone: order.customerAddress.phone,
+            total: order.total,
+            distance: distance,
+            status: order.status
+          });
+        }
       }
     });
     return nearbyOrders;
@@ -159,7 +161,7 @@ class DeliveryCoordinationService {
           name: 'Mock Customer',
           address: '123 Test Street, Shirpur',
           phone: '9876543210',
-          coordinates: { lat: 21.3099, lng: 75.1178 }
+          coordinates: { lat: 21.3486, lng: 74.8811 }
         },
         total: 250,
         items: [{ name: 'Test Product', quantity: 1, price: 250 }],
@@ -238,8 +240,8 @@ class DeliveryCoordinationService {
       
       if (agent) {
         // Get customer location
-        const customerLat = orders[orderIndex].customerAddress?.coordinates?.lat || 21.3099;
-        const customerLng = orders[orderIndex].customerAddress?.coordinates?.lng || 75.1178;
+        const customerLat = orders[orderIndex].customerAddress?.coordinates?.lat || 21.3486;
+        const customerLng = orders[orderIndex].customerAddress?.coordinates?.lng || 74.8811;
         
         // Calculate distance to customer
         const distance = this.calculateDistance(

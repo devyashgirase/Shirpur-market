@@ -31,6 +31,7 @@ import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
 import DeliveryNotifications from "./pages/delivery/DeliveryNotifications";
 import DeliveryTracking from "./pages/delivery/DeliveryTracking";
+import TrackingDemo from "./pages/TrackingDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ const App = () => {
           <Route path="/" element={<OTPLogin />} />
           <Route path="/home" element={<Index />} />
           <Route path="/login" element={<OTPLogin />} />
+          <Route path="/tracking-demo" element={<TrackingDemo />} />
           
           {/* Customer Routes */}
           <Route path="/customer" element={

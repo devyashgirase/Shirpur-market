@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Navigation, MapPin, Phone, Package, CheckCircle, Map } from 'lucide-react';
+import { Navigation, MapPin, Phone, Package, CheckCircle, Map, Truck } from 'lucide-react';
+import { TrackingDashboard } from '@/components/TrackingDashboard';
 import { deliveryCoordinationService } from '@/lib/deliveryCoordinationService';
+import { EnhancedTrackingService } from '@/lib/enhancedTrackingService';
 import DeliveryOTPVerification from '@/components/DeliveryOTPVerification';
 
 const DeliveryTracking = () => {
@@ -72,6 +74,20 @@ const DeliveryTracking = () => {
       }
     }
 
+    // Initialize enhanced tracking
+    EnhancedTrackingService.initializeTracking();
+    
+    // Start enhanced tracking for this order
+    if (order.orderId) {
+      const customerLocation = {
+        lat: order.customerAddress?.coordinates?.lat || 21.3150,
+        lng: order.customerAddress?.coordinates?.lng || 75.1200,
+        accuracy: 5,
+        timestamp: Date.now()
+      };
+      EnhancedTrackingService.startOrderTracking(order.orderId, 'agent_001', customerLocation);
+    }
+    
     // Listen for location updates
     const handleLocationUpdate = (data: any) => {
       setAgentLocation({ lat: data.lat, lng: data.lng });
@@ -128,6 +144,7 @@ const DeliveryTracking = () => {
 
     return () => {
       deliveryCoordinationService.unsubscribe('liveLocationUpdate', handleLocationUpdate);
+      EnhancedTrackingService.stopOrderTracking(order.orderId || '');
       if (cleanup) cleanup();
     };
   }, [isDelivered]);
@@ -204,53 +221,44 @@ const DeliveryTracking = () => {
           </CardContent>
         </Card>
 
-        {/* Map */}
+        {/* Enhanced Tracking Dashboard */}
+        <Card className="bg-gradient-to-r from-blue-50 to-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-6 w-6 text-blue-600" />
+              Enhanced Delivery Tracking
+              <Badge className="bg-green-500 text-white animate-pulse">
+                🔴 LIVE
+              </Badge>
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              AI-powered route optimization with real-time traffic analysis
+            </p>
+          </CardHeader>
+        </Card>
+        
+        <TrackingDashboard orderId={currentOrder.orderId} userType="delivery" />
+        
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Live GPS Tracking</CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-100 rounded-lg p-6 text-center">
-              <Map className="h-16 w-16 mx-auto text-blue-500 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">GPS Tracking Active</h3>
-              
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="bg-blue-50 p-3 rounded">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-semibold">Your Location</span>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    {agentLocationName}
-                  </p>
-                </div>
-                
-                <div className="bg-red-50 p-3 rounded">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-sm font-semibold">Customer</span>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    🏠 {currentOrder?.customerAddress?.address || 'Customer Location'}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-4 p-3 bg-green-50 rounded">
-                <p className="text-sm text-green-700">
-                  📍 Distance: {calculateDistance(agentLocation.lat, agentLocation.lng, customerLocation.lat, customerLocation.lng).toFixed(2)} km
-                </p>
-                <p className="text-xs text-green-600 mt-1">
-                  ETA: ~{Math.round(calculateDistance(agentLocation.lat, agentLocation.lng, customerLocation.lat, customerLocation.lng) * 3)} minutes
-                </p>
-              </div>
-              
+            <div className="grid grid-cols-2 gap-4">
               <Button 
-                className="mt-4 w-full bg-blue-500 hover:bg-blue-600"
+                variant="outline"
                 onClick={() => window.open(`https://www.google.com/maps/dir/${agentLocation.lat},${agentLocation.lng}/${customerLocation.lat},${customerLocation.lng}`, '_blank')}
               >
                 <Navigation className="w-4 h-4 mr-2" />
-                Open in Google Maps
+                Google Maps
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.open(`tel:${currentOrder.customerAddress?.phone}`, '_self')}
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Call Customer
               </Button>
             </div>
           </CardContent>
