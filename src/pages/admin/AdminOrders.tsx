@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Package, Truck, CheckCircle, Eye, MapPin, Navigation, Bell } from "lucide-react";
+import { Clock, Package, Truck, CheckCircle, Eye, MapPin, Navigation, Bell, RefreshCw } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -58,41 +58,55 @@ const AdminOrders = () => {
   
   const loadOrders = async () => {
     try {
-      console.log('📊 Loading orders from database...');
+      console.log('📊 Loading orders from all sources...');
       
-      // Always load from localStorage first for instant display
+      // Load from localStorage first for instant display
       const localOrders = [...OrderService.getAllOrders()].reverse();
       setOrders(localOrders);
       
-      // Try to load from database if available
-      if (useSupabase) {
-        const dbOrders = await unifiedDB.getOrders();
-        const formattedOrders = dbOrders.map(order => ({
-          orderId: order.orderId || order.order_id,
-          status: order.status,
-          timestamp: order.createdAt || order.created_at,
-          customerAddress: {
-            name: order.customerName || order.customer_name,
-            phone: order.customerPhone || order.customer_phone,
-            address: order.deliveryAddress || order.delivery_address,
-            coordinates: { lat: 21.3487, lng: 74.8831 }
-          },
-          items: order.items ? order.items.map(item => ({
-            product: {
-              id: item.product_id?.toString() || '0',
-              name: item.product_name,
-              price: parseFloat(item.price)
+      // Try to load from API service (which handles both Supabase and MySQL)
+      try {
+        const apiOrders = await OrderService.getOrdersFromAPI();
+        if (apiOrders.length > 0) {
+          console.log('✅ Loaded orders from API:', apiOrders.length);
+          setOrders([...apiOrders].reverse());
+        }
+      } catch (apiError) {
+        console.warn('⚠️ API orders failed, trying direct database:', apiError);
+        
+        // Fallback to direct database if available
+        if (useSupabase) {
+          const dbOrders = await unifiedDB.getOrders();
+          const formattedOrders = dbOrders.map(order => ({
+            orderId: order.orderId || order.order_id,
+            status: order.status,
+            timestamp: order.createdAt || order.created_at,
+            customerAddress: {
+              name: order.customerName || order.customer_name,
+              phone: order.customerPhone || order.customer_phone,
+              address: order.deliveryAddress || order.delivery_address,
+              coordinates: { lat: 21.3486, lng: 74.8811 }
             },
-            quantity: item.quantity
-          })) : [],
-          total: parseFloat(order.total),
-          paymentStatus: order.paymentStatus || order.payment_status || 'paid',
-          databaseId: order.id
-        }));
-        setOrders(formattedOrders);
+            items: order.items ? order.items.map(item => ({
+              product: {
+                id: item.product_id?.toString() || '0',
+                name: item.product_name,
+                price: parseFloat(item.price)
+              },
+              quantity: item.quantity
+            })) : [],
+            total: parseFloat(order.total),
+            paymentStatus: order.paymentStatus || order.payment_status || 'paid',
+            databaseId: order.id
+          }));
+          if (formattedOrders.length > 0) {
+            console.log('✅ Loaded orders from database:', formattedOrders.length);
+            setOrders(formattedOrders);
+          }
+        }
       }
     } catch (error) {
-      console.warn('⚠️ Database connection failed, using local data:', error);
+      console.warn('⚠️ All database sources failed, using local data:', error);
       // Already loaded localStorage data above
     }
   };
@@ -184,7 +198,17 @@ const AdminOrders = () => {
 
   return (
     <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
-      <h1 className="text-xl md:text-3xl font-bold mb-4 md:mb-6">Recent Orders</h1>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h1 className="text-xl md:text-3xl font-bold">Recent Orders</h1>
+        <Button 
+          onClick={loadOrders}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh Orders
+        </Button>
+      </div>
       
       {orders.length === 0 ? (
         <Card>

@@ -120,6 +120,9 @@ export class OrderService {
     window.dispatchEvent(new CustomEvent('ordersUpdated'));
     window.dispatchEvent(new CustomEvent('newOrderAlert', { detail: { orderId, total, customerName: customerInfo.name } }));
     
+    // Sync with admin localStorage for immediate visibility
+    this.syncOrderToAdmin(newOrder);
+    
     // Notify subscribers
     this.notifyListeners();
     
@@ -562,6 +565,23 @@ export class OrderService {
   static getOrderById(orderId: string): Order | null {
     const orders = this.getAllOrders();
     return orders.find(order => order.orderId === orderId) || null;
+  }
+
+  // Sync order to admin localStorage for immediate visibility
+  private static syncOrderToAdmin(order: Order) {
+    try {
+      // Ensure order is in allOrders for admin visibility
+      const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+      const existingIndex = allOrders.findIndex((o: Order) => o.orderId === order.orderId);
+      
+      if (existingIndex === -1) {
+        allOrders.unshift(order);
+        localStorage.setItem('allOrders', JSON.stringify(allOrders));
+        console.log(`✅ Order ${order.orderId} synced to admin view`);
+      }
+    } catch (error) {
+      console.error('Failed to sync order to admin:', error);
+    }
   }
 
   // Get orders by status
