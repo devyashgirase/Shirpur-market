@@ -25,6 +25,7 @@ import AdminTracking from "./pages/admin/AdminTracking";
 import AdminLiveTracking from "./pages/admin/AdminLiveTracking";
 import AdminFeatures from "./pages/admin/AdminFeatures";
 import AdminCarousel from "./pages/admin/AdminCarousel";
+import AdminDeliveryAgents from "./pages/admin/AdminDeliveryAgents";
 import DeliveryLayout from "./pages/delivery/DeliveryLayout";
 import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
@@ -82,6 +83,7 @@ const App = () => {
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="tracking" element={<AdminTracking />} />
+            <Route path="delivery-agents" element={<AdminDeliveryAgents />} />
             <Route path="live-tracking" element={<AdminLiveTracking />} />
             <Route path="carousel" element={<AdminCarousel />} />
             <Route path="features" element={<AdminFeatures />} />

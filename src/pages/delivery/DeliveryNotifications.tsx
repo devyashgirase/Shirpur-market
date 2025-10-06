@@ -81,7 +81,7 @@ const DeliveryNotifications = () => {
     if (success) {
       toast({
         title: "Order Accepted!",
-        description: `Order ${notification.orderId} has been assigned to you.`,
+        description: `Order ${notification.orderId} is now out for delivery.`,
       });
 
       // Send notifications
@@ -93,6 +93,11 @@ const DeliveryNotifications = () => {
 
       // Remove from notifications
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      
+      // Trigger updates for customer and admin tracking
+      window.dispatchEvent(new CustomEvent('orderStatusChanged', { 
+        detail: { orderId: notification.orderId, status: 'out_for_delivery', agent: agentInfo }
+      }));
     } else {
       toast({
         title: "Error",

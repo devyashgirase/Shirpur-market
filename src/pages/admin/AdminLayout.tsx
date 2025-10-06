@@ -63,13 +63,13 @@ const AdminLayout = () => {
                   </Button>
                 </Link>
                 
-                <Link to="/admin/tracking">
+                <Link to="/admin/delivery-agents">
                   <Button 
-                    variant={isActive('/admin/tracking') ? "secondary" : "ghost"} 
-                    className={isActive('/admin/tracking') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
+                    variant={isActive('/admin/delivery-agents') ? "secondary" : "ghost"} 
+                    className={isActive('/admin/delivery-agents') ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                     size="sm"
                   >
-                    <MapPin className="w-4 h-4 mr-2" />
+                    <Truck className="w-4 h-4 mr-2" />
                     Agents
                   </Button>
                 </Link>
@@ -155,14 +155,14 @@ const AdminLayout = () => {
                       </Button>
                     </Link>
                     
-                    <Link to="/admin/tracking" className="w-full">
+                    <Link to="/admin/delivery-agents" className="w-full">
                       <Button 
-                        variant={isActive('/admin/tracking') ? "default" : "ghost"} 
+                        variant={isActive('/admin/delivery-agents') ? "default" : "ghost"} 
                         className="w-full justify-start"
                         size="lg"
                       >
-                        <MapPin className="w-4 h-4 mr-3" />
-                        Agents
+                        <Truck className="w-4 h-4 mr-3" />
+                        Delivery Agents
                       </Button>
                     </Link>
                     

@@ -466,5 +466,98 @@ export const supabaseApi = {
       console.error('❌ Exception creating customer:', err);
       return null;
     }
+  },
+
+  async updateProductStock(productId: number, quantityChange: number) {
+    if (!supabase) return false;
+    try {
+      console.log(`📦 Updating product ${productId} stock by ${quantityChange}`);
+      
+      // Get current stock first
+      const { data: product, error: fetchError } = await supabase
+        .from('products')
+        .select('stock_quantity')
+        .eq('id', productId)
+        .single();
+      
+      if (fetchError) {
+        console.error('❌ Error fetching product stock:', fetchError);
+        return false;
+      }
+      
+      const newStock = Math.max(0, (product.stock_quantity || 0) + quantityChange);
+      
+      const { error } = await supabase
+        .from('products')
+        .update({ 
+          stock_quantity: newStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', productId);
+      
+      if (error) {
+        console.error('❌ Database error updating product stock:', error);
+        return false;
+      }
+      
+      console.log(`✅ Product ${productId} stock updated to ${newStock}`);
+      return true;
+    } catch (err) {
+      console.error('❌ Exception updating product stock:', err);
+      return false;
+    }
+  },
+
+  async updatePaymentStatus(orderId: number, paymentStatus: string) {
+    if (!supabase) return false;
+    try {
+      console.log(`💳 Updating order ${orderId} payment status to ${paymentStatus}`);
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          payment_status: paymentStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('❌ Database error updating payment status:', error);
+        return false;
+      }
+      
+      console.log(`✅ Order ${orderId} payment status updated to ${paymentStatus}`);
+      return true;
+    } catch (err) {
+      console.error('❌ Exception updating payment status:', err);
+      return false;
+    }
+  },
+
+  async updateDeliveryLocation(orderId: number, latitude: number, longitude: number) {
+    if (!supabase) return false;
+    try {
+      console.log(`📍 Updating delivery location for order ${orderId}`);
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          delivery_lat: latitude,
+          delivery_lng: longitude,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('❌ Database error updating delivery location:', error);
+        return false;
+      }
+      
+      console.log(`✅ Order ${orderId} delivery location updated`);
+      return true;
+    } catch (err) {
+      console.error('❌ Exception updating delivery location:', err);
+      return false;
+    }
   }
 };

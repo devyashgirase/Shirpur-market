@@ -35,35 +35,64 @@ const CustomerOrders = () => {
   const loadCustomerOrders = async () => {
     try {
       setLoading(true);
-      console.log('📊 Loading customer orders from database...');
+      console.log('📊 Loading customer orders from all sources...');
       
       // Get customer phone from localStorage
       const customerPhone = localStorage.getItem('customerPhone');
       
-      // Load from unified database (auto-switches MySQL/Supabase)
-      const dbOrders = await unifiedDB.getOrders();
+      let allOrders = [];
       
-      // Filter orders for current customer if phone available
-      let customerOrders = dbOrders;
+      // 1. Load from OrderService (includes recent orders)
+      const localOrders = OrderService.getAllOrders();
+      console.log(`📱 Local orders found: ${localOrders.length}`);
+      
+      // 2. Load customer-specific orders from localStorage
       if (customerPhone) {
-        customerOrders = dbOrders.filter(order => order.customerPhone === customerPhone);
+        const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${customerPhone}`) || '[]');
+        console.log(`👤 Customer orders found: ${customerOrders.length}`);
+        allOrders = [...allOrders, ...customerOrders];
       }
       
-      // Also get orders from localStorage for current session
-      const localOrders = OrderService.getAllOrders();
+      // 3. Try to load from database
+      try {
+        const dbOrders = await unifiedDB.getOrders();
+        let customerDbOrders = dbOrders;
+        if (customerPhone) {
+          customerDbOrders = dbOrders.filter(order => 
+            order.customerPhone === customerPhone || 
+            order.customer_phone === customerPhone
+          );
+        }
+        console.log(`🗄️ Database orders found: ${customerDbOrders.length}`);
+        allOrders = [...allOrders, ...customerDbOrders];
+      } catch (dbError) {
+        console.warn('⚠️ Database not available, using local orders only:', dbError);
+      }
       
-      // Combine and deduplicate orders
-      const allOrders = [...customerOrders, ...localOrders];
-      const uniqueOrders = allOrders.filter((order, index, self) => 
-        index === self.findIndex(o => o.orderId === order.orderId)
-      );
+      // Add local orders to the mix
+      allOrders = [...allOrders, ...localOrders];
       
-      console.log(`✅ Loaded ${uniqueOrders.length} customer orders`);
+      // Deduplicate orders by orderId
+      const uniqueOrders = allOrders.filter((order, index, self) => {
+        const orderId = order.orderId || order.id;
+        return index === self.findIndex(o => (o.orderId || o.id) === orderId);
+      });
+      
+      // Sort by timestamp (newest first)
+      uniqueOrders.sort((a, b) => {
+        const dateA = new Date(a.timestamp || a.createdAt || a.created_at || 0);
+        const dateB = new Date(b.timestamp || b.createdAt || b.created_at || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      console.log(`✅ Total unique orders loaded: ${uniqueOrders.length}`);
       setOrders(uniqueOrders);
     } catch (error) {
       console.error('❌ Failed to load customer orders:', error);
-      // Fallback to localStorage orders
-      setOrders(OrderService.getAllOrders());
+      // Fallback to localStorage orders only
+      const fallbackOrders = OrderService.getAllOrders();
+      console.log(`🔄 Fallback: Using ${fallbackOrders.length} local orders`);
+      setOrders(fallbackOrders);
     } finally {
       setLoading(false);
     }

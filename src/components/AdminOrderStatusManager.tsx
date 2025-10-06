@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deliveryCoordinationService } from "@/lib/deliveryCoordinationService";
+import { OrderService } from "@/lib/orderService";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrderStatusManagerProps {
   order: any;
@@ -11,40 +12,46 @@ interface OrderStatusManagerProps {
 
 const AdminOrderStatusManager = ({ order, onStatusUpdate }: OrderStatusManagerProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const { toast } = useToast();
 
   const handleStatusChange = async (newStatus: string) => {
     setIsUpdating(true);
     
     try {
-      // Update order status in localStorage
-      const orders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-      const orderIndex = orders.findIndex((o: any) => o.orderId === order.orderId);
+      // Update order status using OrderService
+      const success = await OrderService.updateOrderStatus(order.orderId, newStatus as any);
       
-      if (orderIndex >= 0) {
-        orders[orderIndex].status = newStatus;
-        
-        // If status is changed to 'out_for_delivery', make it available for nearby agents
-        if (newStatus === 'confirmed') {
-          // Remove delivery agent if going back to confirmed
-          delete orders[orderIndex].deliveryAgent;
-        }
-        
-        localStorage.setItem('allOrders', JSON.stringify(orders));
-        
-        // Update current order if it matches
-        const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
-        if (currentOrder.orderId === order.orderId) {
-          currentOrder.status = newStatus;
-          if (newStatus === 'confirmed') {
-            delete currentOrder.deliveryAgent;
+      if (success) {
+        // Create delivery notification when status is 'packing' (ready for delivery)
+        if (newStatus === 'packing') {
+          const orderData = OrderService.getOrderById(order.orderId);
+          if (orderData) {
+            OrderService.createDeliveryNotification(orderData);
+            
+            toast({
+              title: "Order Ready for Delivery",
+              description: `Order ${order.orderId} is now available for delivery agents`,
+            });
+            
+            // Trigger delivery agent notifications
+            window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', { detail: orderData }));
           }
-          localStorage.setItem('currentOrder', JSON.stringify(currentOrder));
         }
         
         onStatusUpdate(order.orderId, newStatus);
+        
+        toast({
+          title: "Status Updated",
+          description: `Order ${order.orderId} status changed to ${newStatus.replace('_', ' ')}`,
+        });
       }
     } catch (error) {
       console.error('Failed to update order status:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update order status",
+        variant: "destructive"
+      });
     } finally {
       setIsUpdating(false);
     }

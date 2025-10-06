@@ -18,7 +18,7 @@ interface PaymentGatewayProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  onSuccess: () => void;
+  onSuccess: (paymentId?: string, isTestMode?: boolean) => void;
 }
 
 const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayProps) => {
@@ -63,15 +63,20 @@ const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayPr
         setIsProcessing(false);
         setIsSuccess(true);
         
-        // In test mode, automatically mark as paid
+        // Both test and live payments are considered successful here
         const isTestMode = options.key.includes('test');
+        const paymentId = response.razorpay_payment_id || `test_${Date.now()}`;
         
         setTimeout(() => {
           toast({
             title: "Payment Successful!",
-            description: isTestMode ? "Test payment completed - Order confirmed!" : `Payment ID: ${response.razorpay_payment_id}`,
+            description: isTestMode ? 
+              "Test payment completed - Order will be created and tracked!" : 
+              `Payment ID: ${paymentId} - Order confirmed!`,
           });
-          onSuccess();
+          
+          // Call onSuccess with payment details for order creation
+          onSuccess(paymentId, isTestMode);
           onClose();
           setIsSuccess(false);
         }, 2000);

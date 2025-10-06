@@ -33,7 +33,27 @@ const AdminOrders = () => {
       setOrders([...updatedOrders].reverse()); // Show newest first
     });
     
-    return unsubscribe;
+    // Listen for new order events
+    const handleNewOrder = () => {
+      console.log('🔔 New order detected, refreshing admin orders...');
+      loadOrders();
+    };
+    
+    const handleOrderUpdate = () => {
+      console.log('🔄 Order update detected, refreshing admin orders...');
+      loadOrders();
+    };
+    
+    window.addEventListener('orderCreated', handleNewOrder);
+    window.addEventListener('ordersUpdated', handleOrderUpdate);
+    window.addEventListener('newOrderAlert', handleNewOrder);
+    
+    return () => {
+      unsubscribe();
+      window.removeEventListener('orderCreated', handleNewOrder);
+      window.removeEventListener('ordersUpdated', handleOrderUpdate);
+      window.removeEventListener('newOrderAlert', handleNewOrder);
+    };
   }, []);
   
   const loadOrders = async () => {

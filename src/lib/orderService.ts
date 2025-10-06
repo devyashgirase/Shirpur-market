@@ -52,11 +52,11 @@ export class OrderService {
   // Create order from cart after payment
   static async createOrderFromCart(customerInfo: any, cartItems: any[], total: number, paymentId?: string): Promise<string> {
     const orderId = `ORD-${Date.now()}`;
-    const isTestMode = !paymentId || paymentId.includes('test');
+    const isTestMode = !paymentId || paymentId.includes('test') || paymentId.includes('dev');
     
     const newOrder: Order = {
       orderId,
-      status: 'confirmed',
+      status: 'confirmed', // Always set to confirmed after successful payment
       timestamp: new Date().toISOString(),
       customerAddress: {
         name: customerInfo.name,
@@ -73,43 +73,57 @@ export class OrderService {
         quantity: item.quantity
       })),
       total,
-      paymentStatus: isTestMode ? 'paid' : 'pending'
+      paymentStatus: 'paid' // Always set to paid after successful payment (test or live)
     };
 
     try {
-      // Save to database via API
+      // Save to database via API for admin tracking
       await apiService.createOrder({
         orderId,
         customerName: customerInfo.name,
         customerPhone: customerInfo.phone,
         deliveryAddress: customerInfo.address,
-        items: newOrder.items,
+        items: newOrder.items.map(item => ({
+          productId: parseInt(item.product.id),
+          productName: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity
+        })),
         total,
         status: 'confirmed',
-        paymentStatus: isTestMode ? 'paid' : 'pending'
+        paymentStatus: 'paid'
       });
+      console.log(`✅ Order ${orderId} saved to database successfully`);
     } catch (error) {
-      console.error('Failed to save order to database:', error);
+      console.error(`❌ Failed to save order ${orderId} to database:`, error);
+      // Continue with local storage even if API fails
     }
 
-    // Save to local storage
+    // Save to local storage for immediate access
     const orders = this.getAllOrders();
     orders.unshift(newOrder);
     localStorage.setItem('allOrders', JSON.stringify(orders));
     
-    // Set as current order
+    // Set as current order for customer tracking
     localStorage.setItem('currentOrder', JSON.stringify(newOrder));
     
-    // Create delivery notification
+    // Save customer order history
+    const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${customerInfo.phone}`) || '[]');
+    customerOrders.unshift(newOrder);
+    localStorage.setItem(`customerOrders_${customerInfo.phone}`, JSON.stringify(customerOrders));
+    
+    // Create delivery notification for delivery partners
     this.createDeliveryNotification(newOrder);
     
-    // Trigger admin panel real-time update
+    // Trigger real-time updates for admin panel
     window.dispatchEvent(new CustomEvent('orderCreated', { detail: newOrder }));
     window.dispatchEvent(new CustomEvent('ordersUpdated'));
+    window.dispatchEvent(new CustomEvent('newOrderAlert', { detail: { orderId, total, customerName: customerInfo.name } }));
     
     // Notify subscribers
     this.notifyListeners();
     
+    console.log(`✅ Order ${orderId} created successfully - Status: confirmed, Payment: paid`);
     return orderId;
   }
 
@@ -344,8 +358,10 @@ export class OrderService {
       location: agentInfo.location || { lat: 20.7516, lng: 74.2297 }
     };
 
-    // Update order status to out_for_delivery
-    await this.updateOrderStatus(orderId, 'out_for_delivery', deliveryAgent);
+    // Update order status to out_for_delivery with delivery agent
+    const success = await this.updateOrderStatus(orderId, 'out_for_delivery', deliveryAgent);
+    
+    if (!success) return false;
 
     // Create delivery task
     const order = this.getAllOrders().find(o => o.orderId === orderId);
@@ -391,10 +407,12 @@ export class OrderService {
     );
     localStorage.setItem('deliveryNotifications', JSON.stringify(updatedNotifications));
 
-    // Trigger events for real-time updates
+    // Trigger events for real-time updates to customer and admin
     window.dispatchEvent(new CustomEvent('orderAccepted', { detail: { orderId, agentInfo } }));
+    window.dispatchEvent(new CustomEvent('ordersUpdated'));
     window.dispatchEvent(new CustomEvent('deliveryNotificationsUpdated'));
-
+    
+    console.log(`✅ Order ${orderId} accepted by ${deliveryAgent.name} - Status: out_for_delivery`);
     return true;
   }
 

@@ -119,12 +119,35 @@ const CustomerCart = () => {
       });
       
       setTimeout(async () => {
-        // Clear cart in development mode
+        const paymentId = 'dev_payment_' + Date.now();
+        
+        // Create order immediately in dev mode
+        const orderId = await OrderService.createOrderFromCart(
+          {
+            name: addressData.name,
+            phone: addressData.phone,
+            address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
+          },
+          cart,
+          getTotalAmount(),
+          paymentId
+        );
+        
+        // Clear cart
         await cartService.clearCart();
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-        handlePaymentSuccess('dev_payment_' + Date.now());
+        // Show success
+        setShowAddressForm(false);
+        setLastOrderId(orderId);
+        setShowSuccessModal(true);
+        
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Test order ${orderId} confirmed!`,
+        });
       }, 2000);
       return;
     }
@@ -137,9 +160,41 @@ const CustomerCart = () => {
       name: 'Shirpur Delivery',
       description: 'Order Payment',
       handler: async function (response: any) {
-        console.log('Payment successful:', response.razorpay_payment_id);
+        console.log('✅ Razorpay Payment Successful:', response.razorpay_payment_id);
         
-        // Clear cart immediately on payment success
+        // Immediately create order when Razorpay shows success
+        const orderId = await OrderService.createOrderFromCart(
+          {
+            name: addressData.name,
+            phone: addressData.phone,
+            address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
+          },
+          cart,
+          getTotalAmount(),
+          response.razorpay_payment_id
+        );
+        
+        // Save to database immediately for admin
+        try {
+          await apiService.createOrder({
+            orderId,
+            customerName: addressData.name,
+            customerPhone: addressData.phone,
+            deliveryAddress: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            items: cart.map(item => ({
+              productId: parseInt(item.product.id),
+              productName: item.product.name,
+              price: item.product.price,
+              quantity: item.quantity
+            })),
+            total: getTotalAmount(),
+            status: 'confirmed',
+            paymentStatus: 'paid'
+          });
+        } catch (e) { console.warn('DB save failed:', e); }
+        
+        // Clear cart and update UI
         await cartService.clearCart();
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
@@ -149,7 +204,15 @@ const CustomerCart = () => {
         const updatedOrders = pendingOrders.filter((order: any) => order.orderId !== pendingOrder.orderId);
         localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
         
-        handlePaymentSuccess(response.razorpay_payment_id);
+        // Show success immediately
+        setShowAddressForm(false);
+        setLastOrderId(orderId);
+        setShowSuccessModal(true);
+        
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Order ${orderId} confirmed and available in tracking!`,
+        });
       },
       modal: {
         ondismiss: function() {
@@ -182,8 +245,30 @@ const CustomerCart = () => {
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-        // In development mode, always simulate successful payment
-        handlePaymentSuccess('dev_payment_' + Date.now());
+        const paymentId = 'dev_payment_' + Date.now();
+        
+        // Create order immediately
+        const orderId = await OrderService.createOrderFromCart(
+          {
+            name: addressData.name,
+            phone: addressData.phone,
+            address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
+          },
+          cart,
+          getTotalAmount(),
+          paymentId
+        );
+        
+        // Show success
+        setShowAddressForm(false);
+        setLastOrderId(orderId);
+        setShowSuccessModal(true);
+        
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Test order ${orderId} confirmed!`,
+        });
       }, 2000);
     }
   };
@@ -197,13 +282,13 @@ const CustomerCart = () => {
     setShowAddressForm(false);
   };
 
-  const handlePaymentSuccess = async (paymentId?: string) => {
+  const handlePaymentSuccess = async (paymentId?: string, isTestMode?: boolean) => {
     if (!customerAddress) return;
     
-    const isTestMode = !paymentId || paymentId.includes('test') || paymentId.includes('dev');
+    const testMode = isTestMode || !paymentId || paymentId.includes('test') || paymentId.includes('dev');
     
     try {
-      // Create order using OrderService
+      // Create order using OrderService with confirmed status
       const orderId = await OrderService.createOrderFromCart(
         {
           name: customerAddress.name,
@@ -215,6 +300,41 @@ const CustomerCart = () => {
         getTotalAmount(),
         paymentId
       );
+      
+      // Update payment status to paid for both test and live payments
+      await OrderService.updatePaymentStatus(orderId, 'paid', paymentId);
+      
+      // Save order to database via API for admin tracking
+      try {
+        await apiService.createOrder({
+          orderId,
+          customerName: customerAddress.name,
+          customerPhone: customerAddress.phone,
+          deliveryAddress: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          items: cart.map(item => ({
+            productId: parseInt(item.product.id),
+            productName: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity
+          })),
+          total: getTotalAmount(),
+          status: 'confirmed',
+          paymentStatus: 'paid'
+        });
+        console.log('✅ Order saved to database for admin tracking');
+      } catch (dbError) {
+        console.warn('⚠️ Failed to save to database, order saved locally:', dbError);
+      }
+      
+      // Update product inventory
+      try {
+        for (const item of cart) {
+          await apiService.updateProductStock(parseInt(item.product.id), -item.quantity);
+        }
+        console.log('✅ Product inventory updated');
+      } catch (stockError) {
+        console.warn('⚠️ Failed to update inventory:', stockError);
+      }
       
       // Clear cart immediately after successful payment
       await cartService.clearCart();
@@ -229,6 +349,11 @@ const CustomerCart = () => {
       const updatedOrders = pendingOrders.filter((order: any) => order.id !== Date.now().toString());
       localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
       
+      // Trigger admin panel updates
+      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));
+      window.dispatchEvent(new CustomEvent('ordersUpdated'));
+      window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+      
       // Close address form and show success
       setShowAddressForm(false);
       setLastOrderId(orderId);
@@ -236,9 +361,9 @@ const CustomerCart = () => {
       
       toast({
         title: "Order Placed Successfully!",
-        description: isTestMode ? 
-          `Test order ${orderId} confirmed - No real payment charged!` :
-          `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed.`,
+        description: testMode ? 
+          `Test order ${orderId} confirmed - Available in admin panel for processing!` :
+          `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed and is being processed.`,
       });
       
     } catch (error) {

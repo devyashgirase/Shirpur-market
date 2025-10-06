@@ -100,6 +100,12 @@ export class FreeSmsService {
     return history ? JSON.parse(history) : [];
   }
 
+  // Send welcome message to new delivery agent
+  static async sendDeliveryAgentWelcome(phone: string, name: string): Promise<boolean> {
+    const message = `Welcome ${name}! You are now registered as a delivery agent with Shirpur Delivery. You will receive order notifications on this number. - Shirpur Delivery`;
+    return this.sendSMS(phone, message);
+  }
+
   // Clear SMS history
   static clearSMSHistory(): void {
     this.smsHistory = [];

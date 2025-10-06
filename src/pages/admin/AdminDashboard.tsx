@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { AdminDataService } from "@/lib/adminDataService";
 import { realTimeDataService } from "@/lib/realTimeDataService";
+import { OrderService } from "@/lib/orderService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 import DatabaseStatus from "@/components/DatabaseStatus";
 import AttractiveLoader from "@/components/AttractiveLoader";
@@ -73,13 +74,47 @@ const AdminDashboard = () => {
         const products = await AdminDataService.getAdminProducts();
         setAdminProducts(products);
         
-        // Load real-time stats from database
-        const stats = await adminRealTimeService.fetchRealTimeStats();
-        const orders = await adminRealTimeService.fetchRecentOrders();
+        // Load orders from OrderService (includes recent orders from payment)
+        const localOrders = OrderService.getAllOrders();
+        const formattedOrders = localOrders.map(order => ({
+          orderId: order.orderId,
+          customerName: order.customerAddress?.name || 'Customer',
+          customerPhone: order.customerAddress?.phone || '',
+          deliveryAddress: order.customerAddress?.address || '',
+          total: order.total,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          createdAt: order.timestamp,
+          itemCount: order.items?.length || 0,
+          items: order.items || []
+        }));
+        
+        setRecentOrders(formattedOrders);
+        setAdminOrders(formattedOrders);
+        
+        // Calculate stats from orders
+        const todaysOrders = formattedOrders.filter(order => {
+          const today = new Date();
+          const orderDate = new Date(order.createdAt);
+          return orderDate.toDateString() === today.toDateString();
+        });
+        
+        const stats = {
+          totalOrders: formattedOrders.length,
+          totalCustomers: new Set(formattedOrders.map(o => o.customerPhone)).size,
+          totalRevenue: formattedOrders.reduce((sum, o) => sum + o.total, 0),
+          todaysOrders: todaysOrders.length,
+          todaysRevenue: todaysOrders.reduce((sum, o) => sum + o.total, 0),
+          paidOrders: formattedOrders.filter(o => o.paymentStatus === 'paid').length,
+          pendingPayments: formattedOrders.filter(o => o.paymentStatus === 'pending').length,
+          todaysDelivered: todaysOrders.filter(o => o.status === 'delivered').length,
+          todaysPending: todaysOrders.filter(o => o.status === 'pending').length,
+          avgOrderValue: formattedOrders.length > 0 ? formattedOrders.reduce((sum, o) => sum + o.total, 0) / formattedOrders.length : 0,
+          lastUpdated: new Date().toISOString()
+        };
         
         setRealTimeStats(stats);
-        setRecentOrders(orders);
-        setAdminOrders(orders);
+        
       } catch (error) {
         console.error('Failed to load admin data:', error);
       } finally {
@@ -87,43 +122,49 @@ const AdminDashboard = () => {
       }
     };
     
-    // Subscribe to real-time updates
-    const handleStatsUpdate = (stats: AdminStats) => {
-      setRealTimeStats(stats);
-      setLastUpdateTime(new Date().toLocaleTimeString());
+    // Listen for new order events from payment success
+    const handleNewOrder = () => {
+      console.log('🔔 New order detected in admin dashboard, refreshing...');
+      loadAdminData();
     };
     
-    const handleOrdersUpdate = (orders: CustomerOrder[]) => {
-      setRecentOrders(orders);
-      setAdminOrders(orders);
+    const handleOrderUpdate = () => {
+      console.log('🔄 Order update detected in admin dashboard, refreshing...');
+      loadAdminData();
     };
     
-    adminRealTimeService.subscribe('statsUpdate', handleStatsUpdate);
-    adminRealTimeService.subscribe('ordersUpdate', handleOrdersUpdate);
-    adminRealTimeService.startRealTimeUpdates();
+    // Listen for payment success events
+    window.addEventListener('orderCreated', handleNewOrder);
+    window.addEventListener('ordersUpdated', handleOrderUpdate);
+    window.addEventListener('newOrderAlert', handleNewOrder);
     
     loadAdminData();
     
     // Additional fast refresh for critical metrics
-    const fastInterval = setInterval(async () => {
-      const todaysCount = await adminRealTimeService.getTodaysOrdersCount();
-      const todaysRevenue = await adminRealTimeService.getTodaysRevenue();
+    const fastInterval = setInterval(() => {
+      const orders = OrderService.getAllOrders();
+      const todaysOrders = orders.filter(order => {
+        const today = new Date();
+        const orderDate = new Date(order.timestamp);
+        return orderDate.toDateString() === today.toDateString();
+      });
       
       setRealTimeStats(prev => ({
         ...prev,
-        todaysOrders: todaysCount,
-        todaysRevenue: todaysRevenue,
+        todaysOrders: todaysOrders.length,
+        todaysRevenue: todaysOrders.reduce((sum, o) => sum + o.total, 0),
+        totalOrders: orders.length,
+        totalRevenue: orders.reduce((sum, o) => sum + o.total, 0),
         lastUpdated: new Date().toISOString()
       }));
       setLastUpdateTime(new Date().toLocaleTimeString());
-    }, 3000); // Update every 3 seconds
+    }, 2000); // Update every 2 seconds
     
     return () => {
       clearInterval(fastInterval);
-      adminRealTimeService.unsubscribe('statsUpdate', handleStatsUpdate);
-      adminRealTimeService.unsubscribe('ordersUpdate', handleOrdersUpdate);
-      adminRealTimeService.stopRealTimeUpdates();
-      realTimeDataService.stopRealTimeUpdates();
+      window.removeEventListener('orderCreated', handleNewOrder);
+      window.removeEventListener('ordersUpdated', handleOrderUpdate);
+      window.removeEventListener('newOrderAlert', handleNewOrder);
     };
   }, []);
 

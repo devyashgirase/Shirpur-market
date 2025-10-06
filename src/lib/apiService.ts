@@ -310,7 +310,7 @@ class ApiService {
     });
   }
 
-  async updateDeliveryLocation(agentId: number, latitude: number, longitude: number): Promise<void> {
+  async updateDeliveryAgentLocation(agentId: number, latitude: number, longitude: number): Promise<void> {
     await this.request(`/delivery-agents/${agentId}/location`, {
       method: 'PUT',
       body: JSON.stringify({ latitude, longitude }),
@@ -367,6 +367,66 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
+  }
+
+  // Update product stock quantity
+  async updateProductStock(productId: number, quantityChange: number): Promise<void> {
+    if (useSupabase && DB_TYPE === 'supabase') {
+      await supabaseApi.updateProductStock(productId, quantityChange);
+      return;
+    }
+    
+    try {
+      await this.request(`/products/${productId}/stock`, {
+        method: 'PUT',
+        body: JSON.stringify({ quantityChange }),
+      });
+      console.log(`✅ Product ${productId} stock updated by ${quantityChange}`);
+    } catch (error) {
+      console.warn(`⚠️ Failed to update product stock via API, updating locally:`, error);
+      // Update local mock data as fallback
+      const products = this.getMockData<ApiProduct[]>('/products');
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        product.stockQuantity = Math.max(0, product.stockQuantity + quantityChange);
+        console.log(`📦 Local stock updated for product ${productId}: ${product.stockQuantity}`);
+      }
+    }
+  }
+
+  // Update payment status
+  async updatePaymentStatus(orderId: number, paymentStatus: string): Promise<void> {
+    if (useSupabase && DB_TYPE === 'supabase') {
+      await supabaseApi.updatePaymentStatus(orderId, paymentStatus);
+      return;
+    }
+    
+    try {
+      await this.request(`/orders/${orderId}/payment`, {
+        method: 'PUT',
+        body: JSON.stringify({ paymentStatus }),
+      });
+      console.log(`✅ Order ${orderId} payment status updated to ${paymentStatus}`);
+    } catch (error) {
+      console.warn(`⚠️ Failed to update payment status via API:`, error);
+    }
+  }
+
+  // Update delivery location
+  async updateDeliveryLocation(orderId: number, latitude: number, longitude: number): Promise<void> {
+    if (useSupabase && DB_TYPE === 'supabase') {
+      await supabaseApi.updateDeliveryLocation(orderId, latitude, longitude);
+      return;
+    }
+    
+    try {
+      await this.request(`/orders/${orderId}/location`, {
+        method: 'PUT',
+        body: JSON.stringify({ latitude, longitude }),
+      });
+    } catch (error) {
+      console.warn(`⚠️ Failed to update delivery location via API:`, error);
+    }
   }
 }
 
