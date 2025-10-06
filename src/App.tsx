@@ -8,6 +8,7 @@ import "@/components/ui/animations.css";
 
 import { useEffect } from "react";
 import { startNotificationDemo } from "@/lib/testNotifications";
+import { SupabaseVerification } from "@/lib/supabaseVerification";
 import OTPLogin from "./pages/OTPLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -47,6 +48,13 @@ const App = () => {
   useEffect(() => {
     // Start notification demo for testing
     startNotificationDemo();
+    
+    // Verify Supabase setup in development
+    if (import.meta.env.DEV) {
+      setTimeout(() => {
+        SupabaseVerification.verifyProductionReadiness();
+      }, 3000);
+    }
   }, []);
 
   return (
