@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Navigation, MapPin, Clock, Phone, Truck, Zap, Route, Eye, 
+  Navigation, MapPin, Clock, Phone, Truck, Zap, Map, Eye, 
   Layers, Maximize2, RefreshCw, AlertTriangle, CheckCircle,
   Timer, Fuel, Users, Activity, Settings, Share2
 } from 'lucide-react';
@@ -453,7 +453,7 @@ export const EnhancedTrackingMap = ({ orderId, userType }: EnhancedTrackingMapPr
                     variant={showRoute ? 'default' : 'outline'}
                     onClick={() => setShowRoute(!showRoute)}
                   >
-                    <Route className="w-4 h-4 mr-1" />
+                    <Map className="w-4 h-4 mr-1" />
                     Route
                   </Button>
                   <Button
@@ -711,7 +711,7 @@ export const EnhancedTrackingMap = ({ orderId, userType }: EnhancedTrackingMapPr
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Route className="w-5 h-5" />
+                <Map className="w-5 h-5" />
                 Route Analysis
               </CardTitle>
             </CardHeader>
@@ -872,7 +872,7 @@ export const EnhancedTrackingMap = ({ orderId, userType }: EnhancedTrackingMapPr
                 Monitor All
               </Button>
               <Button variant="outline">
-                <Route className="w-4 h-4 mr-2" />
+                <Map className="w-4 h-4 mr-2" />
                 Optimize Route
               </Button>
               <Button variant="outline">
