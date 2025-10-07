@@ -1,6 +1,13 @@
 {
-  "framework": "vite",
-  "buildCommand": "npm install --force && npm run build:prod",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install --force"
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
