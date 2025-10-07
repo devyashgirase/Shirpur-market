@@ -1,4 +1,4 @@
-// Safe Supabase initialization with fallback
+// Safe Supabase initialization with proper headers
 let supabase = null;
 
 if (typeof window !== 'undefined') {
@@ -8,7 +8,16 @@ if (typeof window !== 'undefined') {
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
     if (supabaseUrl && supabaseKey) {
-      supabase = createClient(supabaseUrl, supabaseKey);
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: false
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'shirpur-delivery-app'
+          }
+        }
+      });
       console.log('✅ Supabase ready');
     }
   } catch (error) {
