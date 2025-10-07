@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { 
   MapPin, Clock, Truck, Activity, AlertTriangle, CheckCircle,
   Navigation, Phone, Share2, RefreshCw, Settings, Eye,
-  TrendingUp, Zap, Fuel, Users, Route, Layers
+  TrendingUp, Zap, Fuel, Users, Map, Layers
 } from 'lucide-react';
 import { EnhancedTrackingMap } from './EnhancedTrackingMap';
 import { EnhancedTrackingService, EnhancedTrackingUpdate } from '@/lib/enhancedTrackingService';
@@ -284,7 +284,7 @@ export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps)
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Route className="w-5 h-5" />
+                  <Map className="w-5 h-5" />
                   Route Analysis
                 </CardTitle>
               </CardHeader>
@@ -611,7 +611,7 @@ export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps)
                 Monitor All
               </Button>
               <Button variant="outline">
-                <Route className="w-4 h-4 mr-2" />
+                <Map className="w-4 h-4 mr-2" />
                 Optimize Route
               </Button>
               <Button variant="outline">
