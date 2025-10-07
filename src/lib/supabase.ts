@@ -1,22 +1,21 @@
-// Mock Supabase client to prevent errors
-const mockSupabase = {
-  from: (table) => ({
-    select: (columns) => Promise.resolve({ data: [], error: null }),
-    insert: (data) => Promise.resolve({ data: null, error: null }),
-    update: (data) => Promise.resolve({ data: null, error: null }),
-    upsert: (data) => Promise.resolve({ data: null, error: null }),
-    eq: (column, value) => mockSupabase.from(table),
-    single: () => Promise.resolve({ data: null, error: null }),
-    order: (column, options) => mockSupabase.from(table),
-    limit: (count) => mockSupabase.from(table)
-  })
+// Mock Supabase client - no real Supabase dependency
+const createMockQuery = () => ({
+  select: () => createMockQuery(),
+  insert: () => createMockQuery(),
+  update: () => createMockQuery(),
+  upsert: () => createMockQuery(),
+  eq: () => createMockQuery(),
+  single: () => Promise.resolve({ data: null, error: null }),
+  order: () => createMockQuery(),
+  limit: () => createMockQuery(),
+  then: (callback) => callback({ data: [], error: null })
+});
+
+export const supabase = {
+  from: () => createMockQuery()
 };
 
-// Use mock client only to prevent crashes
-export const supabase = mockSupabase;
-
-// Using mock Supabase client for demo
-console.log('📋 Using mock database for demo purposes');
+console.log('📋 Using mock database - no Supabase dependency');
 
 // Database verification and setup
 export const verifyDatabaseTables = async () => {
