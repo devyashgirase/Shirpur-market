@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   MapPin, Truck, Users, Activity, Navigation, 
-  Zap, Route, Eye, Settings, TrendingUp 
+  Zap, Map, Eye, Settings, TrendingUp 
 } from 'lucide-react';
 import { TrackingDashboard } from '@/components/TrackingDashboard';
 import { EnhancedTrackingMap } from '@/components/EnhancedTrackingMap';
@@ -43,7 +43,7 @@ const TrackingDemo = () => {
       color: 'text-blue-600'
     },
     {
-      icon: Route,
+      icon: Map,
       title: 'AI Route Optimization',
       description: 'Smart routing with traffic analysis and alternate paths',
       color: 'text-green-600'
@@ -267,7 +267,7 @@ const TrackingDemo = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Route className="w-5 h-5" />
+                    <Map className="w-5 h-5" />
                     Route Optimization
                   </CardTitle>
                 </CardHeader>
