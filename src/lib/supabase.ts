@@ -1,26 +1,18 @@
-// Minimal mock - no Supabase
-const mockQuery = {
-  select: () => mockQuery,
-  insert: () => mockQuery,
-  update: () => mockQuery,
-  eq: () => mockQuery,
-  single: () => Promise.resolve({ data: null, error: null }),
-  then: (callback) => callback({ data: [], error: null })
-};
-
-export const supabase = {
-  from: () => mockQuery
-};
+// Zero Supabase - Complete Mock System
+export const supabase = null;
 
 export const supabaseApi = {
-  async getProducts() { return []; },
-  async createProduct() { return { id: 1 }; },
-  async updateProduct() { return { id: 1 }; },
-  async getOrders() { return []; },
-  async createOrder() { return { id: 1 }; },
-  async updateOrderStatus() { return true; },
-  async createCustomer() { return { id: 1 }; },
-  async getCategories() { return []; }
+  getProducts: () => Promise.resolve([]),
+  createProduct: () => Promise.resolve({ id: 1 }),
+  updateProduct: () => Promise.resolve({ id: 1 }),
+  getOrders: () => Promise.resolve([]),
+  createOrder: () => Promise.resolve({ id: 1 }),
+  updateOrderStatus: () => Promise.resolve(true),
+  createCustomer: () => Promise.resolve({ id: 1 }),
+  getCategories: () => Promise.resolve([])
 };
 
 export const isSupabaseConfigured = false;
+export const verifyDatabaseTables = () => Promise.resolve(true);
+export const inspectDatabase = () => Promise.resolve();
+export const testConnection = () => Promise.resolve(true);

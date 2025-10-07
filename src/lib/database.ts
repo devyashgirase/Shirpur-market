@@ -4,6 +4,9 @@ import { apiService } from './apiService';
 
 export const useSupabase = false;
 export const currentDatabase = 'Mock Development';
+export const API_BASE_URL = '/api/mock';
+export const DB_TYPE = 'mock';
+export const currentDb = { apiUrl: API_BASE_URL, type: DB_TYPE };
 
 export const unifiedDB = {
   async getProducts() { return []; },
