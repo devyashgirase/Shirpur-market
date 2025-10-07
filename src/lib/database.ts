@@ -1,20 +1,49 @@
-// Mock database - no external dependencies
 import { supabaseApi } from './supabase';
-import { apiService } from './apiService';
 
-export const useSupabase = false;
-export const currentDatabase = 'Mock Development';
-export const API_BASE_URL = '/api/mock';
-export const DB_TYPE = 'mock';
+export const useSupabase = true;
+export const currentDatabase = 'Supabase Production';
+export const API_BASE_URL = 'https://rfzviddearsabuxyfslg.supabase.co';
+export const DB_TYPE = 'supabase';
 export const currentDb = { apiUrl: API_BASE_URL, type: DB_TYPE };
 
 export const unifiedDB = {
-  async getProducts() { return []; },
-  async createProduct() { return { id: 1 }; },
-  async updateProduct() { return { id: 1 }; },
-  async getOrders() { return []; },
-  async createOrder() { return { id: 1 }; },
-  async updateOrderStatus() { return true; },
-  async createCustomer() { return { id: 1 }; },
-  async getCategories() { return []; }
+  async getProducts() {
+    return await supabaseApi.getProducts();
+  },
+  
+  async createProduct(product) {
+    return await supabaseApi.createProduct(product);
+  },
+  
+  async updateProduct(id, product) {
+    return await supabaseApi.updateProduct(id, product);
+  },
+  
+  async getOrders() {
+    return await supabaseApi.getOrders();
+  },
+  
+  async createOrder(order) {
+    return await supabaseApi.createOrder(order);
+  },
+  
+  async updateOrderStatus(id, status) {
+    return await supabaseApi.updateOrderStatus(id, status);
+  },
+  
+  async createCustomer(customer) {
+    return await supabaseApi.createCustomer(customer);
+  },
+  
+  async getCategories() {
+    return await supabaseApi.getCategories();
+  },
+
+  async getDeliveryAgents() {
+    return await supabaseApi.getDeliveryAgents();
+  },
+
+  async updateDeliveryLocation(agentId, latitude, longitude) {
+    return await supabaseApi.updateDeliveryLocation(agentId, latitude, longitude);
+  }
 };
