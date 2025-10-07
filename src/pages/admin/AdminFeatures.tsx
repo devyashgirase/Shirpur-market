@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Package, Route, MessageSquare, Gift, Brain } from "lucide-react";
+import { BarChart3, Package, Map, MessageSquare, Gift, Brain } from "lucide-react";
 import AdvancedAnalytics from "@/components/AdvancedAnalytics";
 import SmartInventory from "@/components/SmartInventory";
 import RouteOptimization from "@/components/RouteOptimization";
@@ -33,7 +33,7 @@ const AdminFeatures = () => {
               Inventory
             </TabsTrigger>
             <TabsTrigger value="routes" className="flex items-center gap-2">
-              <Route className="h-4 w-4" />
+              <Map className="h-4 w-4" />
               Routes
             </TabsTrigger>
             <TabsTrigger value="feedback" className="flex items-center gap-2">
@@ -78,7 +78,7 @@ const AdminFeatures = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Route className="h-5 w-5 text-purple-500" />
+                  <Map className="h-5 w-5 text-purple-500" />
                   Route Optimization
                 </CardTitle>
               </CardHeader>
