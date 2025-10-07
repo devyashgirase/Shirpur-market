@@ -1,41 +1,22 @@
 // Mock Supabase client to prevent errors
 const mockSupabase = {
-  from: () => ({
-    select: () => ({ data: [], error: null }),
-    insert: () => ({ data: null, error: null }),
-    update: () => ({ data: null, error: null }),
-    eq: () => ({ data: null, error: null }),
-    single: () => ({ data: null, error: null }),
-    order: () => ({ data: [], error: null }),
-    limit: () => ({ data: [], error: null })
+  from: (table) => ({
+    select: (columns) => Promise.resolve({ data: [], error: null }),
+    insert: (data) => Promise.resolve({ data: null, error: null }),
+    update: (data) => Promise.resolve({ data: null, error: null }),
+    upsert: (data) => Promise.resolve({ data: null, error: null }),
+    eq: (column, value) => mockSupabase.from(table),
+    single: () => Promise.resolve({ data: null, error: null }),
+    order: (column, options) => mockSupabase.from(table),
+    limit: (count) => mockSupabase.from(table)
   })
 };
 
-// Safe Supabase initialization
-let supabase = null;
+// Use mock client only to prevent crashes
+export const supabase = mockSupabase;
 
-try {
-  if (typeof window !== 'undefined') {
-    const { createClient } = require('@supabase/supabase-js');
-    
-    const supabaseUrl = 'https://rfzviddearsabuxyfslg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZpZGRlYXJzYWJ1eHlmc2xnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzMyNzYsImV4cCI6MjA3NTE0OTI3Nn0.4_GX9Rd1u03jut9EpX-TjAEC5Nkmhtw15y0xpvjfeP8';
-    
-    supabase = createClient(supabaseUrl, supabaseKey);
-  } else {
-    supabase = mockSupabase;
-  }
-} catch (error) {
-  console.warn('Using mock Supabase client');
-  supabase = mockSupabase;
-}
-
-export { supabase };
-
-// Log connection status
-if (typeof window !== 'undefined') {
-  console.log('✅ Supabase client ready');
-}
+// Using mock Supabase client for demo
+console.log('📋 Using mock database for demo purposes');
 
 // Database verification and setup
 export const verifyDatabaseTables = async () => {
