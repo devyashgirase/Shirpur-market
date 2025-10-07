@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Route, MapPin, Clock, Fuel, Navigation, Zap } from "lucide-react";
+import { Map, MapPin, Clock, Fuel, Navigation, Zap } from "lucide-react";
 
 interface DeliveryStop {
   id: string;
@@ -92,7 +92,7 @@ const RouteOptimization = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Route className="h-5 w-5" />
+            <Map className="h-5 w-5" />
             Route Optimization
           </CardTitle>
         </CardHeader>
