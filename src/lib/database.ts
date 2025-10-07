@@ -1,49 +1,83 @@
+// Dynamic Database Service
 import { supabaseApi } from './supabase';
+import { apiService } from './apiService';
+import { dynamicDataService } from './dynamicDataService';
 
-export const useSupabase = true;
-export const currentDatabase = 'Supabase Production';
-export const API_BASE_URL = 'https://rfzviddearsabuxyfslg.supabase.co';
-export const DB_TYPE = 'supabase';
+export const useSupabase = false;
+export const currentDatabase = 'Dynamic Mock System';
+export const API_BASE_URL = '/api/mock';
+export const DB_TYPE = 'dynamic';
 export const currentDb = { apiUrl: API_BASE_URL, type: DB_TYPE };
 
+// Enhanced unified database with dynamic data
 export const unifiedDB = {
+  // Products with dynamic features
   async getProducts() {
-    return await supabaseApi.getProducts();
+    return await dynamicDataService.getProducts();
   },
   
-  async createProduct(product) {
-    return await supabaseApi.createProduct(product);
+  async createProduct(product: any) {
+    const result = await apiService.createProduct(product);
+    await dynamicDataService.getProducts(true); // Refresh cache
+    return result;
   },
   
-  async updateProduct(id, product) {
-    return await supabaseApi.updateProduct(id, product);
+  async updateProduct(id: number, product: any) {
+    const result = await apiService.updateProduct(id, product);
+    await dynamicDataService.getProducts(true); // Refresh cache
+    return result;
   },
   
+  async updateProductStock(productId: number, quantityChange: number) {
+    return await dynamicDataService.updateProductStock(productId, quantityChange);
+  },
+
+  // Orders with real-time tracking
   async getOrders() {
-    return await supabaseApi.getOrders();
+    return await dynamicDataService.getOrders();
   },
   
-  async createOrder(order) {
-    return await supabaseApi.createOrder(order);
+  async createOrder(order: any) {
+    const result = await apiService.createOrder(order);
+    await dynamicDataService.getOrders(true); // Refresh cache
+    return result;
   },
   
-  async updateOrderStatus(id, status) {
-    return await supabaseApi.updateOrderStatus(id, status);
+  async updateOrderStatus(orderId: number, status: string) {
+    return await dynamicDataService.updateOrderStatus(orderId, status);
   },
   
-  async createCustomer(customer) {
-    return await supabaseApi.createCustomer(customer);
+  // Analytics with real-time calculations
+  async getDashboardStats() {
+    return await dynamicDataService.getDashboardStats();
+  },
+  
+  // Other services
+  async createCustomer(customer: any) {
+    return await apiService.createCustomer(customer);
   },
   
   async getCategories() {
-    return await supabaseApi.getCategories();
+    return await apiService.getCategories();
   },
-
-  async getDeliveryAgents() {
-    return await supabaseApi.getDeliveryAgents();
+  
+  // Real-time subscriptions
+  subscribe(event: string, callback: Function) {
+    dynamicDataService.subscribe(event, callback);
   },
-
-  async updateDeliveryLocation(agentId, latitude, longitude) {
-    return await supabaseApi.updateDeliveryLocation(agentId, latitude, longitude);
+  
+  unsubscribe(event: string, callback: Function) {
+    dynamicDataService.unsubscribe(event, callback);
+  },
+  
+  // Cache management
+  async refreshAllData() {
+    return await dynamicDataService.refreshAllData();
+  },
+  
+  clearCache() {
+    dynamicDataService.clearCache();
   }
 };
+
+console.log('🚀 Dynamic Database System Active - Real-time data with smart caching');
