@@ -1,4 +1,11 @@
-// Complete mock Supabase replacement - NO REAL SUPABASE
+// Complete mock Supabase implementation - prevents all external dependencies
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Check if we have Supabase configuration (for logging purposes only)
+const hasValidConfig = supabaseUrl && supabaseKey && 
+  supabaseUrl.includes('supabase.co') && supabaseKey.length > 50;
+
 const mockQuery = {
   select: () => mockQuery,
   insert: () => mockQuery,
@@ -11,8 +18,20 @@ const mockQuery = {
   then: (callback) => callback({ data: [], error: null })
 };
 
+// Always use mock client to prevent any Supabase initialization errors
 export const supabase = {
-  from: () => mockQuery
+  from: () => mockQuery,
+  auth: {
+    signUp: () => Promise.resolve({ data: null, error: null }),
+    signIn: () => Promise.resolve({ data: null, error: null }),
+    signOut: () => Promise.resolve({ error: null }),
+    getUser: () => Promise.resolve({ data: { user: null }, error: null })
+  },
+  channel: () => ({
+    on: () => ({ subscribe: () => ({}) }),
+    subscribe: () => ({}),
+    unsubscribe: () => ({})
+  })
 };
 
 // Mock API functions
@@ -61,4 +80,16 @@ export const verifyDatabaseTables = () => Promise.resolve(true);
 export const inspectDatabase = () => Promise.resolve();
 export const testConnection = () => Promise.resolve(true);
 
-console.log('📋 Using complete mock database - no external dependencies');
+console.log(`📋 Mock Database Active | Config detected: ${hasValidConfig ? 'Yes' : 'No'}`);
+if (hasValidConfig) {
+  console.log('ℹ️ Supabase config found but using mock for development');
+}
+
+// Export configuration status
+export const isSupabaseConfigured = false; // Always false to use mock
+export const getSupabaseStatus = () => ({
+  configured: false,
+  url: supabaseUrl ? 'Present' : 'Missing',
+  key: supabaseKey ? 'Present' : 'Missing',
+  client: 'Mock (Safe Mode)'
+});

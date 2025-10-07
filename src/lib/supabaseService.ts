@@ -1,6 +1,12 @@
-// Mock Supabase service - no real Supabase
+// Mock Supabase service - completely safe mode
 export const supabase = null;
-export const isSupabaseEnabled = () => false;
+export const isSupabaseEnabled = () => {
+  // Always return false to prevent any Supabase initialization
+  return false;
+};
+
+// Log the safe mode status
+console.log('🛡️ Supabase Service: Safe Mock Mode Active');
 
 export interface Product {
   id: number;

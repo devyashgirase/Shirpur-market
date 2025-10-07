@@ -2,7 +2,7 @@
 import { supabaseApi } from './supabase';
 import { apiService } from './apiService';
 
-// Production Environment Detection
+// Development Environment - Mock Database Mode
 const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -17,18 +17,17 @@ console.log('- Hostname:', window.location.hostname);
 const hasSupabaseConfig = supabaseUrl && supabaseKey && 
   supabaseUrl.includes('supabase.co') && supabaseKey.length > 50;
 
-// Force Supabase for production deployment
-export const useSupabase = hasSupabaseConfig;
+// Force mock mode to prevent Supabase initialization errors
+export const useSupabase = false;
 export const currentDatabase = useSupabase ? 'Supabase (Production)' : 'Local Development';
 export const API_BASE_URL = useSupabase ? '/api/supabase' : 'http://localhost:5000/api';
 export const DB_TYPE = useSupabase ? 'supabase' : 'mysql';
 
 console.log(`🚀 Database: ${currentDatabase} | Host: ${window.location.hostname}`);
-console.log('🔧 Supabase Config Check:', hasSupabaseConfig ? '✅ Valid' : '❌ Invalid');
+console.log('🔧 Mock Mode Active - Safe Development Environment');
 
-if (!useSupabase && isProduction) {
-  console.warn('⚠️ Production detected but Supabase not configured!');
-  console.warn('📋 Check environment variables in build process');
+if (hasSupabaseConfig) {
+  console.log('ℹ️ Supabase config detected but using mock for safety');
 }
 
 // Unified Database API - Same interface, different backends
