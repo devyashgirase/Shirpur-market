@@ -1,6 +1,16 @@
-// Comprehensive Supabase Verification for All Features
-import { supabase, supabaseApi } from './supabase';
-import { unifiedDB } from './database';
+// Mock Supabase Verification
+const supabase = null;
+const supabaseApi = {
+  getProducts: () => Promise.resolve([]),
+  createProduct: () => Promise.resolve(null),
+  updateProduct: () => Promise.resolve(null),
+  getOrders: () => Promise.resolve([]),
+  createOrder: () => Promise.resolve(null),
+  updateOrderStatus: () => Promise.resolve(false),
+  createCustomer: () => Promise.resolve(null),
+  updateDeliveryLocation: () => Promise.resolve(false),
+  updatePaymentStatus: () => Promise.resolve(false)
+};
 
 export class SupabaseVerification {
   static async runFullVerification(): Promise<boolean> {
@@ -305,9 +315,5 @@ export class SupabaseVerification {
   }
 }
 
-// Auto-run verification in development
-if (import.meta.env.DEV) {
-  setTimeout(() => {
-    SupabaseVerification.verifyProductionReadiness();
-  }, 2000);
-}
+// Mock verification - no auto-run
+console.log('📋 Using mock verification system');

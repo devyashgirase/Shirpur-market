@@ -1,21 +1,22 @@
-// Mock Supabase client - no real Supabase dependency
-const createMockQuery = () => ({
-  select: () => createMockQuery(),
-  insert: () => createMockQuery(),
-  update: () => createMockQuery(),
-  upsert: () => createMockQuery(),
-  eq: () => createMockQuery(),
-  single: () => Promise.resolve({ data: null, error: null }),
-  order: () => createMockQuery(),
-  limit: () => createMockQuery(),
-  then: (callback) => callback({ data: [], error: null })
-});
+import { createClient } from '@supabase/supabase-js';
 
-export const supabase = {
-  from: () => createMockQuery()
-};
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('📋 Using mock database - no Supabase dependency');
+// Safe Supabase initialization
+export const supabase = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false
+      }
+    })
+  : null;
+
+if (supabase) {
+  console.log('✅ Supabase initialized with environment variables');
+} else {
+  console.warn('⚠️ Supabase not initialized - check environment variables');
+}
 
 // Database verification and setup
 export const verifyDatabaseTables = async () => {
