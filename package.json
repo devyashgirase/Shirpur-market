@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build",
-    "build:prod": "npx vite build --mode production",
+    "build": "node ./node_modules/vite/bin/vite.js build",
+    "build:prod": "node ./node_modules/vite/bin/vite.js build --mode production",
     "preview": "vite preview",
     "deploy": "npm run build:prod && echo 'Ready for deployment!'",
     "netlify": "npm run build:prod && echo 'Drag dist/ folder to netlify.com/drop'"
