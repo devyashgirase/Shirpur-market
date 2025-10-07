@@ -1,12 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://rfzviddearsabuxyfslg.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZpZGRlYXJzYWJ1eHlmc2xnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzMyNzYsImV4cCI6MjA3NTE0OTI3Nn0.4_GX9Rd1u03jut9EpX-TjAEC5Nkmhtw15y0xpvjfeP8';
 
-// Initialize Supabase client
-export const supabase = supabaseUrl && supabaseKey && supabaseKey.length > 50
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+// Initialize Supabase client with error handling
+let supabase = null;
+try {
+  if (supabaseUrl && supabaseKey && supabaseKey.length > 50) {
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false
+      }
+    });
+  }
+} catch (error) {
+  console.error('Failed to initialize Supabase:', error);
+  supabase = null;
+}
+
+export { supabase };
 
 // Log connection status and setup instructions
 if (supabase) {
