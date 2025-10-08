@@ -1,36 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
+// Complete mock system - no real Supabase to prevent errors
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Check if we have valid Supabase configuration
-const hasValidConfig = supabaseUrl && 
-  supabaseKey && 
-  supabaseUrl !== 'undefined' && 
-  supabaseKey !== 'undefined' &&
-  supabaseUrl.includes('supabase.co') &&
-  supabaseKey.length > 50;
+console.log('🔗 Supabase Mock Mode - No external dependencies');
+console.log(`📊 Environment: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
 
-let supabaseClient = null;
-
-// Initialize Supabase client
-if (hasValidConfig) {
-  try {
-    supabaseClient = createClient(supabaseUrl, supabaseKey);
-    console.log('✅ Supabase connected successfully');
-  } catch (error) {
-    console.warn('⚠️ Supabase initialization failed:', error);
-  }
-} else {
-  console.warn('⚠️ Supabase config invalid:', { 
-    hasUrl: !!supabaseUrl, 
-    hasKey: !!supabaseKey,
-    urlValid: supabaseUrl?.includes('supabase.co'),
-    keyLength: supabaseKey?.length 
-  });
-}
-
-// Mock data for fallback
+// Mock data for all operations
 const mockData = {
   products: [
     { id: 1, name: 'Fresh Tomatoes', price: 40, category: 'Vegetables', stockQuantity: 100, isActive: true, imageUrl: '/placeholder.svg', description: 'Fresh red tomatoes' },
@@ -52,129 +27,85 @@ const mockData = {
   ]
 };
 
-export const supabase = supabaseClient;
+// Complete mock query builder
+const mockQuery = {
+  select: () => mockQuery,
+  insert: () => mockQuery,
+  update: () => mockQuery,
+  delete: () => mockQuery,
+  eq: () => mockQuery,
+  order: () => mockQuery,
+  single: () => Promise.resolve({ data: { id: Date.now() }, error: null }),
+  then: (callback) => callback({ data: [], error: null })
+};
+
+// Safe supabase mock
+export const supabase = {
+  from: () => mockQuery
+};
 
 export const supabaseApi = {
   async getProducts() {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('products').select('*').eq('isActive', true);
-        if (error) throw error;
-        console.log('📊 Fetched products from Supabase:', data?.length || 0);
-        return data || mockData.products;
-      } catch (error) {
-        console.warn('Supabase products fetch failed, using mock:', error);
-        return mockData.products;
-      }
-    }
-    console.log('📋 Using mock products data');
+    console.log('📊 Returning mock products:', mockData.products.length);
     return mockData.products;
   },
 
   async getOrders() {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        console.log('📊 Fetched orders from Supabase:', data?.length || 0);
-        return data || mockData.orders;
-      } catch (error) {
-        console.warn('Supabase orders fetch failed, using mock:', error);
-        return mockData.orders;
-      }
-    }
-    console.log('📋 Using mock orders data');
+    console.log('📊 Returning mock orders:', mockData.orders.length);
     return mockData.orders;
   },
 
   async getCategories() {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('categories').select('*').eq('isActive', true);
-        if (error) throw error;
-        console.log('📊 Fetched categories from Supabase:', data?.length || 0);
-        return data || mockData.categories;
-      } catch (error) {
-        console.warn('Supabase categories fetch failed, using mock:', error);
-        return mockData.categories;
-      }
-    }
-    console.log('📋 Using mock categories data');
+    console.log('📊 Returning mock categories:', mockData.categories.length);
     return mockData.categories;
   },
 
   async createProduct(product) {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('products').insert(product).select().single();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase product creation failed:', error);
-      }
-    }
-    return { id: Date.now(), ...product };
+    const newProduct = { id: Date.now(), ...product };
+    mockData.products.push(newProduct);
+    console.log('✅ Mock product created:', newProduct.name);
+    return newProduct;
   },
 
   async updateProduct(id, product) {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('products').update(product).eq('id', id).select().single();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase product update failed:', error);
-      }
+    const index = mockData.products.findIndex(p => p.id === id);
+    if (index !== -1) {
+      mockData.products[index] = { ...mockData.products[index], ...product };
+      console.log('✅ Mock product updated:', id);
+      return mockData.products[index];
     }
     return { id, ...product };
   },
 
   async createOrder(order) {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('orders').insert(order).select().single();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase order creation failed:', error);
-      }
-    }
-    return { id: Date.now(), ...order };
+    const newOrder = { 
+      id: Date.now(), 
+      order_id: `ORD${Date.now()}`,
+      created_at: new Date().toISOString(),
+      ...order 
+    };
+    mockData.orders.unshift(newOrder);
+    console.log('✅ Mock order created:', newOrder.order_id);
+    return newOrder;
   },
 
   async updateOrderStatus(id, status) {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('orders').update({ status }).eq('id', id).select().single();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase order status update failed:', error);
-      }
+    const index = mockData.orders.findIndex(o => o.id === id);
+    if (index !== -1) {
+      mockData.orders[index].status = status;
+      console.log('✅ Mock order status updated:', id, status);
+      return mockData.orders[index];
     }
     return { id, status };
   },
 
   async createCustomer(customer) {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from('customers').insert(customer).select().single();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase customer creation failed:', error);
-      }
-    }
-    return { id: Date.now(), ...customer };
+    const newCustomer = { id: Date.now(), ...customer };
+    console.log('✅ Mock customer created:', newCustomer.name);
+    return newCustomer;
   }
 };
 
-export const isSupabaseConfigured = !!supabaseClient;
+export const isSupabaseConfigured = false;
 
-// Log connection status
-console.log(`🔗 Database: ${supabaseClient ? 'Supabase Connected' : 'Mock Data Only'}`);
-console.log(`📊 Environment: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
-
-if (hasValidConfig && !supabaseClient) {
-  console.log('📋 Supabase config found but connection failed - using mock data');
-}
+console.log('📋 Mock Database Ready - All operations will use sample data');
