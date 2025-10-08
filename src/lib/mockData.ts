@@ -20,19 +20,22 @@ export interface Product {
 export const getProductsFromStorage = async (): Promise<Product[]> => {
   try {
     const products = await apiService.getProducts();
-    return products.map(p => ({
-      id: p.id.toString(),
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      image_url: p.imageUrl,
-      category_id: p.category.toLowerCase().replace(/\s+/g, '-'),
-      stock_qty: p.stockQuantity,
-      is_active: p.isActive,
-      sku: `SKU${p.id}`,
-      unit: 'kg',
-      is_age_restricted: false
-    }));
+    return products.map(p => {
+      if (!p) return null;
+      return {
+        id: String(p.id || Date.now()),
+        name: String(p.name || 'Unknown Product'),
+        description: String(p.description || ''),
+        price: Number(p.price || 0),
+        image_url: p.imageUrl || '/placeholder.svg',
+        category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+        stock_qty: Number(p.stockQuantity || 0),
+        is_active: Boolean(p.isActive !== false),
+        sku: `SKU${p.id || Date.now()}`,
+        unit: 'kg',
+        is_age_restricted: false
+      };
+    }).filter(Boolean);
   } catch (error) {
     console.error('Failed to fetch products from API:', error);
     return [];
@@ -45,16 +48,19 @@ export const getDynamicCategories = async () => {
     const categoryMap = new Map();
     
     products.forEach(product => {
-      if (!categoryMap.has(product.category_id)) {
+      if (product && product.category_id && !categoryMap.has(product.category_id)) {
+        const categoryName = String(product.category_id).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         categoryMap.set(product.category_id, {
           id: product.category_id,
-          name: product.category_id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          name: categoryName,
           slug: product.category_id,
           is_active: true,
           productCount: 0
         });
       }
-      categoryMap.get(product.category_id).productCount++;
+      if (product && product.category_id && categoryMap.has(product.category_id)) {
+        categoryMap.get(product.category_id).productCount++;
+      }
     });
     
     return Array.from(categoryMap.values());

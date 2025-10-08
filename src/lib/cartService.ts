@@ -59,10 +59,10 @@ class CartService {
             id: Date.now(),
             product: {
               id: productId,
-              name: product.name,
-              price: product.price,
-              image_url: product.imageUrl,
-              stock_qty: product.stockQuantity
+              name: String(product.name || 'Unknown Product'),
+              price: Number(product.price || 0),
+              image_url: product.imageUrl || '/placeholder.svg',
+              stock_qty: Number(product.stockQuantity || 0)
             },
             quantity
           });
