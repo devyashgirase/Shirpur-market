@@ -363,7 +363,7 @@ const DeliveryTasks = () => {
                         <Badge className="bg-orange-500 text-white mt-1">Accepted - Ready to Deliver</Badge>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-orange-600">₹{order.total.toFixed(0)}</p>
+                        <p className="text-2xl font-bold text-orange-600">₹{Number(order.total || 0).toFixed(0)}</p>
                       </div>
                     </div>
                     
@@ -437,7 +437,7 @@ const DeliveryTasks = () => {
                         <Badge className="bg-green-500 text-white mt-1">Nearby Order</Badge>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-green-600">₹{order.total.toFixed(0)}</p>
+                        <p className="text-2xl font-bold text-green-600">₹{Number(order.total || 0).toFixed(0)}</p>
                       </div>
                     </div>
                     
@@ -536,7 +536,7 @@ const DeliveryTasks = () => {
                       </div>
                       
                       <div className="text-right bg-green-50 p-4 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">₹{task.total.toFixed(0)}</p>
+                        <p className="text-2xl font-bold text-green-600">₹{Number(task.total || 0).toFixed(0)}</p>
                         <p className="text-sm text-gray-600 mt-1">Order Value</p>
                         <div className="mt-2 pt-2 border-t border-green-200">
                           <p className="text-lg font-bold text-green-700">₹{task.estimatedEarning}</p>

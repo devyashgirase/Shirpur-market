@@ -444,7 +444,7 @@ const CustomerCart = () => {
                           SKU: {item.product.sku} • Per {item.product.unit}
                         </p>
                         <p className="text-base font-bold text-primary mt-1">
-                          ₹{item.product.price.toFixed(2)}
+                          ₹{Number(item.product.price || 0).toFixed(2)}
                         </p>
                       </div>
                       <Button
@@ -488,7 +488,7 @@ const CustomerCart = () => {
                       </div>
                       
                       <p className="text-base font-bold">
-                        ₹{(item.product.price * item.quantity).toFixed(2)}
+                        ₹{(Number(item.product.price || 0) * Number(item.quantity || 0)).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -505,7 +505,7 @@ const CustomerCart = () => {
                         SKU: {item.product.sku} • Per {item.product.unit}
                       </p>
                       <p className="text-lg font-bold text-primary mt-1">
-                        ₹{item.product.price.toFixed(2)}
+                        ₹{Number(item.product.price || 0).toFixed(2)}
                       </p>
                     </div>
                     
@@ -540,7 +540,7 @@ const CustomerCart = () => {
                     
                     <div className="text-right">
                       <p className="text-lg font-bold">
-                        ₹{(item.product.price * item.quantity).toFixed(2)}
+                        ₹{(Number(item.product.price || 0) * Number(item.quantity || 0)).toFixed(2)}
                       </p>
                       <Button
                         variant="ghost"
