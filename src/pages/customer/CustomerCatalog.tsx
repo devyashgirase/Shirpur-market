@@ -20,6 +20,7 @@ import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
 import { personalizationService } from "@/lib/personalizationService";
 import PersonalizedRecommendations from "@/components/PersonalizedRecommendations";
+import "@/styles/carousel.css";
 
 const CustomerCatalog = () => {
   const { toast } = useToast();
@@ -213,53 +214,126 @@ const CustomerCatalog = () => {
           </div>
           
           {featuredProducts.length > 0 && (
-            <Carousel className="w-full" autoPlay autoPlayInterval={4000}>
+            <Carousel className="w-full" autoPlay autoPlayInterval={5000}>
               <CarouselContent>
-                {featuredProducts.map((product) => (
+                {featuredProducts.map((product, index) => (
                   <CarouselItem key={product.id}>
-                    <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 w-full rounded-lg sm:rounded-2xl overflow-hidden">
-                      {/* Background Image */}
+                    <div className="carousel-banner relative h-64 sm:h-80 md:h-96 lg:h-[500px] xl:h-[600px] w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
+                      {/* Dynamic Background */}
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+                        <>
+                          <img 
+                            src={product.image_url} 
+                            alt={product.name} 
+                            className="absolute inset-0 w-full h-full object-cover transform scale-105 transition-transform duration-700 hover:scale-110" 
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
+                        </>
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600"></div>
+                        <div className={`absolute inset-0 bg-gradient-to-br ${
+                          index % 4 === 0 ? 'from-purple-600 via-pink-600 to-red-600' :
+                          index % 4 === 1 ? 'from-blue-600 via-cyan-600 to-teal-600' :
+                          index % 4 === 2 ? 'from-green-600 via-emerald-600 to-lime-600' :
+                          'from-orange-600 via-amber-600 to-yellow-600'
+                        }`}></div>
                       )}
                       
-                      {/* Overlay */}
-                      <div className="absolute inset-0 bg-black/40"></div>
+                      {/* Animated Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                      
+                      {/* Decorative Elements */}
+                      <div className="floating-element absolute top-6 right-6 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
+                      <div className="floating-element absolute bottom-20 left-10 w-32 h-32 bg-yellow-400/20 rounded-full blur-2xl" style={{animationDelay: '1s'}}></div>
+                      <div className="glow-effect absolute top-1/2 right-1/4 w-16 h-16 bg-pink-400/20 rounded-full blur-lg" style={{animationDelay: '2s'}}></div>
                       
                       {/* Content */}
-                      <div className="relative z-10 h-full flex flex-col justify-center px-4 sm:px-8 md:px-16">
-                        <div className="text-white max-w-xs sm:max-w-lg md:max-w-2xl">
-                          <h3 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4">{product.name}</h3>
-                          <p className="text-sm sm:text-base md:text-lg lg:text-xl opacity-90 mb-4 sm:mb-6 line-clamp-2">{product.description}</p>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
-                            <span className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-yellow-300">₹{product.price}</span>
-                            <Badge className="bg-white/20 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-3 py-1 w-fit">
-                              {product.stock_qty} in stock
+                      <div className="relative z-10 h-full flex items-center px-6 sm:px-12 md:px-16 lg:px-20">
+                        <div className="text-white max-w-2xl">
+                          {/* Badge */}
+                          <div className="mb-4">
+                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold px-4 py-2 text-sm animate-pulse">
+                              🔥 FEATURED DEAL
                             </Badge>
+                          </div>
+                          
+                          {/* Title */}
+                          <h3 className="carousel-title text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-4 sm:mb-6 leading-tight">
+                            <span className="gradient-text drop-shadow-2xl">
+                              {product.name}
+                            </span>
+                          </h3>
+                          
+                          {/* Description */}
+                          <p className="carousel-description text-base sm:text-lg md:text-xl lg:text-2xl opacity-95 mb-6 sm:mb-8 line-clamp-2 font-medium">
+                            {product.description}
+                          </p>
+                          
+                          {/* Price & Stock */}
+                          <div className="carousel-price flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-yellow-300 drop-shadow-lg">
+                                ₹{product.price}
+                              </span>
+                              <span className="text-lg sm:text-xl text-white/80 line-through">
+                                ₹{Math.round(product.price * 1.2)}
+                              </span>
+                            </div>
+                            <div className="flex gap-3">
+                              <Badge className="bg-green-500/90 text-white border-0 px-3 py-2 text-sm font-bold animate-bounce">
+                                ✅ {product.stock_qty} Available
+                              </Badge>
+                              <Badge className="bg-red-500/90 text-white border-0 px-3 py-2 text-sm font-bold">
+                                🚀 Fast Delivery
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          {/* CTA Buttons */}
+                          <div className="carousel-buttons flex flex-col sm:flex-row gap-4">
+                            <Button 
+                              onClick={() => handleAddToCart(product)}
+                              className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-bold text-lg px-8 py-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 transform"
+                              size="lg"
+                            >
+                              <ShoppingCart className="w-6 h-6 mr-3" />
+                              Add to Cart - ₹{product.price}
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              className="border-2 border-white/50 text-white hover:bg-white hover:text-black font-bold text-lg px-8 py-4 rounded-full backdrop-blur-sm transition-all duration-300"
+                              size="lg"
+                            >
+                              <Heart className="w-6 h-6 mr-3" />
+                              Save for Later
+                            </Button>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Floating Add to Cart Button */}
-                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8">
-                        <Button 
-                          onClick={() => handleAddToCart(product)}
-                          className="bg-white text-blue-600 hover:bg-gray-100 text-sm sm:text-base md:text-lg px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105"
-                        >
-                          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-                          <span className="hidden xs:inline">Add to Cart</span>
-                          <span className="xs:hidden">Add</span>
-                        </Button>
+                      {/* Floating Discount Badge */}
+                      <div className="absolute top-6 left-6">
+                        <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg animate-pulse">
+                          🎉 20% OFF
+                        </div>
                       </div>
+                      
+                      {/* Bottom Gradient */}
+                      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent"></div>
                     </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="left-4 bg-white/20 border-white/30 text-white hover:bg-white/30" />
-              <CarouselNext className="right-4 bg-white/20 border-white/30 text-white hover:bg-white/30" />
-              <CarouselDots className="mt-4" />
+              
+              {/* Enhanced Navigation */}
+              <CarouselPrevious className="left-6 w-14 h-14 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40 hover:scale-110 transition-all duration-300" />
+              <CarouselNext className="right-6 w-14 h-14 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40 hover:scale-110 transition-all duration-300" />
+              
+              {/* Enhanced Dots */}
+              <div className="flex justify-center mt-6 gap-3">
+                {featuredProducts.map((_, index) => (
+                  <div key={index} className="w-3 h-3 rounded-full bg-white/50 hover:bg-white transition-all duration-300 cursor-pointer"></div>
+                ))}
+              </div>
             </Carousel>
           )}
         </div>
