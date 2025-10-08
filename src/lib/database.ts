@@ -3,8 +3,8 @@ import { supabaseApi } from './supabase';
 import { apiService } from './apiService';
 import { dynamicDataService } from './dynamicDataService';
 
-export const useSupabase = false;
-export const currentDatabase = 'Dynamic Mock System';
+export const useSupabase = true;
+export const currentDatabase = 'Supabase Production';
 export const API_BASE_URL = '/api/mock';
 export const DB_TYPE = 'dynamic';
 export const currentDb = { apiUrl: API_BASE_URL, type: DB_TYPE };

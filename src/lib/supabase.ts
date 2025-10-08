@@ -1,18 +1,58 @@
-// Zero Supabase - Complete Mock System
-export const supabase = null;
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const supabaseApi = {
-  getProducts: () => Promise.resolve([]),
-  createProduct: () => Promise.resolve({ id: 1 }),
-  updateProduct: () => Promise.resolve({ id: 1 }),
-  getOrders: () => Promise.resolve([]),
-  createOrder: () => Promise.resolve({ id: 1 }),
-  updateOrderStatus: () => Promise.resolve(true),
-  createCustomer: () => Promise.resolve({ id: 1 }),
-  getCategories: () => Promise.resolve([])
+  async getProducts() {
+    const { data, error } = await supabase.from('products').select('*').eq('isActive', true);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async createProduct(product) {
+    const { data, error } = await supabase.from('products').insert(product).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updateProduct(id, product) {
+    const { data, error } = await supabase.from('products').update(product).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getOrders() {
+    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async createOrder(order) {
+    const { data, error } = await supabase.from('orders').insert(order).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updateOrderStatus(id, status) {
+    const { data, error } = await supabase.from('orders').update({ status }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async createCustomer(customer) {
+    const { data, error } = await supabase.from('customers').insert(customer).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getCategories() {
+    const { data, error } = await supabase.from('categories').select('*').eq('isActive', true);
+    if (error) throw error;
+    return data || [];
+  }
 };
 
-export const isSupabaseConfigured = false;
-export const verifyDatabaseTables = () => Promise.resolve(true);
-export const inspectDatabase = () => Promise.resolve();
-export const testConnection = () => Promise.resolve(true);
+export const isSupabaseConfigured = true;
