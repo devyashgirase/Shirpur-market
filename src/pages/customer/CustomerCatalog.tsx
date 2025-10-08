@@ -36,19 +36,22 @@ const CustomerCatalog = () => {
         const customerProducts = await CustomerDataService.getAvailableProducts();
         console.log('CustomerCatalog: Products received from service:', customerProducts);
         console.log('CustomerCatalog: Number of products received:', customerProducts.length);
-        const formattedProducts = customerProducts.map(p => ({
-          id: p.id.toString(),
-          name: p.name,
-          description: p.description,
-          price: parseFloat(p.price || 0),
-          image_url: p.image_url || p.imageUrl,
-          category_id: (p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
-          stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
-          is_active: p.is_active !== undefined ? p.is_active : p.isActive,
-          sku: `SKU${p.id}`,
-          unit: 'kg',
-          is_age_restricted: false
-        }));
+        const formattedProducts = customerProducts.map(p => {
+          if (!p) return null;
+          return {
+            id: String(p.id || Date.now()),
+            name: String(p.name || 'Unknown Product'),
+            description: String(p.description || ''),
+            price: parseFloat(p.price || 0),
+            image_url: p.image_url || p.imageUrl || '/placeholder.svg',
+            category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+            stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
+            is_active: p.is_active !== undefined ? p.is_active : p.isActive,
+            sku: `SKU${p.id || Date.now()}`,
+            unit: 'kg',
+            is_age_restricted: false
+          };
+        }).filter(Boolean);
         const activeProducts = formattedProducts.filter(p => p.is_active);
         console.log('CustomerCatalog: Active products after filtering:', activeProducts);
         console.log('CustomerCatalog: Setting', activeProducts.length, 'active products');
@@ -57,10 +60,11 @@ const CustomerCatalog = () => {
         // Generate categories from API products
         const categoryMap = new Map();
         formattedProducts.forEach(product => {
-          if (!categoryMap.has(product.category_id)) {
+          if (product && product.category_id && !categoryMap.has(product.category_id)) {
+            const categoryName = String(product.category_id).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             categoryMap.set(product.category_id, {
               id: product.category_id,
-              name: product.category_id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              name: categoryName,
               is_active: true
             });
           }
@@ -78,19 +82,22 @@ const CustomerCatalog = () => {
     realTimeDataService.startRealTimeUpdates();
     
     const handleProductUpdate = (updatedProducts: any[]) => {
-      const formattedProducts = updatedProducts.map(p => ({
-        id: p.id.toString(),
-        name: p.name,
-        description: p.description,
-        price: parseFloat(p.price || 0),
-        image_url: p.image_url || p.imageUrl,
-        category_id: (p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
-        stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
-        is_active: p.is_active !== undefined ? p.is_active : p.isActive,
-        sku: `SKU${p.id}`,
-        unit: 'kg',
-        is_age_restricted: false
-      }));
+      const formattedProducts = (updatedProducts || []).map(p => {
+        if (!p) return null;
+        return {
+          id: String(p.id || Date.now()),
+          name: String(p.name || 'Unknown Product'),
+          description: String(p.description || ''),
+          price: parseFloat(p.price || 0),
+          image_url: p.image_url || p.imageUrl || '/placeholder.svg',
+          category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+          stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
+          is_active: p.is_active !== undefined ? p.is_active : p.isActive,
+          sku: `SKU${p.id || Date.now()}`,
+          unit: 'kg',
+          is_age_restricted: false
+        };
+      }).filter(Boolean);
       setProducts(formattedProducts.filter(p => p.is_active));
     };
     
@@ -103,12 +110,12 @@ const CustomerCatalog = () => {
   }, []);
 
   const filteredProducts = products.filter(p => {
-    if (!p.is_active) return false;
+    if (!p || !p.is_active) return false;
     
     const matchesCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
     const matchesSearch = !searchQuery || 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      String(p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesCategory && matchesSearch;
   });

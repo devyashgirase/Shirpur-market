@@ -183,14 +183,21 @@ export const supabaseApi = {
       try {
         const data = await supabaseClient.request('products?select=*');
         console.log('📊 Fetched products from Supabase:', data.length);
-        // Ensure all products have required fields
-        const processedData = data.map(product => ({
-          ...product,
-          name: product.name || 'Unknown Product',
-          description: product.description || '',
-          imageUrl: product.imageUrl || '/placeholder.svg',
-          category: product.category || 'General'
-        }));
+        // Ensure all products have required fields with null safety
+        const processedData = (data || []).map(product => {
+          if (!product) return null;
+          return {
+            id: product.id || Date.now(),
+            name: String(product.name || 'Unknown Product'),
+            description: String(product.description || ''),
+            imageUrl: String(product.imageUrl || product.image_url || '/placeholder.svg'),
+            category: String(product.category || 'General'),
+            price: Number(product.price || 0),
+            stockQuantity: Number(product.stockQuantity || product.stock_quantity || 0),
+            isActive: Boolean(product.isActive !== false),
+            created_at: product.created_at || new Date().toISOString()
+          };
+        }).filter(Boolean);
         return processedData.length > 0 ? processedData : mockData.products;
       } catch (error) {
         console.warn('Supabase products failed, using mock:', error);
@@ -221,7 +228,17 @@ export const supabaseApi = {
       try {
         const data = await supabaseClient.request('categories?select=*');
         console.log('📊 Fetched categories from Supabase:', data.length);
-        return data.length > 0 ? data : mockData.categories;
+        // Ensure all categories have required fields
+        const processedData = (data || []).map(category => {
+          if (!category) return null;
+          return {
+            id: category.id || Date.now(),
+            name: String(category.name || 'Unknown Category'),
+            slug: String(category.slug || category.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown'),
+            isActive: Boolean(category.isActive !== false)
+          };
+        }).filter(Boolean);
+        return processedData.length > 0 ? processedData : mockData.categories;
       } catch (error) {
         console.warn('Supabase categories failed, using mock:', error);
         return mockData.categories;
