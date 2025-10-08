@@ -11,6 +11,8 @@ import DeliveryOTPVerification from "@/components/DeliveryOTPVerification";
 import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryCoordinationService";
+import { deliveryAuthService } from "@/lib/deliveryAuthService";
+import { useNavigate } from "react-router-dom";
 
 const DeliveryTasks = () => {
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ const DeliveryTasks = () => {
   const [nearbyOrders, setNearbyOrders] = useState<OrderLocation[]>([]);
   const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [agentId] = useState('agent-001');
+  const [agentId, setAgentId] = useState<string | null>(null);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [metrics, setMetrics] = useState({
@@ -29,6 +31,14 @@ const DeliveryTasks = () => {
   });
 
   useEffect(() => {
+    // Check authentication
+    const currentAgent = deliveryAuthService.getCurrentAgent();
+    if (!currentAgent) {
+      navigate('/delivery/login');
+      return;
+    }
+    setAgentId(currentAgent.userId);
+    
     let isMounted = true;
     
     const setLocation = () => {
@@ -129,9 +139,11 @@ const DeliveryTasks = () => {
       window.removeEventListener('ordersUpdated', handleOrderAccepted);
       deliveryCoordinationService.unsubscribe('orderAccepted', handleOrderAccepted);
     };
-  }, [agentId]);
+  }, [agentId, navigate]);
 
   const handleAcceptDelivery = async (orderId: string) => {
+    if (!agentId) return;
+    
     try {
       console.log(`🚚 Accepting delivery for order: ${orderId}`);
       
@@ -190,20 +202,33 @@ const DeliveryTasks = () => {
               <p className="text-blue-100 mt-1">Manage your deliveries and track earnings</p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-            onClick={async () => {
-              console.log('🔄 Refreshing delivery data...');
-              const tasks = await DeliveryDataService.getAvailableDeliveries();
-              setDeliveryTasks(tasks);
-              setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
-              const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
-              setNearbyOrders(nearby);
-            }}
-          >
-            🔄 Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              onClick={async () => {
+                if (!agentId) return;
+                console.log('🔄 Refreshing delivery data...');
+                const tasks = await DeliveryDataService.getAvailableDeliveries();
+                setDeliveryTasks(tasks);
+                setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+                const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
+                setNearbyOrders(nearby);
+              }}
+            >
+              🔄 Refresh
+            </Button>
+            <Button 
+              variant="outline" 
+              className="bg-red-500/20 text-white border-red-300/30 hover:bg-red-500/30"
+              onClick={() => {
+                deliveryAuthService.logout();
+                navigate('/delivery/login');
+              }}
+            >
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
 

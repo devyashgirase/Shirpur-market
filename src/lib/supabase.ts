@@ -198,7 +198,7 @@ export const supabaseApi = {
             created_at: product.created_at || new Date().toISOString()
           };
         }).filter(Boolean);
-        return processedData.length > 0 ? processedData : mockData.products;
+        return processedData;
       } catch (error) {
         console.warn('Supabase products failed, using mock:', error);
         return mockData.products;
@@ -326,6 +326,51 @@ export const supabaseApi = {
       }
     }
     return { id: Date.now(), ...customer };
+  },
+
+  async getDeliveryAgents() {
+    if (supabaseClient) {
+      try {
+        const data = await supabaseClient.request('delivery_agents?select=*');
+        return data || [];
+      } catch (error) {
+        console.error('Failed to get delivery agents:', error);
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async createDeliveryAgent(agent: any) {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request('delivery_agents', {
+          method: 'POST',
+          body: JSON.stringify(agent)
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to create delivery agent:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
+  },
+
+  async updateDeliveryAgent(id: number, updates: any) {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request(`delivery_agents?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updates)
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to update delivery agent:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
   },
 
   async updateDeliveryLocation(orderId: number, latitude: number, longitude: number) {
