@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package } from "lucide-react";
+import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package, CheckCircle } from "lucide-react";
 import { DeliveryDataService } from "@/lib/deliveryDataService";
 import { Link, useNavigate } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
+import DeliveryOTPVerification from "@/components/DeliveryOTPVerification";
 
 import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
@@ -18,6 +19,8 @@ const DeliveryTasks = () => {
   const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentId] = useState('agent-001');
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [metrics, setMetrics] = useState({
     activeTasks: 0,
     availableOrders: 0,
@@ -392,16 +395,28 @@ const DeliveryTasks = () => {
                       )}
                     </div>
 
-                    <Button 
-                      className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
-                      onClick={() => {
-                        localStorage.setItem('currentOrder', JSON.stringify(order));
-                        navigate('/delivery/tracking');
-                      }}
-                    >
-                      <Navigation className="w-4 h-4 mr-2" />
-                      Start Route for Delivery
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
+                        onClick={() => {
+                          localStorage.setItem('currentOrder', JSON.stringify(order));
+                          navigate('/delivery/tracking');
+                        }}
+                      >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Start Route
+                      </Button>
+                      <Button 
+                        className="bg-green-500 hover:bg-green-600 text-white"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowOTPVerification(true);
+                        }}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Mark Delivered
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -564,6 +579,28 @@ const DeliveryTasks = () => {
             </div>
           )}
         </div>
+
+        {/* OTP Verification Modal */}
+        {showOTPVerification && selectedOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <DeliveryOTPVerification
+              orderId={selectedOrder.orderId}
+              customerPhone={selectedOrder.customerAddress?.phone || ''}
+              customerName={selectedOrder.customerAddress?.name || ''}
+              onVerificationSuccess={() => {
+                setShowOTPVerification(false);
+                setSelectedOrder(null);
+                // Remove from pending deliveries
+                setPendingDeliveries(prev => prev.filter(order => order.orderId !== selectedOrder.orderId));
+                alert('✅ Order delivered successfully!');
+              }}
+              onCancel={() => {
+                setShowOTPVerification(false);
+                setSelectedOrder(null);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

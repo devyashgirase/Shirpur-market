@@ -601,9 +601,18 @@ export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps)
 
           {userType === 'delivery' && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Button className="bg-green-500 hover:bg-green-600">
+              <Button 
+                className="bg-green-500 hover:bg-green-600"
+                onClick={() => {
+                  // Trigger OTP verification modal
+                  const event = new CustomEvent('showOTPVerification', {
+                    detail: { orderId, customerPhone: '9876543210' }
+                  });
+                  window.dispatchEvent(event);
+                }}
+              >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Mark Delivered
+                Mark Delivered (OTP)
               </Button>
               <Button variant="outline">
                 <Phone className="w-4 h-4 mr-2" />
