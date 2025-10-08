@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { EnhancedTrackingMap } from './EnhancedTrackingMap';
 import { EnhancedTrackingService, EnhancedTrackingUpdate } from '@/lib/enhancedTrackingService';
+import { realTimeRouteAnalysis, type RouteAnalysis } from '@/lib/realTimeRouteAnalysis';
 
 interface TrackingDashboardProps {
   orderId: string;
@@ -19,9 +20,12 @@ interface TrackingDashboardProps {
 
 export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps) => {
   const [trackingData, setTrackingData] = useState<EnhancedTrackingUpdate | null>(null);
+  const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('overview');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [agentLocation, setAgentLocation] = useState({ lat: 21.3486, lng: 74.8811 });
+  const [customerLocation, setCustomerLocation] = useState({ lat: 21.3099, lng: 75.1178 });
 
   useEffect(() => {
     // Initialize enhanced tracking
@@ -31,37 +35,48 @@ export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const customerLocation = {
+          const customerLoc = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy,
             timestamp: Date.now()
           };
-          EnhancedTrackingService.startOrderTracking(orderId, 'agent-001', customerLocation);
+          setCustomerLocation({ lat: customerLoc.lat, lng: customerLoc.lng });
+          EnhancedTrackingService.startOrderTracking(orderId, 'agent-001', customerLoc);
         },
         (error) => {
           console.error('GPS error:', error);
           // Fallback to default Shirpur location
-          const customerLocation = {
+          const customerLoc = {
             lat: 21.3150,
             lng: 75.1200,
             accuracy: 10,
             timestamp: Date.now()
           };
-          EnhancedTrackingService.startOrderTracking(orderId, 'agent-001', customerLocation);
+          setCustomerLocation({ lat: customerLoc.lat, lng: customerLoc.lng });
+          EnhancedTrackingService.startOrderTracking(orderId, 'agent-001', customerLoc);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     } else {
       // Fallback if geolocation not supported
-      const customerLocation = {
+      const customerLoc = {
         lat: 21.3150,
         lng: 75.1200,
         accuracy: 10,
         timestamp: Date.now()
       };
-      EnhancedTrackingService.startOrderTracking(orderId, 'agent-001', customerLocation);
+      setCustomerLocation({ lat: customerLoc.lat, lng: customerLoc.lng });
+      EnhancedTrackingService.startOrderTracking(orderId, 'agent-001', customerLoc);
     }
+
+    // Start real-time route analysis
+    realTimeRouteAnalysis.startRealTimeUpdates(
+      orderId,
+      () => agentLocation,
+      () => customerLocation,
+      (analysis) => setRouteAnalysis(analysis)
+    );
 
     // Subscribe to updates
     const handleTrackingUpdate = (data: { orderId: string; data: EnhancedTrackingUpdate }) => {
@@ -84,6 +99,7 @@ export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps)
     return () => {
       EnhancedTrackingService.unsubscribe('trackingUpdate', handleTrackingUpdate);
       EnhancedTrackingService.unsubscribe('trackingStarted', handleTrackingUpdate);
+      realTimeRouteAnalysis.stopRealTimeUpdates();
     };
   }, [orderId]);
 
@@ -206,12 +222,12 @@ export const TrackingDashboard = ({ orderId, userType }: TrackingDashboardProps)
           {/* Key Metrics Grid */}
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-              <div className="text-2xl font-bold text-blue-600">{trackingData.distance.toFixed(1)} km</div>
-              <div className="text-sm text-gray-600">Distance</div>
+              <div className="text-2xl font-bold text-blue-600">{routeAnalysis ? routeAnalysis.distance.toFixed(1) : trackingData.distance.toFixed(1)} km</div>
+              <div className="text-sm text-gray-600">Real Distance</div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-              <div className="text-2xl font-bold text-green-600">{formatTime(trackingData.estimatedArrival)}</div>
-              <div className="text-sm text-gray-600">ETA</div>
+              <div className="text-2xl font-bold text-green-600">{routeAnalysis ? routeAnalysis.estimatedArrival : formatTime(trackingData.estimatedArrival)}</div>
+              <div className="text-sm text-gray-600">Live ETA</div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
               <div className="text-2xl font-bold text-orange-600">{Math.round(trackingData.agentLocation.speed || 0)}</div>
