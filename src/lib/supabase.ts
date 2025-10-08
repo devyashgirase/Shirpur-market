@@ -326,6 +326,61 @@ export const supabaseApi = {
       }
     }
     return { id: Date.now(), ...customer };
+  },
+
+  async updateDeliveryLocation(orderId: number, latitude: number, longitude: number) {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request(`orders?id=eq.${orderId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ 
+            delivery_latitude: latitude, 
+            delivery_longitude: longitude,
+            updated_at: new Date().toISOString()
+          })
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to update delivery location:', error);
+      }
+    }
+    return { id: orderId, latitude, longitude };
+  },
+
+  async updateProductStock(productId: number, quantityChange: number) {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request(`products?id=eq.${productId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ 
+            stockQuantity: `stockQuantity + ${quantityChange}`,
+            updated_at: new Date().toISOString()
+          })
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to update product stock:', error);
+      }
+    }
+    return { id: productId, quantityChange };
+  },
+
+  async updatePaymentStatus(orderId: number, paymentStatus: string) {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request(`orders?id=eq.${orderId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ 
+            payment_status: paymentStatus,
+            updated_at: new Date().toISOString()
+          })
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to update payment status:', error);
+      }
+    }
+    return { id: orderId, paymentStatus };
   }
 };
 
