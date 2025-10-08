@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Eye, EyeOff, Image, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ImageDropzone from "@/components/ImageDropzone";
 
 interface CarouselItem {
   id: number;
@@ -166,7 +167,7 @@ const AdminCarousel = () => {
       {/* Add/Edit Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 {editingItem ? "Edit Carousel Item" : "Add Carousel Item"}
@@ -274,12 +275,21 @@ const CarouselForm = ({
       </div>
 
       <div>
-        <Label>Image URL</Label>
-        <Input 
-          value={formData.imageUrl}
-          onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-          placeholder="https://example.com/image.jpg"
+        <Label>Banner Image</Label>
+        <ImageDropzone 
+          currentImage={formData.imageUrl}
+          onImageUpload={(imageUrl) => setFormData({...formData, imageUrl})}
+          className="mt-2"
         />
+        <div className="mt-2">
+          <Label className="text-sm text-gray-600">Or enter image URL:</Label>
+          <Input 
+            value={formData.imageUrl}
+            onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+            placeholder="https://example.com/image.jpg"
+            className="mt-1"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
