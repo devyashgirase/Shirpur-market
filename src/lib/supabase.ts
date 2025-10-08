@@ -1,4 +1,5 @@
-// Safe Supabase with synchronous initialization
+import { createClient } from '@supabase/supabase-js';
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -12,16 +13,21 @@ const hasValidConfig = supabaseUrl &&
 
 let supabaseClient = null;
 
-// Try to initialize Supabase synchronously
+// Initialize Supabase client
 if (hasValidConfig) {
   try {
-    // Only try if @supabase/supabase-js is available
-    const { createClient } = require('@supabase/supabase-js');
     supabaseClient = createClient(supabaseUrl, supabaseKey);
     console.log('✅ Supabase connected successfully');
   } catch (error) {
-    console.warn('⚠️ Supabase not available, using mock data');
+    console.warn('⚠️ Supabase initialization failed:', error);
   }
+} else {
+  console.warn('⚠️ Supabase config invalid:', { 
+    hasUrl: !!supabaseUrl, 
+    hasKey: !!supabaseKey,
+    urlValid: supabaseUrl?.includes('supabase.co'),
+    keyLength: supabaseKey?.length 
+  });
 }
 
 // Mock data for fallback
@@ -46,21 +52,7 @@ const mockData = {
   ]
 };
 
-// Safe mock query builder
-const mockQuery = {
-  select: () => mockQuery,
-  insert: () => mockQuery,
-  update: () => mockQuery,
-  delete: () => mockQuery,
-  eq: () => mockQuery,
-  order: () => mockQuery,
-  single: () => Promise.resolve({ data: { id: Date.now() }, error: null }),
-  then: (callback) => callback({ data: [], error: null })
-};
-
-export const supabase = supabaseClient || {
-  from: () => mockQuery
-};
+export const supabase = supabaseClient;
 
 export const supabaseApi = {
   async getProducts() {
@@ -68,12 +60,14 @@ export const supabaseApi = {
       try {
         const { data, error } = await supabaseClient.from('products').select('*').eq('isActive', true);
         if (error) throw error;
+        console.log('📊 Fetched products from Supabase:', data?.length || 0);
         return data || mockData.products;
       } catch (error) {
         console.warn('Supabase products fetch failed, using mock:', error);
         return mockData.products;
       }
     }
+    console.log('📋 Using mock products data');
     return mockData.products;
   },
 
@@ -82,12 +76,14 @@ export const supabaseApi = {
       try {
         const { data, error } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
         if (error) throw error;
+        console.log('📊 Fetched orders from Supabase:', data?.length || 0);
         return data || mockData.orders;
       } catch (error) {
         console.warn('Supabase orders fetch failed, using mock:', error);
         return mockData.orders;
       }
     }
+    console.log('📋 Using mock orders data');
     return mockData.orders;
   },
 
@@ -96,12 +92,14 @@ export const supabaseApi = {
       try {
         const { data, error } = await supabaseClient.from('categories').select('*').eq('isActive', true);
         if (error) throw error;
+        console.log('📊 Fetched categories from Supabase:', data?.length || 0);
         return data || mockData.categories;
       } catch (error) {
         console.warn('Supabase categories fetch failed, using mock:', error);
         return mockData.categories;
       }
     }
+    console.log('📋 Using mock categories data');
     return mockData.categories;
   },
 
@@ -174,7 +172,9 @@ export const supabaseApi = {
 export const isSupabaseConfigured = !!supabaseClient;
 
 // Log connection status
-console.log(`🔗 Database: ${supabaseClient ? 'Supabase Connected' : 'Mock Data'}`);
+console.log(`🔗 Database: ${supabaseClient ? 'Supabase Connected' : 'Mock Data Only'}`);
+console.log(`📊 Environment: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
+
 if (hasValidConfig && !supabaseClient) {
   console.log('📋 Supabase config found but connection failed - using mock data');
 }
