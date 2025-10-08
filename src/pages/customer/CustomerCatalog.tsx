@@ -279,7 +279,7 @@ const CustomerCatalog = () => {
                               </span>
                             </div>
                             <div className="flex gap-3">
-                              <Badge className="bg-green-500/90 text-white border-0 px-3 py-2 text-sm font-bold animate-bounce">
+                              <Badge className="bg-green-500/90 text-white border-0 px-3 py-2 text-sm font-bold">
                                 ✅ {product.stock_qty} Available
                               </Badge>
                               <Badge className="bg-red-500/90 text-white border-0 px-3 py-2 text-sm font-bold">
