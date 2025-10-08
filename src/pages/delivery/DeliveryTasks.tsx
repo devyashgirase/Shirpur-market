@@ -147,10 +147,18 @@ const DeliveryTasks = () => {
     try {
       console.log(`🚚 Accepting delivery for order: ${orderId}`);
       
+      // Update order status to 'out_for_delivery' in database
+      await supabaseApi.updateOrderStatus(parseInt(orderId), 'out_for_delivery', agentId);
+      
       const success = deliveryCoordinationService.acceptOrder(agentId, orderId);
       
       if (success) {
         console.log('✅ Order accepted successfully');
+        
+        // Trigger real-time update for admin
+        window.dispatchEvent(new CustomEvent('orderStatusChanged', {
+          detail: { orderId, status: 'out_for_delivery', agentId }
+        }));
         
         // Refresh data
         const tasks = await DeliveryDataService.getAvailableDeliveries();

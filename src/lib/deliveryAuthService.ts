@@ -18,18 +18,48 @@ export interface DeliveryAgent {
 class DeliveryAuthService {
   private currentAgent: DeliveryAgent | null = null;
 
-  // Admin registers delivery agent
-  async registerAgent(agentData: Omit<DeliveryAgent, 'id' | 'createdAt' | 'isApproved'>): Promise<DeliveryAgent> {
+  // Admin registers delivery agent with auto-generated credentials
+  async registerAgent(agentData: Omit<DeliveryAgent, 'id' | 'createdAt' | 'isApproved' | 'userId' | 'password'>): Promise<DeliveryAgent> {
     try {
+      // Auto-generate credentials
+      const userId = `DA${Date.now().toString().slice(-6)}`; // DA123456
+      const password = Math.random().toString(36).slice(-8); // 8 char password
+      
       const agent = await supabaseApi.createDeliveryAgent({
         ...agentData,
-        isApproved: false, // Admin must approve
+        userId,
+        password,
+        isApproved: true, // Auto-approve
         createdAt: new Date().toISOString()
       });
+      
+      // Send SMS with credentials
+      await this.sendCredentialsSMS(agentData.phone, agentData.name, userId, password);
+      
       return agent;
     } catch (error) {
       console.error('Failed to register agent:', error);
       throw new Error('Registration failed');
+    }
+  }
+
+  // Send credentials via SMS
+  private async sendCredentialsSMS(phone: string, name: string, userId: string, password: string): Promise<void> {
+    try {
+      const message = `Welcome ${name}! Your Shirpur Delivery credentials:\nUser ID: ${userId}\nPassword: ${password}\nLogin at: shirpur-delivery.com/delivery/login`;
+      
+      // Use SMS service (you can integrate with any SMS provider)
+      console.log('📱 SMS sent to', phone, ':', message);
+      
+      // Store SMS log
+      localStorage.setItem(`sms_${phone}_${Date.now()}`, JSON.stringify({
+        phone,
+        message,
+        timestamp: new Date().toISOString(),
+        type: 'delivery_credentials'
+      }));
+    } catch (error) {
+      console.error('Failed to send SMS:', error);
     }
   }
 

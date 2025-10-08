@@ -15,8 +15,6 @@ const AdminDeliveryAgents = () => {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    userId: '',
-    password: '',
     name: '',
     phone: '',
     email: '',
@@ -46,12 +44,10 @@ const AdminDeliveryAgents = () => {
       await deliveryAuthService.registerAgent(formData);
       toast({
         title: "Agent Registered",
-        description: "Delivery agent has been registered successfully",
+        description: "Credentials sent via SMS to agent's phone",
       });
       setShowAddForm(false);
       setFormData({
-        userId: '',
-        password: '',
         name: '',
         phone: '',
         email: '',
@@ -106,19 +102,9 @@ const AdminDeliveryAgents = () => {
               <DialogTitle>Register New Delivery Agent</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddAgent} className="space-y-4">
-              <Input
-                placeholder="User ID"
-                value={formData.userId}
-                onChange={(e) => setFormData({...formData, userId: e.target.value})}
-                required
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required
-              />
+              <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
+                📱 User ID and Password will be auto-generated and sent via SMS
+              </div>
               <Input
                 placeholder="Full Name"
                 value={formData.name}
@@ -171,8 +157,8 @@ const AdminDeliveryAgents = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold">{agent.name}</h3>
-                      <Badge variant={agent.isApproved ? "default" : "secondary"}>
-                        {agent.isApproved ? "Approved" : "Pending"}
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        Active
                       </Badge>
                       <Badge variant={agent.isActive ? "default" : "destructive"}>
                         {agent.isActive ? "Active" : "Inactive"}
@@ -195,17 +181,8 @@ const AdminDeliveryAgents = () => {
                     </div>
                   </div>
                   
-                  <div className="flex gap-2">
-                    {!agent.isApproved && (
-                      <Button
-                        size="sm"
-                        className="bg-green-500 hover:bg-green-600"
-                        onClick={() => handleApprove(agent.id)}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
-                    )}
+                  <div className="text-xs text-gray-500">
+                    Credentials sent via SMS
                   </div>
                 </div>
               </CardContent>

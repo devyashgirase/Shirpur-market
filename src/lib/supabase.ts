@@ -298,12 +298,23 @@ export const supabaseApi = {
     return { id: Date.now(), order_id: `ORD${Date.now()}`, ...order };
   },
 
-  async updateOrderStatus(id: number, status: string) {
+  async updateOrderStatus(id: number, status: string, agentId?: string) {
     if (supabaseClient) {
       try {
+        const updateData: any = { 
+          status,
+          updated_at: new Date().toISOString()
+        };
+        
+        // If agent accepts order, add agent info
+        if (status === 'out_for_delivery' && agentId) {
+          updateData.delivery_agent_id = agentId;
+          updateData.accepted_at = new Date().toISOString();
+        }
+        
         const result = await supabaseClient.request(`orders?id=eq.${id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ status })
+          body: JSON.stringify(updateData)
         });
         return result[0];
       } catch (error) {

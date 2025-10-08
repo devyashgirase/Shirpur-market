@@ -44,17 +44,29 @@ const AdminOrders = () => {
       loadOrders();
     };
     
+    // Listen for delivery agent status changes
+    const handleOrderStatusChanged = (event: CustomEvent) => {
+      console.log('🚚 Delivery agent status change:', event.detail);
+      loadOrders();
+      toast({
+        title: "Order Status Updated",
+        description: `Order ${event.detail.orderId} is now out for delivery`,
+      });
+    };
+    
     window.addEventListener('orderCreated', handleNewOrder);
     window.addEventListener('ordersUpdated', handleOrderUpdate);
     window.addEventListener('newOrderAlert', handleNewOrder);
+    window.addEventListener('orderStatusChanged', handleOrderStatusChanged as EventListener);
     
     return () => {
       unsubscribe();
       window.removeEventListener('orderCreated', handleNewOrder);
       window.removeEventListener('ordersUpdated', handleOrderUpdate);
       window.removeEventListener('newOrderAlert', handleNewOrder);
+      window.removeEventListener('orderStatusChanged', handleOrderStatusChanged as EventListener);
     };
-  }, []);
+  }, [toast]);
   
   const loadOrders = async () => {
     try {
