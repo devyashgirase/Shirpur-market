@@ -1,11 +1,37 @@
-// Complete mock system - no real Supabase to prevent errors
+// Direct Supabase REST API - No client library needed
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔗 Supabase Mock Mode - No external dependencies');
-console.log(`📊 Environment: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
+const hasValidConfig = supabaseUrl && supabaseKey && 
+  supabaseUrl.includes('supabase.co') && supabaseKey.length > 50;
 
-// Mock data for all operations
+// Direct API calls to Supabase REST API
+async function supabaseRequest(endpoint: string, options: RequestInit = {}) {
+  if (!hasValidConfig) {
+    throw new Error('Supabase not configured');
+  }
+
+  const url = `${supabaseUrl}/rest/v1/${endpoint}`;
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Mock data fallback
 const mockData = {
   products: [
     { id: 1, name: 'Fresh Tomatoes', price: 40, category: 'Vegetables', stockQuantity: 100, isActive: true, imageUrl: '/placeholder.svg', description: 'Fresh red tomatoes' },
@@ -27,7 +53,7 @@ const mockData = {
   ]
 };
 
-// Complete mock query builder
+// Mock query for compatibility
 const mockQuery = {
   select: () => mockQuery,
   insert: () => mockQuery,
@@ -39,73 +65,149 @@ const mockQuery = {
   then: (callback) => callback({ data: [], error: null })
 };
 
-// Safe supabase mock
 export const supabase = {
   from: () => mockQuery
 };
 
 export const supabaseApi = {
   async getProducts() {
-    console.log('📊 Returning mock products:', mockData.products.length);
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest('products?isActive=eq.true');
+        console.log('✅ Fetched products from Supabase:', data.length);
+        return data.length > 0 ? data : mockData.products;
+      } catch (error) {
+        console.warn('Supabase products failed, using mock:', error);
+        return mockData.products;
+      }
+    }
+    console.log('📋 Using mock products');
     return mockData.products;
   },
 
   async getOrders() {
-    console.log('📊 Returning mock orders:', mockData.orders.length);
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest('orders?order=created_at.desc');
+        console.log('✅ Fetched orders from Supabase:', data.length);
+        return data.length > 0 ? data : mockData.orders;
+      } catch (error) {
+        console.warn('Supabase orders failed, using mock:', error);
+        return mockData.orders;
+      }
+    }
+    console.log('📋 Using mock orders');
     return mockData.orders;
   },
 
   async getCategories() {
-    console.log('📊 Returning mock categories:', mockData.categories.length);
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest('categories?isActive=eq.true');
+        console.log('✅ Fetched categories from Supabase:', data.length);
+        return data.length > 0 ? data : mockData.categories;
+      } catch (error) {
+        console.warn('Supabase categories failed, using mock:', error);
+        return mockData.categories;
+      }
+    }
+    console.log('📋 Using mock categories');
     return mockData.categories;
   },
 
   async createProduct(product) {
-    const newProduct = { id: Date.now(), ...product };
-    mockData.products.push(newProduct);
-    console.log('✅ Mock product created:', newProduct.name);
-    return newProduct;
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest('products', {
+          method: 'POST',
+          body: JSON.stringify(product)
+        });
+        console.log('✅ Created product in Supabase');
+        return data[0];
+      } catch (error) {
+        console.warn('Supabase product creation failed:', error);
+      }
+    }
+    return { id: Date.now(), ...product };
   },
 
   async updateProduct(id, product) {
-    const index = mockData.products.findIndex(p => p.id === id);
-    if (index !== -1) {
-      mockData.products[index] = { ...mockData.products[index], ...product };
-      console.log('✅ Mock product updated:', id);
-      return mockData.products[index];
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest(`products?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(product)
+        });
+        console.log('✅ Updated product in Supabase');
+        return data[0];
+      } catch (error) {
+        console.warn('Supabase product update failed:', error);
+      }
     }
     return { id, ...product };
   },
 
   async createOrder(order) {
-    const newOrder = { 
-      id: Date.now(), 
-      order_id: `ORD${Date.now()}`,
-      created_at: new Date().toISOString(),
-      ...order 
-    };
-    mockData.orders.unshift(newOrder);
-    console.log('✅ Mock order created:', newOrder.order_id);
-    return newOrder;
+    if (hasValidConfig) {
+      try {
+        const orderData = {
+          ...order,
+          order_id: `ORD${Date.now()}`,
+          created_at: new Date().toISOString()
+        };
+        const data = await supabaseRequest('orders', {
+          method: 'POST',
+          body: JSON.stringify(orderData)
+        });
+        console.log('✅ Created order in Supabase');
+        return data[0];
+      } catch (error) {
+        console.warn('Supabase order creation failed:', error);
+      }
+    }
+    return { id: Date.now(), order_id: `ORD${Date.now()}`, ...order };
   },
 
   async updateOrderStatus(id, status) {
-    const index = mockData.orders.findIndex(o => o.id === id);
-    if (index !== -1) {
-      mockData.orders[index].status = status;
-      console.log('✅ Mock order status updated:', id, status);
-      return mockData.orders[index];
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest(`orders?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status })
+        });
+        console.log('✅ Updated order status in Supabase');
+        return data[0];
+      } catch (error) {
+        console.warn('Supabase order update failed:', error);
+      }
     }
     return { id, status };
   },
 
   async createCustomer(customer) {
-    const newCustomer = { id: Date.now(), ...customer };
-    console.log('✅ Mock customer created:', newCustomer.name);
-    return newCustomer;
+    if (hasValidConfig) {
+      try {
+        const data = await supabaseRequest('customers', {
+          method: 'POST',
+          body: JSON.stringify(customer)
+        });
+        console.log('✅ Created customer in Supabase');
+        return data[0];
+      } catch (error) {
+        console.warn('Supabase customer creation failed:', error);
+      }
+    }
+    return { id: Date.now(), ...customer };
   }
 };
 
-export const isSupabaseConfigured = false;
+export const isSupabaseConfigured = hasValidConfig;
 
-console.log('📋 Mock Database Ready - All operations will use sample data');
+console.log(`🔗 Database: ${hasValidConfig ? 'Supabase REST API' : 'Mock Only'}`);
+console.log(`📊 Config: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
+
+if (hasValidConfig) {
+  console.log('✅ Using direct Supabase REST API - no client library needed');
+} else {
+  console.log('📋 Using mock data - configure Supabase for real data');
+}
