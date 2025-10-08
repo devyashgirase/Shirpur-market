@@ -255,7 +255,15 @@ const DeliveryTracking = () => {
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => window.open(`tel:${currentOrder.customerAddress?.phone}`, '_self')}
+                onClick={() => {
+                  const phoneNumber = currentOrder.customerAddress?.phone;
+                  if (phoneNumber) {
+                    window.location.href = `tel:${phoneNumber}`;
+                  } else {
+                    alert('Customer phone number not available');
+                  }
+                }}
+                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
               >
                 <Phone className="w-4 h-4 mr-2" />
                 Call Customer
