@@ -1,4 +1,4 @@
-// Safe Supabase client with fallback
+// Safe Supabase with synchronous initialization
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -12,18 +12,15 @@ const hasValidConfig = supabaseUrl &&
 
 let supabaseClient = null;
 
-// Safe initialization
+// Try to initialize Supabase synchronously
 if (hasValidConfig) {
   try {
-    // Dynamic import to prevent build errors
-    import('@supabase/supabase-js').then(({ createClient }) => {
-      supabaseClient = createClient(supabaseUrl, supabaseKey);
-      console.log('✅ Supabase connected successfully');
-    }).catch(error => {
-      console.warn('⚠️ Supabase import failed:', error);
-    });
+    // Only try if @supabase/supabase-js is available
+    const { createClient } = require('@supabase/supabase-js');
+    supabaseClient = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ Supabase connected successfully');
   } catch (error) {
-    console.warn('⚠️ Supabase initialization failed:', error);
+    console.warn('⚠️ Supabase not available, using mock data');
   }
 }
 
@@ -174,12 +171,10 @@ export const supabaseApi = {
   }
 };
 
-export const isSupabaseConfigured = hasValidConfig;
+export const isSupabaseConfigured = !!supabaseClient;
 
 // Log connection status
-console.log(`🔗 Database: ${hasValidConfig ? 'Supabase (with fallback)' : 'Mock only'}`);
-if (hasValidConfig) {
-  console.log('📊 Real Supabase data will be used when available, mock data as fallback');
-} else {
-  console.log('📋 Using mock data - configure Supabase environment variables for real data');
+console.log(`🔗 Database: ${supabaseClient ? 'Supabase Connected' : 'Mock Data'}`);
+if (hasValidConfig && !supabaseClient) {
+  console.log('📋 Supabase config found but connection failed - using mock data');
 }
