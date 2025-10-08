@@ -22,6 +22,26 @@ class AuthService {
   private readonly OTP_EXPIRY_MINUTES = 5;
   private readonly MAX_OTP_ATTEMPTS = 3;
 
+  // Get current user from session
+  getCurrentUser(): User | null {
+    try {
+      const session = this.getCurrentSession();
+      if (!session) return null;
+      
+      return {
+        id: session.id,
+        phone: session.phone,
+        name: session.name,
+        role: session.role,
+        is_first_login_complete: session.isFirstLoginComplete || false,
+        last_login: session.loginTime
+      };
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
+  }
+
   // Generate 6-digit OTP
   private generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
