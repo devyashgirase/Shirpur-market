@@ -12,7 +12,6 @@ import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryCoordinationService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
-import { useNavigate } from "react-router-dom";
 
 const DeliveryTasks = () => {
   const navigate = useNavigate();

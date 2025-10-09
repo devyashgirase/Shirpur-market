@@ -429,6 +429,22 @@ const OTPLogin = () => {
                 >
                   {loading ? "Sending OTP..." : "Send OTP"}
                 </Button>
+
+                {/* Delivery Agent Login Button */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full h-12 border-green-200 text-green-700 hover:bg-green-50"
+                    onClick={() => navigate('/delivery/login')}
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Delivery Agent Login
+                  </Button>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Use your DA credentials to login
+                  </p>
+                </div>
               </form>
             )}
 

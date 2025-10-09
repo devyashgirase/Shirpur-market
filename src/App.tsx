@@ -28,6 +28,7 @@ import AdminFeatures from "./pages/admin/AdminFeatures";
 import AdminCarousel from "./pages/admin/AdminCarousel";
 import AdminDeliveryAgents from "./pages/admin/AdminDeliveryAgents";
 import DeliveryLayout from "./pages/delivery/DeliveryLayout";
+import DeliveryLogin from "./pages/delivery/DeliveryLogin";
 import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
 import DeliveryNotifications from "./pages/delivery/DeliveryNotifications";
@@ -68,6 +69,7 @@ const App = () => {
           <Route path="/" element={<OTPLogin />} />
           <Route path="/home" element={<Index />} />
           <Route path="/login" element={<OTPLogin />} />
+          <Route path="/delivery/login" element={<DeliveryLogin />} />
           <Route path="/tracking-demo" element={<TrackingDemo />} />
           
           {/* Customer Routes */}

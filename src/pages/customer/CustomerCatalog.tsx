@@ -218,7 +218,7 @@ const CustomerCatalog = () => {
               <CarouselContent>
                 {featuredProducts.map((product, index) => (
                   <CarouselItem key={product.id}>
-                    <div className="carousel-banner relative h-64 sm:h-80 md:h-96 lg:h-[500px] xl:h-[600px] w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
+                    <div className="carousel-banner relative h-72 sm:h-80 md:h-96 lg:h-[500px] xl:h-[600px] w-full rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
                       {/* Dynamic Background */}
                       {product.image_url ? (
                         <>
@@ -247,64 +247,66 @@ const CustomerCatalog = () => {
                       <div className="glow-effect absolute top-1/2 right-1/4 w-16 h-16 bg-pink-400/20 rounded-full blur-lg" style={{animationDelay: '2s'}}></div>
                       
                       {/* Content */}
-                      <div className="relative z-10 h-full flex items-center px-6 sm:px-12 md:px-16 lg:px-20">
-                        <div className="text-white max-w-2xl">
+                      <div className="carousel-content relative z-10 h-full flex items-center px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20">
+                        <div className="text-white max-w-2xl w-full">
                           {/* Badge */}
-                          <div className="mb-4">
-                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold px-4 py-2 text-sm animate-pulse">
+                          <div className="mb-2 sm:mb-4">
+                            <Badge className="carousel-badge bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm animate-pulse">
                               🔥 FEATURED DEAL
                             </Badge>
                           </div>
                           
                           {/* Title */}
-                          <h3 className="carousel-title text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-4 sm:mb-6 leading-tight">
+                          <h3 className="carousel-title text-xl sm:text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-black mb-2 sm:mb-4 md:mb-6 leading-tight">
                             <span className="gradient-text drop-shadow-2xl">
                               {product.name}
                             </span>
                           </h3>
                           
                           {/* Description */}
-                          <p className="carousel-description text-base sm:text-lg md:text-xl lg:text-2xl opacity-95 mb-6 sm:mb-8 line-clamp-2 font-medium">
+                          <p className="carousel-description text-sm sm:text-base md:text-lg lg:text-xl opacity-95 mb-3 sm:mb-6 md:mb-8 line-clamp-2 font-medium">
                             {product.description}
                           </p>
                           
                           {/* Price & Stock */}
-                          <div className="carousel-price flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8">
+                          <div className="carousel-price flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-yellow-300 drop-shadow-lg">
+                              <span className="price-main text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-yellow-300 drop-shadow-lg">
                                 ₹{product.price}
                               </span>
-                              <span className="text-lg sm:text-xl text-white/80 line-through">
+                              <span className="text-sm sm:text-base md:text-lg text-white/80 line-through">
                                 ₹{Math.round(product.price * 1.2)}
                               </span>
                             </div>
-                            <div className="flex gap-3">
-                              <Badge className="bg-green-500/90 text-white border-0 px-3 py-2 text-sm font-bold">
+                            <div className="flex gap-2 sm:gap-3">
+                              <Badge className="bg-green-500/90 text-white border-0 px-2 py-1 sm:px-3 sm:py-2 text-xs sm:text-sm font-bold">
                                 ✅ {product.stock_qty} Available
                               </Badge>
-                              <Badge className="bg-red-500/90 text-white border-0 px-3 py-2 text-sm font-bold">
+                              <Badge className="bg-red-500/90 text-white border-0 px-2 py-1 sm:px-3 sm:py-2 text-xs sm:text-sm font-bold">
                                 🚀 Fast Delivery
                               </Badge>
                             </div>
                           </div>
                           
                           {/* CTA Buttons */}
-                          <div className="carousel-buttons flex flex-col sm:flex-row gap-4">
+                          <div className="carousel-buttons flex flex-col sm:flex-row gap-2 sm:gap-4">
                             <Button 
                               onClick={() => handleAddToCart(product)}
-                              className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-bold text-lg px-8 py-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 transform"
+                              className="btn-primary bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-bold text-sm sm:text-base md:text-lg px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 transform"
                               size="lg"
                             >
-                              <ShoppingCart className="w-6 h-6 mr-3" />
-                              Add to Cart - ₹{product.price}
+                              <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 mr-2 sm:mr-3" />
+                              <span className="hidden sm:inline">Add to Cart - ₹{product.price}</span>
+                              <span className="sm:hidden">Add ₹{product.price}</span>
                             </Button>
                             <Button 
                               variant="outline"
-                              className="border-2 border-white/50 text-white hover:bg-white hover:text-black font-bold text-lg px-8 py-4 rounded-full backdrop-blur-sm transition-all duration-300"
+                              className="btn-secondary border-2 border-white/50 text-white hover:bg-white hover:text-black font-bold text-xs sm:text-sm md:text-base px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 rounded-full backdrop-blur-sm transition-all duration-300"
                               size="lg"
                             >
-                              <Heart className="w-6 h-6 mr-3" />
-                              Save for Later
+                              <Heart className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2 md:mr-3" />
+                              <span className="hidden sm:inline">Save for Later</span>
+                              <span className="sm:hidden">Save</span>
                             </Button>
                           </div>
                         </div>
@@ -325,13 +327,13 @@ const CustomerCatalog = () => {
               </CarouselContent>
               
               {/* Enhanced Navigation */}
-              <CarouselPrevious className="left-6 w-14 h-14 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40 hover:scale-110 transition-all duration-300" />
-              <CarouselNext className="right-6 w-14 h-14 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40 hover:scale-110 transition-all duration-300" />
+              <CarouselPrevious className="carousel-nav-btn left-3 sm:left-6 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40 hover:scale-110 transition-all duration-300" />
+              <CarouselNext className="carousel-nav-btn right-3 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40 hover:scale-110 transition-all duration-300" />
               
               {/* Enhanced Dots */}
-              <div className="flex justify-center mt-6 gap-3">
+              <div className="carousel-dots flex justify-center mt-4 sm:mt-6 gap-2 sm:gap-3">
                 {featuredProducts.map((_, index) => (
-                  <div key={index} className="w-3 h-3 rounded-full bg-white/50 hover:bg-white transition-all duration-300 cursor-pointer"></div>
+                  <div key={index} className="carousel-dot w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-white/50 hover:bg-white transition-all duration-300 cursor-pointer"></div>
                 ))}
               </div>
             </Carousel>

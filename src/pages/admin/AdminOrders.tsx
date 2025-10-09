@@ -123,30 +123,40 @@ const AdminOrders = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: keyof typeof OrderService.prototype) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       console.log('🔄 Updating order status:', orderId, '→', newStatus);
+      
+      // Validate status
+      const validStatuses = ['pending', 'confirmed', 'packing', 'out_for_delivery', 'delivered'];
+      if (!validStatuses.includes(newStatus)) {
+        throw new Error(`Invalid status: ${newStatus}`);
+      }
       
       // Update in OrderService (localStorage) - this always works
       const success = await OrderService.updateOrderStatus(orderId, newStatus as any);
       
       if (success) {
+        console.log('✅ Local status update successful');
+        
         // Try to update in database if available
         if (useSupabase) {
           try {
             const order = orders.find(o => o.orderId === orderId);
             if (order && order.databaseId) {
-              await unifiedDB.updateOrderStatus(order.databaseId, newStatus as string);
+              await unifiedDB.updateOrderStatus(order.databaseId, newStatus);
+              console.log('✅ Database status update successful');
             }
           } catch (dbError) {
             console.warn('⚠️ Database update failed, but local update succeeded:', dbError);
           }
         }
         
-        // Create delivery notification for nearby agents when status is packing or out_for_delivery
-        if (newStatus === 'packing' || newStatus === 'out_for_delivery') {
+        // Create delivery notification for nearby agents when status is packing
+        if (newStatus === 'packing') {
           const orderData = OrderService.getOrderById(orderId);
           if (orderData) {
+            console.log('📦 Creating delivery notification for packing status');
             OrderService.createDeliveryNotification(orderData);
             NotificationService.sendDeliveryRequestNotification(
               orderId, 
@@ -160,22 +170,31 @@ const AdminOrders = () => {
           }
         }
         
+        // Trigger order status change event for delivery agents
+        if (newStatus === 'out_for_delivery') {
+          window.dispatchEvent(new CustomEvent('orderStatusChanged', {
+            detail: { orderId, status: newStatus }
+          }));
+        }
+        
         toast({
-          title: "Status Updated",
-          description: `Order ${orderId} status updated to ${newStatus.replace('_', ' ')}`,
+          title: "Status Updated Successfully",
+          description: `Order ${orderId} is now ${newStatus.replace('_', ' ')}`,
         });
         
-        // Reload orders
-        loadOrders();
+        // Reload orders to reflect changes
+        await loadOrders();
         
         // Send admin notification
         NotificationService.sendOrderStatusNotification(orderId, newStatus, 'admin');
+      } else {
+        throw new Error('OrderService.updateOrderStatus returned false');
       }
     } catch (error) {
       console.error('❌ Failed to update order status:', error);
       toast({
-        title: "Update Error",
-        description: "Failed to update order status",
+        title: "Update Failed",
+        description: `Failed to update order status: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -257,14 +276,17 @@ const AdminOrders = () => {
                       <p className="font-semibold">₹{order.total.toFixed(2)}</p>
                       <p className="text-sm text-muted-foreground">{order.items.length} items</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openOrderDetails(order)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
+                    <div className="flex gap-1">
+                      <QuickStatusChanger order={order} onStatusUpdate={updateOrderStatus} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openOrderDetails(order)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
@@ -291,6 +313,8 @@ const AdminOrders = () => {
                     <Badge className={`${getStatusColor(order.status)} text-white`}>
                       {order.status.replace('_', ' ').toUpperCase()}
                     </Badge>
+                    
+                    <QuickStatusChanger order={order} onStatusUpdate={updateOrderStatus} />
                     
                     <Button
                       variant="outline"
@@ -362,7 +386,7 @@ const AdminOrders = () => {
                 {/* Status Management */}
                 <StatusManagement 
                   order={selectedOrder} 
-                  onStatusUpdate={(orderId, status) => updateOrderStatus(orderId, status as any)}
+                  onStatusUpdate={updateOrderStatus}
                 />
               </TabsContent>
               
@@ -649,10 +673,10 @@ const StatusManagement = ({ order, onStatusUpdate }: { order: Order; onStatusUpd
 
   const statusOptions = [
     { value: 'pending', label: 'Pending', color: 'bg-gray-500', disabled: false },
-    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500', disabled: order.status === 'pending' ? false : true },
-    { value: 'packing', label: 'Ready for Delivery', color: 'bg-orange-500', disabled: order.status === 'confirmed' ? false : true },
-    { value: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-purple-500', disabled: order.status === 'packing' ? false : true },
-    { value: 'delivered', label: 'Delivered', color: 'bg-green-500', disabled: order.status === 'out_for_delivery' ? false : true }
+    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500', disabled: false },
+    { value: 'packing', label: 'Ready for Delivery', color: 'bg-orange-500', disabled: false },
+    { value: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-purple-500', disabled: false },
+    { value: 'delivered', label: 'Delivered', color: 'bg-green-500', disabled: false }
   ];
 
   const handleApplyStatus = () => {
@@ -698,11 +722,11 @@ const StatusManagement = ({ order, onStatusUpdate }: { order: Order; onStatusUpd
                 key={status.value}
                 variant={selectedStatus === status.value ? "default" : "outline"}
                 onClick={() => setSelectedStatus(status.value)}
-                disabled={status.disabled && status.value !== order.status}
                 className={selectedStatus === status.value ? `${status.color} text-white` : ''}
                 size="sm"
               >
                 {status.label}
+                {status.value === order.status && " (Current)"}
               </Button>
             ))}
           </div>
@@ -731,7 +755,21 @@ const StatusManagement = ({ order, onStatusUpdate }: { order: Order; onStatusUpd
               {selectedStatus === 'packing' && (
                 <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200">
                   <p className="text-orange-800 text-sm font-medium">
-                    ⚠️ This will send the order to delivery agents for pickup
+                    ⚠️ This will make the order available for delivery agents
+                  </p>
+                </div>
+              )}
+              {selectedStatus === 'out_for_delivery' && (
+                <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
+                  <p className="text-purple-800 text-sm font-medium">
+                    🚚 This will mark the order as out for delivery
+                  </p>
+                </div>
+              )}
+              {selectedStatus === 'delivered' && (
+                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                  <p className="text-green-800 text-sm font-medium">
+                    ✅ This will mark the order as completed
                   </p>
                 </div>
               )}
@@ -747,6 +785,96 @@ const StatusManagement = ({ order, onStatusUpdate }: { order: Order; onStatusUpd
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// Quick Status Changer Component for inline status updates
+const QuickStatusChanger = ({ order, onStatusUpdate }: { order: Order; onStatusUpdate: (orderId: string, status: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  const statusOptions = [
+    { value: 'pending', label: 'Pending', color: 'bg-gray-500', icon: <Clock className="w-3 h-3" /> },
+    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500', icon: <CheckCircle className="w-3 h-3" /> },
+    { value: 'packing', label: 'Packing', color: 'bg-orange-500', icon: <Package className="w-3 h-3" /> },
+    { value: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-purple-500', icon: <Truck className="w-3 h-3" /> },
+    { value: 'delivered', label: 'Delivered', color: 'bg-green-500', icon: <CheckCircle className="w-3 h-3" /> }
+  ];
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === order.status) {
+      toast({
+        title: "No Change",
+        description: "Status is already set to this value",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await onStatusUpdate(order.orderId, newStatus);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1"
+      >
+        <RefreshCw className="w-3 h-3" />
+        <span className="hidden sm:inline">Status</span>
+      </Button>
+      
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-1 bg-white border rounded-lg shadow-lg z-50 min-w-48">
+          <div className="p-2">
+            <p className="text-xs font-medium text-gray-600 mb-2">Change Status:</p>
+            <div className="space-y-1">
+              {statusOptions.map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => handleStatusChange(status.value)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors ${
+                    status.value === order.status ? 'bg-blue-50 border border-blue-200' : ''
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full ${status.color} flex items-center justify-center text-white`}>
+                    {status.icon}
+                  </div>
+                  <span className={status.value === order.status ? 'font-medium text-blue-700' : ''}>
+                    {status.label}
+                    {status.value === order.status && ' (Current)'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="border-t p-2">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="w-full text-xs text-gray-500 hover:text-gray-700 py-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Backdrop to close dropdown */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Truck, Shield, ShoppingBag } from "lucide-react";
+import { User, Lock, Truck, Shield, ShoppingBag, UserCheck } from "lucide-react";
+import { deliveryAuthService } from "@/lib/deliveryAuthService";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -24,30 +25,62 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Find matching credentials
-    const userType = Object.entries(credentials).find(([_, cred]) => 
-      cred.username === username && cred.password === password
-    );
+    try {
+      // Check if it's a delivery agent login (starts with DA)
+      if (username.startsWith('DA')) {
+        const success = await deliveryAuthService.login(username, password);
+        
+        if (success) {
+          localStorage.setItem('userRole', 'delivery');
+          localStorage.setItem('isLoggedIn', 'true');
+          
+          toast({
+            title: "Login Successful!",
+            description: "Welcome to delivery dashboard!",
+          });
+          
+          setTimeout(() => {
+            navigate('/delivery');
+          }, 1000);
+        } else {
+          toast({
+            title: "Login Failed",
+            description: "Invalid delivery agent credentials or account not approved",
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Check demo credentials
+        const userType = Object.entries(credentials).find(([_, cred]) => 
+          cred.username === username && cred.password === password
+        );
 
-    if (userType) {
-      const [role, cred] = userType;
-      
-      // Store user session
-      localStorage.setItem('userRole', role);
-      localStorage.setItem('isLoggedIn', 'true');
-      
+        if (userType) {
+          const [role, cred] = userType;
+          
+          localStorage.setItem('userRole', role);
+          localStorage.setItem('isLoggedIn', 'true');
+          
+          toast({
+            title: "Login Successful!",
+            description: `Welcome ${role}!`,
+          });
+          
+          setTimeout(() => {
+            navigate(cred.route);
+          }, 1000);
+        } else {
+          toast({
+            title: "Login Failed",
+            description: "Invalid username or password",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
       toast({
-        title: "Login Successful!",
-        description: `Welcome ${role}!`,
-      });
-      
-      setTimeout(() => {
-        navigate(cred.route);
-      }, 1000);
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid username or password",
+        title: "Error",
+        description: "Login failed. Please try again.",
         variant: "destructive"
       });
     }
@@ -75,13 +108,13 @@ const Login = () => {
           <CardContent className="px-4 sm:px-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                <Label htmlFor="username" className="text-sm font-medium">Username / User ID</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="username"
                     type="text"
-                    placeholder="Enter your username"
+                    placeholder="Enter username or DA123456"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10 h-11 sm:h-12 text-base"
@@ -119,7 +152,7 @@ const Login = () => {
 
         {/* Demo Credentials */}
         <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
-          <p className="text-center text-xs sm:text-sm text-gray-600 font-medium">Demo Credentials:</p>
+          <p className="text-center text-xs sm:text-sm text-gray-600 font-medium">Login Options:</p>
           
           <div className="grid gap-2 sm:gap-3">
             <Card className="p-3 sm:p-4 bg-blue-50 border-blue-200 hover:shadow-md transition-shadow">
@@ -146,8 +179,18 @@ const Login = () => {
               <div className="flex items-center space-x-3">
                 <Truck className="w-5 h-5 text-green-600 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm sm:text-base font-medium text-green-800">Delivery</p>
+                  <p className="text-sm sm:text-base font-medium text-green-800">Delivery (Demo)</p>
                   <p className="text-xs sm:text-sm text-green-600 font-mono">delivery / delivery123</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-3 sm:p-4 bg-orange-50 border-orange-200 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3">
+                <UserCheck className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium text-orange-800">Delivery Agent</p>
+                  <p className="text-xs sm:text-sm text-orange-600 font-mono">Use DA123456 format + SMS password</p>
                 </div>
               </div>
             </Card>

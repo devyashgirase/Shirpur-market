@@ -22,15 +22,22 @@ const DeliveryLogin = () => {
       const success = await deliveryAuthService.login(userId, password);
       
       if (success) {
+        localStorage.setItem('userRole', 'delivery');
+        localStorage.setItem('isLoggedIn', 'true');
+        
         toast({
           title: "Login Successful",
           description: "Welcome to delivery dashboard",
         });
         navigate('/delivery');
       } else {
+        console.log('Login failed for:', userId);
+        const agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+        console.log('Available agents:', agents);
+        
         toast({
           title: "Login Failed",
-          description: "Invalid credentials or account not approved",
+          description: `Invalid credentials. Found ${agents.length} agents in storage.`,
           variant: "destructive"
         });
       }
@@ -96,9 +103,38 @@ const DeliveryLogin = () => {
             </Button>
           </form>
           
-          <div className="mt-4 text-center text-sm text-gray-600">
-            <p>Only registered and approved agents can login</p>
-            <p>Contact admin for registration</p>
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 text-center font-medium">
+                <strong>Demo Credentials:</strong>
+              </p>
+              <p className="text-sm text-green-700 text-center font-mono">
+                User ID: DA123456
+              </p>
+              <p className="text-sm text-green-700 text-center font-mono">
+                Password: delivery123
+              </p>
+            </div>
+            <div className="text-center text-xs text-gray-600">
+              <p>Only registered and approved agents can login</p>
+              <p>Contact admin for registration</p>
+            </div>
+            
+            {/* Debug Info */}
+            <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded text-xs">
+              <p className="font-semibold text-gray-700 mb-1">Debug Info:</p>
+              <button 
+                type="button"
+                className="text-blue-600 underline"
+                onClick={() => {
+                  const agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+                  console.log('Stored agents:', agents);
+                  alert(`Agents in storage: ${agents.length}\n\nCheck console for details`);
+                }}
+              >
+                Check Stored Agents
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>

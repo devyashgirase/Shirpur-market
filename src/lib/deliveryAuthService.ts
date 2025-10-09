@@ -18,6 +18,37 @@ export interface DeliveryAgent {
 class DeliveryAuthService {
   private currentAgent: DeliveryAgent | null = null;
 
+  constructor() {
+    this.initializeDefaultAgent();
+  }
+
+  // Initialize default delivery agent for testing
+  private initializeDefaultAgent() {
+    const defaultAgent: DeliveryAgent = {
+      id: 1,
+      userId: "DA123456",
+      password: "delivery123",
+      name: "John Doe",
+      phone: "9876543210",
+      email: "john@delivery.com",
+      vehicleType: "Bike",
+      licenseNumber: "MH123456",
+      isActive: true,
+      isApproved: true,
+      createdAt: new Date().toISOString()
+    };
+
+    // Check if default agent exists
+    const existingAgents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+    const hasDefaultAgent = existingAgents.some((agent: DeliveryAgent) => agent.userId === 'DA123456');
+    
+    if (!hasDefaultAgent) {
+      existingAgents.push(defaultAgent);
+      localStorage.setItem('deliveryAgents', JSON.stringify(existingAgents));
+      console.log('✅ Default delivery agent created: DA123456 / delivery123');
+    }
+  }
+
   // Admin registers delivery agent with auto-generated credentials
   async registerAgent(agentData: Omit<DeliveryAgent, 'id' | 'createdAt' | 'isApproved' | 'userId' | 'password'>): Promise<DeliveryAgent> {
     try {
@@ -83,33 +114,50 @@ class DeliveryAuthService {
 
   // Agent login
   async login(userId: string, password: string): Promise<boolean> {
+    // Ensure default agent exists
+    this.initializeDefaultAgent();
+    
     try {
-      let agents = [];
+      console.log('🔐 Attempting login for:', userId);
       
-      try {
-        // Try Supabase first
-        agents = await supabaseApi.getDeliveryAgents();
-      } catch (error) {
-        console.warn('Supabase login failed, trying localStorage:', error);
-        // Fallback to localStorage
-        agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+      // Always check localStorage first for faster response
+      let agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+      console.log('📦 Found agents in localStorage:', agents.length);
+      
+      // If no local agents, try Supabase
+      if (agents.length === 0) {
+        try {
+          console.log('🌐 Trying Supabase...');
+          agents = await supabaseApi.getDeliveryAgents();
+          console.log('✅ Supabase agents:', agents.length);
+        } catch (error) {
+          console.warn('⚠️ Supabase failed:', error);
+          // Re-initialize default agent if needed
+          this.initializeDefaultAgent();
+          agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+        }
       }
       
-      const agent = agents.find(a => 
-        a.userId === userId && 
-        a.password === password && 
-        a.isActive && 
-        a.isApproved
-      );
+      console.log('🔍 Searching for agent with userId:', userId);
+      const agent = agents.find(a => {
+        console.log('Checking agent:', a.userId, 'password match:', a.password === password, 'active:', a.isActive, 'approved:', a.isApproved);
+        return a.userId === userId && 
+               a.password === password && 
+               a.isActive && 
+               a.isApproved;
+      });
 
       if (agent) {
+        console.log('✅ Login successful for:', agent.name);
         this.currentAgent = agent;
         localStorage.setItem('deliveryAgent', JSON.stringify(agent));
         return true;
+      } else {
+        console.log('❌ No matching agent found');
+        return false;
       }
-      return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('❌ Login error:', error);
       return false;
     }
   }
