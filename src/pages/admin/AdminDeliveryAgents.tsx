@@ -40,12 +40,26 @@ const AdminDeliveryAgents = () => {
 
   const handleAddAgent = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await deliveryAuthService.registerAgent(formData);
+    
+    // Validate required fields
+    if (!formData.name || !formData.phone || !formData.vehicleType || !formData.licenseNumber) {
       toast({
-        title: "Agent Registered",
-        description: "Credentials sent via SMS to agent's phone",
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
       });
+      return;
+    }
+    
+    try {
+      const agent = await deliveryAuthService.registerAgent(formData);
+      console.log('Agent registered successfully:', agent);
+      
+      toast({
+        title: "Agent Registered Successfully",
+        description: `Credentials sent to ${formData.phone}. User ID: ${agent.userId}`,
+      });
+      
       setShowAddForm(false);
       setFormData({
         name: '',
@@ -55,11 +69,15 @@ const AdminDeliveryAgents = () => {
         licenseNumber: '',
         isActive: true
       });
-      loadAgents();
+      
+      // Reload agents list
+      await loadAgents();
+      
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration Failed",
-        description: "Failed to register delivery agent",
+        description: error.message || "Failed to register delivery agent. Please try again.",
         variant: "destructive"
       });
     }

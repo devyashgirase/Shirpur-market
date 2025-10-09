@@ -25,13 +25,31 @@ class DeliveryAuthService {
       const userId = `DA${Date.now().toString().slice(-6)}`; // DA123456
       const password = Math.random().toString(36).slice(-8); // 8 char password
       
-      const agent = await supabaseApi.createDeliveryAgent({
+      const newAgent = {
         ...agentData,
         userId,
         password,
-        isApproved: true, // Auto-approve
-        createdAt: new Date().toISOString()
-      });
+        isApproved: true,
+        createdAt: new Date().toISOString(),
+        id: Date.now()
+      };
+      
+      let agent;
+      
+      try {
+        // Try to save to Supabase first
+        agent = await supabaseApi.createDeliveryAgent(newAgent);
+        console.log('✅ Agent saved to Supabase');
+      } catch (dbError) {
+        console.warn('⚠️ Supabase failed, saving locally:', dbError);
+        
+        // Fallback to localStorage
+        const existingAgents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+        existingAgents.push(newAgent);
+        localStorage.setItem('deliveryAgents', JSON.stringify(existingAgents));
+        agent = newAgent;
+        console.log('✅ Agent saved to localStorage');
+      }
       
       // Send SMS with credentials
       await this.sendCredentialsSMS(agentData.phone, agentData.name, userId, password);
@@ -39,7 +57,7 @@ class DeliveryAuthService {
       return agent;
     } catch (error) {
       console.error('Failed to register agent:', error);
-      throw new Error('Registration failed');
+      throw new Error(`Registration failed: ${error.message}`);
     }
   }
 
@@ -66,7 +84,17 @@ class DeliveryAuthService {
   // Agent login
   async login(userId: string, password: string): Promise<boolean> {
     try {
-      const agents = await supabaseApi.getDeliveryAgents();
+      let agents = [];
+      
+      try {
+        // Try Supabase first
+        agents = await supabaseApi.getDeliveryAgents();
+      } catch (error) {
+        console.warn('Supabase login failed, trying localStorage:', error);
+        // Fallback to localStorage
+        agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+      }
+      
       const agent = agents.find(a => 
         a.userId === userId && 
         a.password === password && 
@@ -123,11 +151,19 @@ class DeliveryAuthService {
   // Admin gets all agents for approval
   async getAllAgents(): Promise<DeliveryAgent[]> {
     try {
-      return await supabaseApi.getDeliveryAgents();
+      // Try Supabase first
+      const supabaseAgents = await supabaseApi.getDeliveryAgents();
+      if (supabaseAgents.length > 0) {
+        return supabaseAgents;
+      }
     } catch (error) {
-      console.error('Failed to get agents:', error);
-      return [];
+      console.warn('Supabase agents failed:', error);
     }
+    
+    // Fallback to localStorage
+    const localAgents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
+    console.log('Using local agents:', localAgents.length);
+    return localAgents;
   }
 }
 
