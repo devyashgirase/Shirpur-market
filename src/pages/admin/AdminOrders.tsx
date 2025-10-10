@@ -12,8 +12,7 @@ import WhatsAppStatus from "@/components/WhatsAppStatus";
 import SMSHistory from "@/components/SMSHistory";
 import { OrderService, Order } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
-import { apiService } from "@/lib/apiService";
-import { unifiedDB, useSupabase } from "@/lib/database";
+import { DatabaseService } from "@/lib/databaseService";
 import { useToast } from "@/hooks/use-toast";
 import { deliveryCoordinationService } from "@/lib/deliveryCoordinationService";
 
@@ -70,56 +69,62 @@ const AdminOrders = () => {
   
   const loadOrders = async () => {
     try {
-      console.log('📊 Loading orders from all sources...');
+      console.log('📊 Loading orders from database...');
       
-      // Load from localStorage first for instant display
-      const localOrders = [...OrderService.getAllOrders()].reverse();
-      setOrders(localOrders);
+      // Load orders from Supabase database
+      const dbOrders = await DatabaseService.getOrders();
+      const formattedOrders = dbOrders.map(order => ({
+        orderId: order.order_id || order.orderId,
+        status: order.status || 'pending',
+        timestamp: order.created_at || order.createdAt || new Date().toISOString(),
+        customerAddress: {
+          name: order.customer_name || order.customerName || 'Customer',
+          phone: order.customer_phone || order.customerPhone || '',
+          address: order.delivery_address || order.deliveryAddress || '',
+          coordinates: { lat: 21.3486, lng: 74.8811 }
+        },
+        items: order.items ? (Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')).map(item => ({
+          product: {
+            id: item.product_id?.toString() || item.id?.toString() || '0',
+            name: item.product_name || item.name || 'Product',
+            price: parseFloat(item.price || item.product_price || 0)
+          },
+          quantity: parseInt(item.quantity || 1)
+        })) : [],
+        total: parseFloat(order.total_amount || order.total || 0),
+        paymentStatus: order.payment_status || order.paymentStatus || 'paid',
+        databaseId: order.id
+      }));
       
-      // Try to load from API service (which handles both Supabase and MySQL)
-      try {
-        const apiOrders = await OrderService.getOrdersFromAPI();
-        if (apiOrders.length > 0) {
-          console.log('✅ Loaded orders from API:', apiOrders.length);
-          setOrders([...apiOrders].reverse());
-        }
-      } catch (apiError) {
-        console.warn('⚠️ API orders failed, trying direct database:', apiError);
-        
-        // Fallback to direct database if available
-        if (useSupabase) {
-          const dbOrders = await unifiedDB.getOrders();
-          const formattedOrders = dbOrders.map(order => ({
-            orderId: order.orderId || order.order_id,
-            status: order.status,
-            timestamp: order.createdAt || order.created_at,
-            customerAddress: {
-              name: order.customerName || order.customer_name,
-              phone: order.customerPhone || order.customer_phone,
-              address: order.deliveryAddress || order.delivery_address,
-              coordinates: { lat: 21.3486, lng: 74.8811 }
-            },
-            items: order.items ? order.items.map(item => ({
-              product: {
-                id: item.product_id?.toString() || '0',
-                name: item.product_name,
-                price: parseFloat(item.price)
-              },
-              quantity: item.quantity
-            })) : [],
-            total: parseFloat(order.total),
-            paymentStatus: order.paymentStatus || order.payment_status || 'paid',
-            databaseId: order.id
-          }));
-          if (formattedOrders.length > 0) {
-            console.log('✅ Loaded orders from database:', formattedOrders.length);
-            setOrders(formattedOrders);
-          }
-        }
-      }
+      console.log('✅ Loaded orders from database:', formattedOrders.length);
+      setOrders([...formattedOrders].reverse()); // Show newest first
+      
     } catch (error) {
-      console.warn('⚠️ All database sources failed, using local data:', error);
-      // Already loaded localStorage data above
+      console.warn('⚠️ Database failed, using fallback data:', error);
+      // Use fallback data from DatabaseService
+      const fallbackOrders = DatabaseService.getFallbackOrders().map(order => ({
+        orderId: order.orderId,
+        status: order.status,
+        timestamp: order.createdAt,
+        customerAddress: {
+          name: order.customerName,
+          phone: order.customerPhone,
+          address: order.deliveryAddress,
+          coordinates: { lat: 21.3486, lng: 74.8811 }
+        },
+        items: order.items.map(item => ({
+          product: {
+            id: '1',
+            name: item.name,
+            price: item.price
+          },
+          quantity: item.quantity
+        })),
+        total: order.total,
+        paymentStatus: order.paymentStatus,
+        databaseId: order.id
+      }));
+      setOrders(fallbackOrders);
     }
   };
 
@@ -133,24 +138,19 @@ const AdminOrders = () => {
         throw new Error(`Invalid status: ${newStatus}`);
       }
       
-      // Update in OrderService (localStorage) - this always works
-      const success = await OrderService.updateOrderStatus(orderId, newStatus as any);
+      // Update in database
+      await DatabaseService.updateOrderStatus(orderId, newStatus);
+      console.log('✅ Database status update successful');
       
-      if (success) {
+      // Also update in localStorage for compatibility
+      try {
+        await OrderService.updateOrderStatus(orderId, newStatus as any);
         console.log('✅ Local status update successful');
-        
-        // Try to update in database if available
-        if (useSupabase) {
-          try {
-            const order = orders.find(o => o.orderId === orderId);
-            if (order && order.databaseId) {
-              await unifiedDB.updateOrderStatus(order.databaseId, newStatus);
-              console.log('✅ Database status update successful');
-            }
-          } catch (dbError) {
-            console.warn('⚠️ Database update failed, but local update succeeded:', dbError);
-          }
-        }
+      } catch (localError) {
+        console.warn('⚠️ Local update failed, but database update succeeded:', localError);
+      }
+      
+      // Status update successful
         
         // Create delivery notification for nearby agents when status is packing
         if (newStatus === 'packing') {

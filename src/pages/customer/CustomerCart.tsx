@@ -18,8 +18,7 @@ import { WhatsAppBusinessService } from "@/lib/whatsappBusinessService";
 import { FreeWhatsAppService } from "@/lib/freeWhatsAppService";
 import { FreeSmsService } from "@/lib/freeSmsService";
 import { DataGenerator } from "@/lib/dataGenerator";
-import { apiService } from "@/lib/apiService";
-import { unifiedDB } from "@/lib/database";
+import { DatabaseService } from "@/lib/databaseService";
 
 
 const CustomerCart = () => {
@@ -177,20 +176,21 @@ const CustomerCart = () => {
         
         // Save to database immediately for admin
         try {
-          await apiService.createOrder({
-            orderId,
-            customerName: addressData.name,
-            customerPhone: addressData.phone,
-            deliveryAddress: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
-            items: cart.map(item => ({
-              productId: parseInt(item.product.id),
-              productName: item.product.name,
+          await DatabaseService.createOrder({
+            order_id: orderId,
+            customer_name: addressData.name,
+            customer_phone: addressData.phone,
+            delivery_address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            items: JSON.stringify(cart.map(item => ({
+              product_id: parseInt(item.product.id),
+              product_name: item.product.name,
               price: item.product.price,
               quantity: item.quantity
-            })),
-            total: getTotalAmount(),
+            }))),
+            total_amount: getTotalAmount(),
             status: 'confirmed',
-            paymentStatus: 'paid'
+            payment_status: 'paid',
+            created_at: new Date().toISOString()
           });
         } catch (e) { console.warn('DB save failed:', e); }
         
@@ -215,8 +215,8 @@ const CustomerCart = () => {
         });
       },
       modal: {
-        ondismiss: function() {
-          handlePaymentFailure();
+        ondismiss: async function() {
+          await handlePaymentFailure();
         }
       },
       prefill: {
@@ -273,10 +273,59 @@ const CustomerCart = () => {
     }
   };
 
-  const handlePaymentFailure = () => {
+  const handlePaymentFailure = async () => {
+    if (!customerAddress) return;
+    
+    try {
+      // Create order in database even when payment fails
+      const orderId = `ORD-${Date.now()}`;
+      
+      await DatabaseService.createOrder({
+        order_id: orderId,
+        customer_name: customerAddress.name,
+        customer_phone: customerAddress.phone,
+        delivery_address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+        items: JSON.stringify(cart.map(item => ({
+          product_id: parseInt(item.product.id),
+          product_name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity
+        }))),
+        total_amount: getTotalAmount(),
+        status: 'pending',
+        payment_status: 'failed',
+        created_at: new Date().toISOString()
+      });
+      
+      // Also save locally for compatibility
+      await OrderService.createOrderFromCart(
+        {
+          name: customerAddress.name,
+          phone: customerAddress.phone,
+          address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
+        },
+        cart,
+        getTotalAmount(),
+        'payment_failed'
+      );
+      
+      // Update payment status to failed
+      await OrderService.updatePaymentStatus(orderId, 'failed', 'payment_failed');
+      
+      // Trigger admin panel updates
+      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'pending', paymentStatus: 'failed' } }));
+      window.dispatchEvent(new CustomEvent('ordersUpdated'));
+      
+      console.log('✅ Order saved to database with failed payment status');
+      
+    } catch (error) {
+      console.error('Failed to save order with failed payment:', error);
+    }
+    
     toast({
       title: "Payment Failed",
-      description: "Payment failed, please try again.",
+      description: "Payment failed but order saved. You can retry payment from pending orders.",
       variant: "destructive"
     });
     setShowAddressForm(false);
@@ -304,22 +353,23 @@ const CustomerCart = () => {
       // Update payment status to paid for both test and live payments
       await OrderService.updatePaymentStatus(orderId, 'paid', paymentId);
       
-      // Save order to database via API for admin tracking
+      // Save order to database via DatabaseService for admin tracking
       try {
-        await apiService.createOrder({
-          orderId,
-          customerName: customerAddress.name,
-          customerPhone: customerAddress.phone,
-          deliveryAddress: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
-          items: cart.map(item => ({
-            productId: parseInt(item.product.id),
-            productName: item.product.name,
+        await DatabaseService.createOrder({
+          order_id: orderId,
+          customer_name: customerAddress.name,
+          customer_phone: customerAddress.phone,
+          delivery_address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          items: JSON.stringify(cart.map(item => ({
+            product_id: parseInt(item.product.id),
+            product_name: item.product.name,
             price: item.product.price,
             quantity: item.quantity
-          })),
-          total: getTotalAmount(),
+          }))),
+          total_amount: getTotalAmount(),
           status: 'confirmed',
-          paymentStatus: 'paid'
+          payment_status: 'paid',
+          created_at: new Date().toISOString()
         });
         console.log('✅ Order saved to database for admin tracking');
       } catch (dbError) {
@@ -329,7 +379,9 @@ const CustomerCart = () => {
       // Update product inventory
       try {
         for (const item of cart) {
-          await apiService.updateProductStock(parseInt(item.product.id), -item.quantity);
+          await DatabaseService.updateProduct(parseInt(item.product.id), {
+            stockQuantity: -item.quantity // This will be handled by the service to subtract
+          });
         }
         console.log('✅ Product inventory updated');
       } catch (stockError) {

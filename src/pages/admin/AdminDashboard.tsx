@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { AdminDataService } from "@/lib/adminDataService";
 import { realTimeDataService } from "@/lib/realTimeDataService";
-import { OrderService } from "@/lib/orderService";
+import { DatabaseService } from "@/lib/databaseService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 import DatabaseStatus from "@/components/DatabaseStatus";
 import AttractiveLoader from "@/components/AttractiveLoader";
@@ -74,17 +74,17 @@ const AdminDashboard = () => {
         const products = await AdminDataService.getAdminProducts();
         setAdminProducts(products);
         
-        // Load orders from OrderService (includes recent orders from payment)
-        const localOrders = OrderService.getAllOrders();
-        const formattedOrders = localOrders.map(order => ({
-          orderId: order.orderId,
-          customerName: order.customerAddress?.name || 'Customer',
-          customerPhone: order.customerAddress?.phone || '',
-          deliveryAddress: order.customerAddress?.address || '',
-          total: order.total,
-          status: order.status,
-          paymentStatus: order.paymentStatus,
-          createdAt: order.timestamp,
+        // Load orders from Supabase database
+        const dbOrders = await DatabaseService.getOrders();
+        const formattedOrders = dbOrders.map(order => ({
+          orderId: order.order_id || order.orderId,
+          customerName: order.customer_name || order.customerName || 'Customer',
+          customerPhone: order.customer_phone || order.customerPhone || '',
+          deliveryAddress: order.delivery_address || order.deliveryAddress || '',
+          total: order.total_amount || order.total || 0,
+          status: order.status || 'pending',
+          paymentStatus: order.payment_status || order.paymentStatus || 'pending',
+          createdAt: order.created_at || order.createdAt || new Date().toISOString(),
           itemCount: order.items?.length || 0,
           items: order.items || []
         }));
@@ -140,25 +140,38 @@ const AdminDashboard = () => {
     
     loadAdminData();
     
-    // Additional fast refresh for critical metrics
-    const fastInterval = setInterval(() => {
-      const orders = OrderService.getAllOrders();
-      const todaysOrders = orders.filter(order => {
-        const today = new Date();
-        const orderDate = new Date(order.timestamp);
-        return orderDate.toDateString() === today.toDateString();
-      });
-      
-      setRealTimeStats(prev => ({
-        ...prev,
-        todaysOrders: todaysOrders.length,
-        todaysRevenue: todaysOrders.reduce((sum, o) => sum + o.total, 0),
-        totalOrders: orders.length,
-        totalRevenue: orders.reduce((sum, o) => sum + o.total, 0),
-        lastUpdated: new Date().toISOString()
-      }));
-      setLastUpdateTime(new Date().toLocaleTimeString());
-    }, 2000); // Update every 2 seconds
+    // Additional fast refresh for critical metrics from database
+    const fastInterval = setInterval(async () => {
+      try {
+        const dbOrders = await DatabaseService.getOrders();
+        const formattedOrders = dbOrders.map(order => ({
+          total: order.total_amount || order.total || 0,
+          createdAt: order.created_at || order.createdAt || new Date().toISOString(),
+          paymentStatus: order.payment_status || order.paymentStatus || 'pending',
+          status: order.status || 'pending'
+        }));
+        
+        const todaysOrders = formattedOrders.filter(order => {
+          const today = new Date();
+          const orderDate = new Date(order.createdAt);
+          return orderDate.toDateString() === today.toDateString();
+        });
+        
+        setRealTimeStats(prev => ({
+          ...prev,
+          todaysOrders: todaysOrders.length,
+          todaysRevenue: todaysOrders.reduce((sum, o) => sum + o.total, 0),
+          totalOrders: formattedOrders.length,
+          totalRevenue: formattedOrders.reduce((sum, o) => sum + o.total, 0),
+          paidOrders: formattedOrders.filter(o => o.paymentStatus === 'paid').length,
+          pendingPayments: formattedOrders.filter(o => o.paymentStatus === 'pending').length,
+          lastUpdated: new Date().toISOString()
+        }));
+        setLastUpdateTime(new Date().toLocaleTimeString());
+      } catch (error) {
+        console.error('Failed to refresh data from database:', error);
+      }
+    }, 5000); // Update every 5 seconds from database
     
     return () => {
       clearInterval(fastInterval);
