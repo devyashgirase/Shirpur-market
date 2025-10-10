@@ -182,9 +182,21 @@ const AdminDeliveryAgents = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <Upload className="w-8 h-8 mx-auto text-gray-400" />
-                      <p className="text-sm text-gray-600">Drag & drop photo here or click to browse</p>
+                      <p className="text-sm text-gray-600">Drag & drop photo here</p>
+                      <div className="flex justify-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('photo-upload')?.click()}
+                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Photo
+                        </Button>
+                      </div>
                       <input
                         type="file"
                         accept="image/*"
@@ -192,9 +204,6 @@ const AdminDeliveryAgents = () => {
                         className="hidden"
                         id="photo-upload"
                       />
-                      <label htmlFor="photo-upload" className="cursor-pointer text-blue-500 text-sm hover:underline">
-                        Browse Files
-                      </label>
                     </div>
                   )}
                 </div>
