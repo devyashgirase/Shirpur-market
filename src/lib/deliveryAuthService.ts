@@ -58,28 +58,13 @@ class DeliveryAuthService {
   private async initializeDefaultAgent() {
     try {
       const agents = await supabaseApi.getDeliveryAgents();
-      const hasDefaultAgent = agents.some((agent: DeliveryAgent) => agent.userId === 'DA123456');
+      console.log('🔍 Found agents in database:', agents.length);
       
-      if (!hasDefaultAgent) {
-        const defaultAgent: DeliveryAgent = {
-          id: 1,
-          userId: "DA123456",
-          password: "delivery123",
-          name: "John Doe",
-          phone: "9876543210",
-          email: "john@delivery.com",
-          vehicleType: "Bike",
-          licenseNumber: "MH123456",
-          isActive: true,
-          isApproved: true,
-          createdAt: new Date().toISOString()
-        };
-        
-        await supabaseApi.createDeliveryAgent(defaultAgent);
-        console.log('✅ Default delivery agent created in Supabase: DA123456 / delivery123');
+      if (agents.length === 0) {
+        console.log('⚠️ No delivery agents found in database');
       }
     } catch (error) {
-      console.warn('⚠️ Failed to initialize default agent in Supabase:', error);
+      console.warn('⚠️ Failed to check delivery agents:', error);
     }
   }
 
@@ -115,23 +100,35 @@ class DeliveryAuthService {
     }
   }
 
-  // Send credentials via SMS
+  // Send credentials via WhatsApp
   private async sendCredentialsSMS(phone: string, name: string, userId: string, password: string): Promise<void> {
     try {
-      const message = `Welcome ${name}! Your Shirpur Delivery credentials:\nUser ID: ${userId}\nPassword: ${password}\nLogin at: shirpur-delivery.com/delivery/login`;
+      // Message to send to delivery agent
+      const agentMessage = `🚚 *Welcome to Shirpur Delivery!*\n\nHi ${name},\n\nYour delivery agent account has been created successfully.\n\n🔐 *Your Login Credentials:*\n• User ID: *${userId}*\n• Password: *${password}*\n\n🌐 *Login at:* shirpur-delivery.com/delivery/login\n\n📱 *Next Steps:*\n1. Click the login link above\n2. Enter your User ID and Password\n3. Start accepting delivery orders\n\n✅ Welcome to the team! Contact admin 7276035433 for any help.`;
       
-      // Use SMS service (you can integrate with any SMS provider)
-      console.log('📱 SMS sent to', phone, ':', message);
+      // Format phone number (remove +91 if present, add 91 prefix)
+      const formattedPhone = phone.replace(/^\+?91/, '91');
+      const agentWhatsAppUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(agentMessage)}`;
       
-      // Store SMS log
-      localStorage.setItem(`sms_${phone}_${Date.now()}`, JSON.stringify({
-        phone,
-        message,
+      // Auto-open WhatsApp to send message to delivery agent
+      if (typeof window !== 'undefined') {
+        window.open(agentWhatsAppUrl, '_blank');
+      }
+      
+      console.log('📱 WhatsApp message prepared for delivery agent:', { name, phone: formattedPhone, userId });
+      
+      // Store notification log
+      localStorage.setItem(`whatsapp_agent_${phone}_${Date.now()}`, JSON.stringify({
+        agentPhone: formattedPhone,
+        agentName: name,
+        userId,
+        password,
+        message: agentMessage,
         timestamp: new Date().toISOString(),
-        type: 'delivery_credentials'
+        type: 'delivery_agent_credentials'
       }));
     } catch (error) {
-      console.error('Failed to send SMS:', error);
+      console.error('Failed to send WhatsApp message:', error);
     }
   }
 
@@ -140,22 +137,17 @@ class DeliveryAuthService {
     try {
       console.log('🔐 Attempting login for:', userId);
       
-      // Ensure default agent exists
-      await this.initializeDefaultAgent();
-      
-      // Get agents from Supabase
-      const agents = await supabaseApi.getDeliveryAgents();
-      console.log('📦 Found agents in Supabase:', agents.length);
-      
-      // If no agents in Supabase, create default agent
-      if (agents.length === 0) {
-        console.log('🔧 No agents found, creating default agent...');
-        const defaultAgent = {
+      // Check for hardcoded demo credentials first
+      if (userId === 'DA123456' && password === 'delivery123') {
+        console.log('✅ Demo credentials matched!');
+        
+        const demoAgent: DeliveryAgent = {
+          id: 1,
           userId: "DA123456",
           password: "delivery123",
-          name: "John Doe",
+          name: "Demo Agent",
           phone: "9876543210",
-          email: "john@delivery.com",
+          email: "demo@delivery.com",
           vehicleType: "Bike",
           licenseNumber: "MH123456",
           isActive: true,
@@ -163,23 +155,54 @@ class DeliveryAuthService {
           createdAt: new Date().toISOString()
         };
         
-        try {
-          await supabaseApi.createDeliveryAgent(defaultAgent);
-          console.log('✅ Default agent created successfully');
-        } catch (createError) {
-          console.error('❌ Failed to create default agent:', createError);
-        }
+        this.currentAgent = demoAgent;
+        this.storeSession(demoAgent);
+        
+        console.log('✅ Demo login successful');
+        return true;
       }
       
-      // Try again to get agents
-      const updatedAgents = await supabaseApi.getDeliveryAgents();
+      // Try Supabase authentication
+      await this.initializeDefaultAgent();
       
-      const agent = updatedAgents.find(a => 
-        a.userId === userId && 
-        a.password === password && 
-        a.isActive && 
-        a.isApproved
-      );
+      // Get agents from Supabase
+      const agents = await supabaseApi.getDeliveryAgents();
+      console.log('📦 Found agents in Supabase:', agents.length);
+      
+      // Check if we have agents in database
+      if (agents.length === 0) {
+        console.log('⚠️ No agents found in database.');
+        return false;
+      }
+      
+      // Use the agents we already fetched
+      const updatedAgents = agents;
+      
+      console.log('🔍 Looking for agent with userId:', userId, 'password:', password);
+      console.log('🔍 Available agents:', updatedAgents.map(a => ({
+        userId: a.userId,
+        password: a.password,
+        isActive: a.isActive,
+        isApproved: a.isApproved
+      })));
+      
+      const agent = updatedAgents.find(a => {
+        console.log('🔍 Checking agent:', {
+          userId: a.userId,
+          password: a.password,
+          isActive: a.isActive,
+          isApproved: a.isApproved,
+          userIdMatch: a.userId === userId,
+          passwordMatch: a.password === password,
+          isActiveMatch: a.isActive,
+          isApprovedMatch: a.isApproved
+        });
+        
+        return a.userId === userId && 
+               a.password === password && 
+               a.isActive && 
+               a.isApproved;
+      });
 
       if (agent) {
         console.log('✅ Login successful for:', agent.name);

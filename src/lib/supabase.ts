@@ -343,19 +343,27 @@ export const supabaseApi = {
     if (supabaseClient) {
       try {
         const data = await supabaseClient.request('delivery_agents?select=*');
-        return (data || []).map(agent => ({
-          id: agent.id,
-          userId: agent.user_id,
-          password: agent.password,
-          name: agent.name,
-          phone: agent.phone,
-          email: agent.email,
-          vehicleType: agent.vehicle_type,
-          licenseNumber: agent.license_number,
-          isActive: agent.is_active,
-          isApproved: agent.is_approved,
-          createdAt: agent.created_at
-        }));
+        console.log('🔍 Raw delivery agents data from Supabase:', data);
+        
+        const mappedAgents = (data || []).map(agent => {
+          console.log('🔍 Processing agent:', agent);
+          return {
+            id: agent.id,
+            userId: agent.user_id,
+            password: agent.password,
+            name: agent.name,
+            phone: agent.phone,
+            email: agent.email,
+            vehicleType: agent.vehicle_type,
+            licenseNumber: agent.license_number,
+            isActive: agent.is_active,
+            isApproved: agent.is_approved,
+            createdAt: agent.created_at
+          };
+        });
+        
+        console.log('🔍 Mapped delivery agents:', mappedAgents);
+        return mappedAgents;
       } catch (error) {
         console.error('Failed to get delivery agents:', error);
         return [];

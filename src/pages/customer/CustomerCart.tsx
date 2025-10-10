@@ -407,7 +407,7 @@ const CustomerCart = () => {
           `Test order ${orderId} confirmed - Available in admin panel for processing!` :
           `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed and is being processed.`,
       });
-      
+       
     } catch (error) {
       console.error('Failed to create order:', error);
       toast({
