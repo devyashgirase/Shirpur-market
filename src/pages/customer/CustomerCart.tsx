@@ -75,7 +75,7 @@ const CustomerCart = () => {
     setShowAddressForm(true);
   };
 
-  const handleAddressSubmit = (addressData: AddressData) => {
+  const handleAddressSubmit = async (addressData: AddressData) => {
     setCustomerAddress(addressData);
     
     // Create pending order in Supabase
