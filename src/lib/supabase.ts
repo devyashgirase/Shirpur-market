@@ -19,18 +19,27 @@ class SupabaseClient {
 
   async request(endpoint: string, options: RequestInit = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+      const url = `${this.baseUrl}/${endpoint}`;
+      console.log('🔗 Supabase request:', { url, method: options.method || 'GET', body: options.body });
+      
+      const response = await fetch(url, {
         ...options,
         headers: { ...this.headers, ...options.headers }
       });
 
+      console.log('📡 Supabase response:', { status: response.status, statusText: response.statusText });
+
       if (!response.ok) {
-        throw new Error(`Supabase error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Supabase error details:', { status: response.status, error: errorText });
+        throw new Error(`Supabase error ${response.status}: ${errorText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('✅ Supabase success:', result);
+      return result;
     } catch (error) {
-      console.error('Supabase request failed:', error);
+      console.error('❌ Supabase request failed:', error);
       throw error;
     }
   }
@@ -379,8 +388,21 @@ export const supabaseApi = {
   },
 
   async createDeliveryAgent(agent: any) {
+    console.log('🔍 Supabase client available:', !!supabaseClient);
+    console.log('🔍 Environment check:', { 
+      url: !!supabaseUrl, 
+      key: !!supabaseKey,
+      urlValue: supabaseUrl?.substring(0, 30) + '...',
+      keyValue: supabaseKey?.substring(0, 10) + '...'
+    });
+    
     if (supabaseClient) {
       try {
+        // Test connection first
+        console.log('🧪 Testing Supabase connection...');
+        await supabaseClient.request('delivery_agents?select=id&limit=1');
+        console.log('✅ Supabase connection test successful');
+        
         // Map agent data to match Supabase table schema (lowercase columns)
         const agentData = {
           userid: agent.userId,
@@ -406,7 +428,7 @@ export const supabaseApi = {
         console.log('✅ Agent saved to Supabase:', result);
         return result[0] || { id: Date.now(), ...agent };
       } catch (supabaseError) {
-        console.warn('⚠️ Supabase insert failed:', supabaseError);
+        console.error('❌ Supabase insert failed:', supabaseError);
         
         // Fallback: Store in localStorage and return success
         const agentWithId = { id: Date.now(), ...agent };
@@ -417,6 +439,8 @@ export const supabaseApi = {
         console.log('✅ Agent saved to localStorage backup');
         return agentWithId;
       }
+    } else {
+      console.warn('⚠️ No Supabase client available');
     }
     
     // Final fallback: localStorage only

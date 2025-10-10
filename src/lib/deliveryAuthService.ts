@@ -104,7 +104,7 @@ class DeliveryAuthService {
   private async sendCredentialsSMS(phone: string, name: string, userId: string, password: string): Promise<void> {
     try {
       // Message to send to delivery agent
-      const agentMessage = `🚚 *Welcome to Shirpur Delivery!*\n\nHi ${name},\n\nYour delivery agent account has been created successfully.\n\n🔐 *Your Login Credentials:*\n• User ID: *${userId}*\n• Password: *${password}*\n\n🌐 *Login at:* https://dev-yash-shirpur-market.vercel.app/delivery/login\n\n📱 *Next Steps:*\n1. Click the login link above\n2. Enter your User ID and Password\n3. Start accepting delivery orders\n\n✅ Welcome to the team! Contact admin 7276035433 for any help.`;
+      const agentMessage = `🚚 *Welcome to Shirpur Delivery!*\n\nHi ${name},\n\nYour delivery agent account has been created successfully.\n\n🔐 *Your Login Credentials:*\n• User ID: *${userId}*\n• Password: *${password}*\n\n🌐 *Login Here:*\nhttps://dev-yash-shirpur-market.vercel.app/delivery/login\n\n📱 *Next Steps:*\n1. Click the login link above\n2. Enter your User ID and Password\n3. Start accepting delivery orders\n\n✅ Welcome to the team! Contact admin 7276035433 for any help.`;
       
       // Format phone number (remove +91 if present, add 91 prefix)
       const formattedPhone = phone.replace(/^\+?91/, '91');
