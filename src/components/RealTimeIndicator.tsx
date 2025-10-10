@@ -42,38 +42,32 @@ const RealTimeIndicator = () => {
     };
   }, []);
 
+  // Only show indicator when offline or updating
+  if (!isUpdating && isConnected) {
+    return null;
+  }
+
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-      {/* Connection Status */}
-      <Badge 
-        variant={isConnected ? "default" : "destructive"}
-        className={`flex items-center gap-1 ${isConnected ? 'bg-green-500' : 'bg-red-500'} text-white`}
-      >
-        {isConnected ? (
-          <Wifi className="w-3 h-3" />
-        ) : (
+    <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+      {/* Connection Status - only when offline */}
+      {!isConnected && (
+        <Badge 
+          variant="destructive"
+          className="flex items-center gap-1 bg-red-500 text-white animate-pulse"
+        >
           <WifiOff className="w-3 h-3" />
-        )}
-        {isConnected ? 'Online' : 'Offline'}
-      </Badge>
+          Offline
+        </Badge>
+      )}
 
-      {/* Real-time Update Indicator */}
-      <Badge 
-        variant="outline"
-        className={`flex items-center gap-1 transition-all duration-300 ${
-          isUpdating 
-            ? 'bg-blue-500 text-white border-blue-500 animate-pulse' 
-            : 'bg-white text-gray-600 border-gray-300'
-        }`}
-      >
-        <Zap className={`w-3 h-3 ${isUpdating ? 'animate-spin' : ''}`} />
-        {isUpdating ? 'Updating...' : 'Real-time'}
-      </Badge>
-
-      {/* Last Update Time */}
-      {lastUpdate && (
-        <Badge variant="secondary" className="text-xs">
-          {lastUpdate.toLocaleTimeString()}
+      {/* Real-time Update Indicator - only when updating */}
+      {isUpdating && (
+        <Badge 
+          variant="outline"
+          className="flex items-center gap-1 bg-blue-500 text-white border-blue-500 animate-pulse"
+        >
+          <Zap className="w-3 h-3 animate-spin" />
+          Updating...
         </Badge>
       )}
     </div>

@@ -26,28 +26,14 @@ export class FreeSmsService {
       this.smsHistory.push(smsRecord);
       localStorage.setItem('smsHistory', JSON.stringify(this.smsHistory));
 
-      // Try TextBelt free SMS API
-      try {
-        const response = await fetch('https://textbelt.com/text', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone: `+91${cleanPhone}`,
-            message: message,
-            key: 'textbelt'
-          })
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-          console.log(`✅ Real SMS sent to +91${cleanPhone}`);
-          return true;
-        }
-      } catch (error) {
-        console.log('SMS API failed, using demo mode');
-      }
+      // Skip external SMS API to avoid CORS issues in production
+      console.log('📱 SMS Service: Using demo mode (external API disabled for CORS)');
+      
+      // In production, you would integrate with a proper SMS service like:
+      // - Twilio SMS API
+      // - AWS SNS
+      // - Firebase Cloud Messaging
+      // - Or a backend SMS service
 
       // Fallback: Demo mode with actual phone number
       if ('Notification' in window && Notification.permission === 'granted') {
