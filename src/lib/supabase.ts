@@ -367,6 +367,7 @@ export const supabaseApi = {
             email: agent.email,
             vehicleType: agent.vehicletype,
             licenseNumber: agent.licensenumber,
+            profilePhoto: agent.profilephoto,
             isActive: agent.isactive,
             isApproved: agent.isapproved,
             createdAt: agent.createdat
@@ -412,6 +413,7 @@ export const supabaseApi = {
           email: agent.email || null,
           vehicletype: agent.vehicleType,
           licensenumber: agent.licenseNumber,
+          profilephoto: agent.profilePhoto || null,
           isactive: true,
           isapproved: true,
           createdat: new Date().toISOString()

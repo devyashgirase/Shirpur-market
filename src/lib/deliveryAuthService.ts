@@ -10,6 +10,7 @@ export interface DeliveryAgent {
   email?: string;
   vehicleType: string;
   licenseNumber: string;
+  profilePhoto?: string;
   isActive: boolean;
   isApproved: boolean;
   createdAt: string;
@@ -69,20 +70,33 @@ class DeliveryAuthService {
   }
 
   // Admin registers delivery agent with auto-generated credentials
-  async registerAgent(agentData: Omit<DeliveryAgent, 'id' | 'createdAt' | 'isApproved' | 'userId' | 'password'>): Promise<DeliveryAgent> {
+  async registerAgent(agentData: Omit<DeliveryAgent, 'id' | 'createdAt' | 'isApproved' | 'userId' | 'password'> & { profilePhoto?: File }): Promise<DeliveryAgent> {
     try {
       // Auto-generate credentials
       const userId = `DA${Date.now().toString().slice(-6)}`; // DA123456
       const password = Math.random().toString(36).slice(-8); // 8 char password
       
+      // Convert photo to base64 if provided
+      let profilePhotoBase64 = null;
+      if (agentData.profilePhoto) {
+        profilePhotoBase64 = await this.convertFileToBase64(agentData.profilePhoto);
+      }
+      
       const newAgent = {
         ...agentData,
+        profilePhoto: profilePhotoBase64,
         userId,
         password,
         isApproved: true,
         createdAt: new Date().toISOString(),
         id: Date.now()
       };
+      
+      // Remove File object before saving
+      delete (newAgent as any).profilePhoto;
+      if (profilePhotoBase64) {
+        (newAgent as any).profilePhoto = profilePhotoBase64;
+      }
       
       let agent;
       
@@ -98,6 +112,16 @@ class DeliveryAuthService {
       console.error('Failed to register agent:', error);
       throw new Error(`Registration failed: ${error.message}`);
     }
+  }
+
+  // Convert file to base64
+  private convertFileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
   }
 
   // Send credentials via WhatsApp
