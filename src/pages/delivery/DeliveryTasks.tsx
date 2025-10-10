@@ -12,6 +12,7 @@ import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
 import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryCoordinationService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
+import { supabaseApi } from "@/lib/supabase";
 
 const DeliveryTasks = () => {
   const navigate = useNavigate();
@@ -31,12 +32,17 @@ const DeliveryTasks = () => {
 
   useEffect(() => {
     // Check authentication
-    const currentAgent = deliveryAuthService.getCurrentAgent();
-    if (!currentAgent) {
-      navigate('/delivery/login');
-      return;
-    }
-    setAgentId(currentAgent.userId);
+    const checkAuth = async () => {
+      const currentAgent = await deliveryAuthService.getCurrentAgent();
+      if (!currentAgent) {
+        navigate('/delivery/login');
+        return;
+      }
+      setAgentId(currentAgent.userId);
+      console.log('👤 Current delivery agent:', currentAgent.userId);
+    };
+    
+    checkAuth();
     
     let isMounted = true;
     
@@ -85,22 +91,22 @@ const DeliveryTasks = () => {
     setLocation();
 
     const loadDeliveryData = async () => {
-      if (!isMounted) return;
+      if (!isMounted || !agentId) return;
       
       try {
-        const cachedTasks = JSON.parse(localStorage.getItem('deliveryTasks') || '[]');
+        const cachedTasks = JSON.parse(localStorage.getItem(`deliveryTasks_${agentId}`) || '[]');
         if (cachedTasks.length > 0) {
           setDeliveryTasks(cachedTasks);
           setMetrics(DeliveryDataService.getDeliveryMetrics(cachedTasks));
           setLoading(false);
         }
         
-        const tasks = await DeliveryDataService.getAvailableDeliveries();
+        const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
         
         if (isMounted) {
           setDeliveryTasks(tasks);
           setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
-          localStorage.setItem('deliveryTasks', JSON.stringify(tasks));
+          localStorage.setItem(`deliveryTasks_${agentId}`, JSON.stringify(tasks));
         }
         
         const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
@@ -138,7 +144,38 @@ const DeliveryTasks = () => {
       window.removeEventListener('ordersUpdated', handleOrderAccepted);
       deliveryCoordinationService.unsubscribe('orderAccepted', handleOrderAccepted);
     };
-  }, [agentId, navigate]);
+  }, [navigate]);
+
+  // Separate effect for loading data when agentId changes
+  useEffect(() => {
+    if (agentId) {
+      const loadData = async () => {
+        const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
+        setDeliveryTasks(tasks);
+        setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
+        
+        // Load pending deliveries for this agent
+        const agentOrders = await supabaseApi.getOrdersByDeliveryAgent(agentId);
+        const agentPendingOrders = agentOrders.filter((order: any) => 
+          order.status === 'out_for_delivery'
+        ).map((order: any) => ({
+          orderId: order.order_id || order.id,
+          status: order.status,
+          total: order.total,
+          customerAddress: {
+            name: order.customer_name,
+            address: order.delivery_address || order.customer_address,
+            phone: order.customer_phone
+          },
+          items: order.items ? JSON.parse(order.items) : []
+        }));
+        setPendingDeliveries(agentPendingOrders);
+        setLoading(false);
+      };
+      
+      loadData();
+    }
+  }, [agentId]);
 
   const handleAcceptDelivery = async (orderId: string) => {
     if (!agentId) return;
@@ -160,7 +197,7 @@ const DeliveryTasks = () => {
         }));
         
         // Refresh data
-        const tasks = await DeliveryDataService.getAvailableDeliveries();
+        const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
         setDeliveryTasks(tasks);
         setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
         
@@ -175,11 +212,22 @@ const DeliveryTasks = () => {
         );
         setPendingDeliveries(updatedPendingOrders);
         
-        // Load pending deliveries for this agent
-        const storedOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-        const agentPendingOrders = storedOrders.filter((order: any) => 
-          order.status === 'accepted' && order.deliveryAgent?.id === agentId
-        );
+        // Load pending deliveries for this agent from Supabase
+        const { supabaseApi } = await import('@/lib/supabase');
+        const agentOrders = await supabaseApi.getOrdersByDeliveryAgent(agentId);
+        const agentPendingOrders = agentOrders.filter((order: any) => 
+          order.status === 'out_for_delivery'
+        ).map((order: any) => ({
+          orderId: order.order_id || order.id,
+          status: order.status,
+          total: order.total,
+          customerAddress: {
+            name: order.customer_name,
+            address: order.delivery_address || order.customer_address,
+            phone: order.customer_phone
+          },
+          items: order.items ? JSON.parse(order.items) : []
+        }));
         setPendingDeliveries(agentPendingOrders);
         
         // Navigate to GPS tracking page
@@ -216,7 +264,7 @@ const DeliveryTasks = () => {
               onClick={async () => {
                 if (!agentId) return;
                 console.log('🔄 Refreshing delivery data...');
-                const tasks = await DeliveryDataService.getAvailableDeliveries();
+                const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
                 setDeliveryTasks(tasks);
                 setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
                 const nearby = deliveryCoordinationService.findNearbyOrders(agentId);

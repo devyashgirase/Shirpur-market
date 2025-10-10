@@ -232,6 +232,21 @@ export const supabaseApi = {
     return mockData.orders;
   },
 
+  async getOrdersByDeliveryAgent(agentUserId: string) {
+    if (supabaseClient) {
+      try {
+        // Get orders assigned to this delivery agent with pending or out_for_delivery status
+        const data = await supabaseClient.request(`orders?select=*&delivery_agent_id=eq.${agentUserId}&status=in.(pending,out_for_delivery)&order=created_at.desc`);
+        console.log(`📊 Fetched orders for agent ${agentUserId}:`, data.length);
+        return data || [];
+      } catch (error) {
+        console.warn('Supabase agent orders failed:', error);
+        return [];
+      }
+    }
+    return [];
+  },
+
   async getCategories() {
     if (supabaseClient) {
       try {

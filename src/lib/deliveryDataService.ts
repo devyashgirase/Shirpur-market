@@ -6,20 +6,47 @@ export class DeliveryDataService {
   private static lastUpdate = 0;
   private static CACHE_DURATION = 30000; // 30 seconds
 
-  static async getAvailableDeliveries() {
+  static async getAvailableDeliveries(agentUserId?: string) {
     try {
       // Get current agent GPS location
       const agentLocation = await this.getCurrentLocation();
       
-      // Get all orders from OrderService (real data)
-      const allOrders = OrderService.getAllOrders();
-      console.log('📦 DeliveryDataService - Total orders:', allOrders.length);
-      console.log('📦 DeliveryDataService - Orders:', allOrders.map(o => ({ id: o.orderId, status: o.status })));
+      let availableOrders = [];
       
-      // Get orders that admin changed to out_for_delivery status (not yet accepted by agent)
-      const availableOrders = allOrders.filter(order => 
-        order.status === 'out_for_delivery' && !order.deliveryAgent
-      );
+      if (agentUserId) {
+        // Get orders specific to this delivery agent from Supabase
+        const { supabaseApi } = await import('./supabase');
+        const agentOrders = await supabaseApi.getOrdersByDeliveryAgent(agentUserId);
+        console.log(`📦 Agent ${agentUserId} specific orders:`, agentOrders.length);
+        
+        // Convert Supabase orders to the expected format
+        availableOrders = agentOrders.map(order => ({
+          orderId: order.order_id || order.id,
+          status: order.status,
+          customerAddress: {
+            name: order.customer_name,
+            address: order.delivery_address || order.customer_address,
+            phone: order.customer_phone,
+            coordinates: {
+              lat: order.delivery_latitude || 21.3099,
+              lng: order.delivery_longitude || 75.1178
+            }
+          },
+          items: order.items ? JSON.parse(order.items) : [],
+          total: order.total,
+          timestamp: order.created_at
+        }));
+      } else {
+        // Fallback to OrderService for general orders
+        const allOrders = OrderService.getAllOrders();
+        console.log('📦 DeliveryDataService - Total orders:', allOrders.length);
+        
+        // Get orders that admin changed to out_for_delivery status (not yet accepted by agent)
+        availableOrders = allOrders.filter(order => 
+          order.status === 'out_for_delivery' && !order.deliveryAgent
+        );
+      }
+      
       console.log('🚚 Available for delivery:', availableOrders.length, 'orders');
 
       // Convert orders to delivery tasks format
@@ -36,7 +63,7 @@ export class DeliveryDataService {
         orderValue: order.total,
         total_amount: order.total,
         estimatedEarning: Math.round(order.total * 0.15), // 15% commission
-        status: 'available',
+        status: order.status === 'pending' ? 'available' : 'accepted',
         timestamp: order.timestamp,
         distance: this.calculateDistance(
           agentLocation.lat, 
@@ -46,11 +73,11 @@ export class DeliveryDataService {
         ),
         agentLocation,
         debugInfo: {
-          totalOrders: allOrders.length,
-          outForDeliveryOrders: availableOrders.length,
+          agentUserId,
+          totalOrders: availableOrders.length,
           agentGPS: agentLocation,
           lastUpdate: new Date().toLocaleTimeString(),
-          allOrderStatuses: allOrders.map(o => ({ id: o.orderId, status: o.status }))
+          orderStatuses: availableOrders.map(o => ({ id: o.orderId, status: o.status }))
         }
       }));
 
