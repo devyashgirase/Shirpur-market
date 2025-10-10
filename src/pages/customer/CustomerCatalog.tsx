@@ -39,13 +39,14 @@ const CustomerCatalog = () => {
         console.log('CustomerCatalog: Number of products received:', customerProducts.length);
         const formattedProducts = customerProducts.map(p => {
           if (!p) return null;
+          const category = p.category || p.category_id || 'general';
           return {
             id: String(p.id || Date.now()),
             name: String(p.name || 'Unknown Product'),
             description: String(p.description || ''),
             price: parseFloat(p.price || 0),
             image_url: p.image_url || p.imageUrl || '/placeholder.svg',
-            category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+            category_id: String(category).toLowerCase().replace(/\s+/g, '-'),
             stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
             is_active: p.is_active !== undefined ? p.is_active : p.isActive,
             sku: `SKU${p.id || Date.now()}`,
@@ -62,7 +63,7 @@ const CustomerCatalog = () => {
         const categoryMap = new Map();
         formattedProducts.forEach(product => {
           if (product && product.category_id && !categoryMap.has(product.category_id)) {
-            const categoryName = String(product.category_id).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const categoryName = String(product.category_id || 'general').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             categoryMap.set(product.category_id, {
               id: product.category_id,
               name: categoryName,
@@ -85,13 +86,14 @@ const CustomerCatalog = () => {
     const handleProductUpdate = (updatedProducts: any[]) => {
       const formattedProducts = (updatedProducts || []).map(p => {
         if (!p) return null;
+        const category = p.category || p.category_id || 'general';
         return {
           id: String(p.id || Date.now()),
           name: String(p.name || 'Unknown Product'),
           description: String(p.description || ''),
           price: parseFloat(p.price || 0),
           image_url: p.image_url || p.imageUrl || '/placeholder.svg',
-          category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+          category_id: String(category).toLowerCase().replace(/\s+/g, '-'),
           stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
           is_active: p.is_active !== undefined ? p.is_active : p.isActive,
           sku: `SKU${p.id || Date.now()}`,
