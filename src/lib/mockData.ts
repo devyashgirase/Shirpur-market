@@ -49,7 +49,7 @@ export const getDynamicCategories = async () => {
     
     products.forEach(product => {
       if (product && product.category_id && !categoryMap.has(product.category_id)) {
-        const categoryName = String(product.category_id).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const categoryName = String(product.category_id || 'general').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         categoryMap.set(product.category_id, {
           id: product.category_id,
           name: categoryName,
