@@ -6,11 +6,13 @@ import { Package, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
 import { unifiedDB } from "@/lib/database";
 import { OrderService } from "@/lib/orderService";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadCustomerOrders();
@@ -155,6 +157,40 @@ const CustomerOrders = () => {
     navigate('/customer/track');
   };
 
+  const handleCancelOrder = async (order: any) => {
+    if (!confirm('Are you sure you want to cancel this order?')) {
+      return;
+    }
+
+    try {
+      const orderId = order.orderId || order.id;
+      
+      // Update order status to cancelled in Supabase
+      await unifiedDB.updateOrderStatus(parseInt(orderId), 'cancelled');
+      
+      // Update local orders
+      OrderService.updateOrderStatus(orderId, 'cancelled');
+      
+      // Refresh orders list
+      loadCustomerOrders();
+      
+      toast({
+        title: "Order Cancelled",
+        description: `Order #${orderId} has been cancelled successfully.`,
+      });
+      
+      // Trigger updates for admin panel
+      window.dispatchEvent(new CustomEvent('ordersUpdated'));
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+      toast({
+        title: "Cancellation Failed",
+        description: "Unable to cancel order. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
@@ -246,7 +282,12 @@ const CustomerOrders = () => {
                   </Button>
                 )}
                 {['pending', 'confirmed'].includes(order.status) && (
-                  <Button variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => handleCancelOrder(order)}
+                  >
                     Cancel Order
                   </Button>
                 )}
