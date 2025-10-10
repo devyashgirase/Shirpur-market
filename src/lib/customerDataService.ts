@@ -72,9 +72,9 @@ export class CustomerDataService {
   static async searchProducts(query: string): Promise<ApiProduct[]> {
     const products = await this.getAvailableProducts();
     return products.filter(product => 
-      product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.description.toLowerCase().includes(query.toLowerCase()) ||
-      product.category.toLowerCase().includes(query.toLowerCase())
+      String(product.name || '').toLowerCase().includes(query.toLowerCase()) ||
+      String(product.description || '').toLowerCase().includes(query.toLowerCase()) ||
+      String(product.category || '').toLowerCase().includes(query.toLowerCase())
     );
   }
 
@@ -82,7 +82,7 @@ export class CustomerDataService {
   static async getProductsByCategory(categoryId: string): Promise<ApiProduct[]> {
     const products = await this.getAvailableProducts();
     return products.filter(product => 
-      product.category.toLowerCase().replace(/\s+/g, '-') === categoryId
+      String(product.category || '').toLowerCase().replace(/\s+/g, '-') === categoryId
     );
   }
 

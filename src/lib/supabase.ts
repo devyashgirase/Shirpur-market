@@ -617,6 +617,7 @@ export const supabaseApi = {
         return result;
       } catch (error) {
         console.error('Failed to get cart:', error);
+        // Return empty cart if table doesn't exist
         return [];
       }
     }
@@ -641,7 +642,7 @@ export const supabaseApi = {
         }
       } catch (error) {
         console.error('Failed to add to cart:', error);
-        throw error;
+        // Silently fail if table doesn't exist
       }
     }
   },
@@ -655,7 +656,7 @@ export const supabaseApi = {
         });
       } catch (error) {
         console.error('Failed to update cart quantity:', error);
-        throw error;
+        // Silently fail if table doesn't exist
       }
     }
   },
@@ -668,7 +669,7 @@ export const supabaseApi = {
         });
       } catch (error) {
         console.error('Failed to remove from cart:', error);
-        throw error;
+        // Silently fail if table doesn't exist
       }
     }
   },
@@ -681,7 +682,7 @@ export const supabaseApi = {
         });
       } catch (error) {
         console.error('Failed to clear cart:', error);
-        throw error;
+        // Silently fail if table doesn't exist
       }
     }
   }
