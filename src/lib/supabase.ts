@@ -379,24 +379,34 @@ export const supabaseApi = {
   },
 
   async createDeliveryAgent(agent: any) {
-    // Permanent fix: Use direct SQL insert via Supabase RPC
     if (supabaseClient) {
       try {
-        // Create SQL insert statement
-        const sql = `INSERT INTO delivery_agents (userid, password, name, phone, email, vehicletype, licensenumber, isactive, isapproved) VALUES ('${agent.userId}', '${agent.password}', '${agent.name}', '${agent.phone}', ${agent.email ? `'${agent.email}'` : 'NULL'}, '${agent.vehicleType}', '${agent.licenseNumber}', true, true) RETURNING *`;
+        // Map agent data to match Supabase table schema (lowercase columns)
+        const agentData = {
+          userid: agent.userId,
+          password: agent.password,
+          name: agent.name,
+          phone: agent.phone,
+          email: agent.email || null,
+          vehicletype: agent.vehicleType,
+          licensenumber: agent.licenseNumber,
+          isactive: true,
+          isapproved: true,
+          createdat: new Date().toISOString()
+        };
         
-        console.log('📦 Direct SQL insert:', sql);
+        console.log('📦 Inserting agent data:', agentData);
         
-        // Use Supabase RPC to execute raw SQL
-        const result = await supabaseClient.request('rpc/execute_sql', {
+        // Use proper REST API insert
+        const result = await supabaseClient.request('delivery_agents', {
           method: 'POST',
-          body: JSON.stringify({ sql })
+          body: JSON.stringify(agentData)
         });
         
-        console.log('✅ SQL insert successful:', result);
-        return { id: Date.now(), ...agent };
-      } catch (sqlError) {
-        console.warn('⚠️ SQL insert failed, using fallback:', sqlError);
+        console.log('✅ Agent saved to Supabase:', result);
+        return result[0] || { id: Date.now(), ...agent };
+      } catch (supabaseError) {
+        console.warn('⚠️ Supabase insert failed:', supabaseError);
         
         // Fallback: Store in localStorage and return success
         const agentWithId = { id: Date.now(), ...agent };
