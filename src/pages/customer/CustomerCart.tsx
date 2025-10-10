@@ -211,8 +211,8 @@ const CustomerCart = () => {
         });
       },
       modal: {
-        ondismiss: async function() {
-          await handlePaymentFailure();
+        ondismiss: function() {
+          handlePaymentFailure();
         }
       },
       prefill: {
