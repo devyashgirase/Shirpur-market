@@ -672,5 +672,43 @@ export const supabaseApi = {
 
 export const isSupabaseConfigured = !!supabaseClient;
 
+// Test function for debugging
+export const testDeliveryAgentInsert = async () => {
+  console.log('🧪 Testing delivery agent insert...');
+  
+  const testAgent = {
+    userId: 'TEST123',
+    password: 'test123',
+    name: 'Test Agent',
+    phone: '9999999999',
+    email: 'test@test.com',
+    vehicleType: 'Bike',
+    licenseNumber: 'TEST123',
+    isActive: true,
+    isApproved: true
+  };
+  
+  try {
+    const result = await supabaseApi.createDeliveryAgent(testAgent);
+    console.log('✅ Test insert successful:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Test insert failed:', error);
+    throw error;
+  }
+};
+
+// Make it available globally for testing
+if (typeof window !== 'undefined') {
+  (window as any).testDeliveryAgentInsert = testDeliveryAgentInsert;
+}
+
 console.log(`🔗 Database: ${supabaseClient ? 'Supabase Connected' : 'Mock Mode'}`);
 console.log(`📊 Config: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
+
+// Test Supabase connection on load
+if (supabaseClient) {
+  supabaseClient.request('delivery_agents?select=count&limit=1')
+    .then(() => console.log('✅ Supabase connection test successful'))
+    .catch(err => console.error('❌ Supabase connection test failed:', err));
+}
