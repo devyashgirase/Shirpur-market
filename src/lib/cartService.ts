@@ -1,4 +1,4 @@
-import { apiService } from './apiService';
+import { DatabaseService } from './databaseService';
 import { authService } from './authService';
 
 export interface CartItem {
@@ -29,9 +29,9 @@ class CartService {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return [];
 
-      // Fallback to localStorage when API is unavailable
-      const localCart = localStorage.getItem(`cart_${userPhone}`);
-      return localCart ? JSON.parse(localCart) : [];
+      // Get cart from Supabase
+      const cartData = await DatabaseService.getCart(userPhone);
+      return cartData || [];
     } catch (error) {
       console.error('Failed to get cart items:', error);
       return [];
@@ -43,33 +43,8 @@ class CartService {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return false;
 
-      // Fallback to localStorage when API is unavailable
-      const cartKey = `cart_${userPhone}`;
-      const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-      const existingItem = cart.find((item: any) => item.product.id === productId);
-      
-      if (existingItem) {
-        existingItem.quantity += quantity;
-      } else {
-        // Get product details from API service (which has mock fallback)
-        const products = await apiService.getProducts();
-        const product = products.find(p => p.id.toString() === productId);
-        if (product) {
-          cart.push({
-            id: Date.now(),
-            product: {
-              id: productId,
-              name: String(product.name || 'Unknown Product'),
-              price: Number(product.price || 0),
-              image_url: product.imageUrl || '/placeholder.svg',
-              stock_qty: Number(product.stockQuantity || 0)
-            },
-            quantity
-          });
-        }
-      }
-      
-      localStorage.setItem(cartKey, JSON.stringify(cart));
+      // Add to Supabase cart
+      await DatabaseService.addToCart(userPhone, productId, quantity);
       return true;
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -86,16 +61,8 @@ class CartService {
         return await this.removeFromCart(productId);
       }
 
-      // Fallback to localStorage when API is unavailable
-      const cartKey = `cart_${userPhone}`;
-      const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-      const item = cart.find((item: any) => item.product.id === productId);
-      
-      if (item) {
-        item.quantity = quantity;
-        localStorage.setItem(cartKey, JSON.stringify(cart));
-      }
-      
+      // Update in Supabase cart
+      await DatabaseService.updateCartQuantity(userPhone, productId, quantity);
       return true;
     } catch (error) {
       console.error('Failed to update cart quantity:', error);
@@ -108,11 +75,8 @@ class CartService {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return false;
 
-      // Fallback to localStorage when API is unavailable
-      const cartKey = `cart_${userPhone}`;
-      const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-      const updatedCart = cart.filter((item: any) => item.product.id !== productId);
-      localStorage.setItem(cartKey, JSON.stringify(updatedCart));
+      // Remove from Supabase cart
+      await DatabaseService.removeFromCart(userPhone, productId);
       return true;
     } catch (error) {
       console.error('Failed to remove from cart:', error);
@@ -125,8 +89,8 @@ class CartService {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return false;
 
-      // Fallback to localStorage when API is unavailable
-      localStorage.removeItem(`cart_${userPhone}`);
+      // Clear Supabase cart
+      await DatabaseService.clearCart(userPhone);
       return true;
     } catch (error) {
       console.error('Failed to clear cart:', error);

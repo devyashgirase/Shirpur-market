@@ -78,29 +78,28 @@ const CustomerCart = () => {
   const handleAddressSubmit = (addressData: AddressData) => {
     setCustomerAddress(addressData);
     
-    // Create pending order
+    // Create pending order in Supabase
     const pendingOrder = {
-      id: Date.now().toString(),
-      orderId: `ORD-${Date.now()}`,
-      items: cart.map(item => ({
-        name: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price
-      })),
-      total: getTotalAmount(),
-      createdAt: new Date().toISOString()
+      order_id: `ORD-${Date.now()}`,
+      customer_name: addressData.name,
+      customer_phone: addressData.phone,
+      delivery_address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+      items: JSON.stringify(cart.map(item => ({
+        product_id: parseInt(item.product.id),
+        product_name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity
+      }))),
+      total_amount: getTotalAmount(),
+      status: 'pending',
+      payment_status: 'pending',
+      created_at: new Date().toISOString()
     };
     
-    // Save to pending orders
-    const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
-    pendingOrders.push(pendingOrder);
-    localStorage.setItem('pendingPaymentOrders', JSON.stringify(pendingOrders));
+    // Save pending order to Supabase
+    await DatabaseService.createOrder(pendingOrder);
     
-    // Store customer phone for notifications
-    localStorage.setItem('customerPhone', addressData.phone);
-    
-    // Store address in localStorage for delivery tracking
-    localStorage.setItem('customerAddress', JSON.stringify(addressData));
+
     
     // Proceed with payment
     toast({
@@ -199,10 +198,7 @@ const CustomerCart = () => {
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-        // Remove from pending orders
-        const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
-        const updatedOrders = pendingOrders.filter((order: any) => order.orderId !== pendingOrder.orderId);
-        localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
+
         
         // Show success immediately
         setShowAddressForm(false);
@@ -393,13 +389,7 @@ const CustomerCart = () => {
       setCart([]);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
       
-      // Also clear from OrderService
-      await OrderService.clearCartAfterOrder(customerAddress.phone);
-      
-      // Remove from pending orders if exists
-      const pendingOrders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
-      const updatedOrders = pendingOrders.filter((order: any) => order.id !== Date.now().toString());
-      localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
+
       
       // Trigger admin panel updates
       window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));

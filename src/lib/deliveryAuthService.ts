@@ -22,30 +22,32 @@ class DeliveryAuthService {
     this.initializeDefaultAgent();
   }
 
-  // Initialize default delivery agent for testing
-  private initializeDefaultAgent() {
-    const defaultAgent: DeliveryAgent = {
-      id: 1,
-      userId: "DA123456",
-      password: "delivery123",
-      name: "John Doe",
-      phone: "9876543210",
-      email: "john@delivery.com",
-      vehicleType: "Bike",
-      licenseNumber: "MH123456",
-      isActive: true,
-      isApproved: true,
-      createdAt: new Date().toISOString()
-    };
-
-    // Check if default agent exists
-    const existingAgents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
-    const hasDefaultAgent = existingAgents.some((agent: DeliveryAgent) => agent.userId === 'DA123456');
-    
-    if (!hasDefaultAgent) {
-      existingAgents.push(defaultAgent);
-      localStorage.setItem('deliveryAgents', JSON.stringify(existingAgents));
-      console.log('✅ Default delivery agent created: DA123456 / delivery123');
+  // Initialize default delivery agent in Supabase
+  private async initializeDefaultAgent() {
+    try {
+      const agents = await supabaseApi.getDeliveryAgents();
+      const hasDefaultAgent = agents.some((agent: DeliveryAgent) => agent.userId === 'DA123456');
+      
+      if (!hasDefaultAgent) {
+        const defaultAgent: DeliveryAgent = {
+          id: 1,
+          userId: "DA123456",
+          password: "delivery123",
+          name: "John Doe",
+          phone: "9876543210",
+          email: "john@delivery.com",
+          vehicleType: "Bike",
+          licenseNumber: "MH123456",
+          isActive: true,
+          isApproved: true,
+          createdAt: new Date().toISOString()
+        };
+        
+        await supabaseApi.createDeliveryAgent(defaultAgent);
+        console.log('✅ Default delivery agent created in Supabase: DA123456 / delivery123');
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize default agent in Supabase:', error);
     }
   }
 
@@ -67,20 +69,9 @@ class DeliveryAuthService {
       
       let agent;
       
-      try {
-        // Try to save to Supabase first
-        agent = await supabaseApi.createDeliveryAgent(newAgent);
-        console.log('✅ Agent saved to Supabase');
-      } catch (dbError) {
-        console.warn('⚠️ Supabase failed, saving locally:', dbError);
-        
-        // Fallback to localStorage
-        const existingAgents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
-        existingAgents.push(newAgent);
-        localStorage.setItem('deliveryAgents', JSON.stringify(existingAgents));
-        agent = newAgent;
-        console.log('✅ Agent saved to localStorage');
-      }
+      // Save to Supabase only
+      agent = await supabaseApi.createDeliveryAgent(newAgent);
+      console.log('✅ Agent saved to Supabase');
       
       // Send SMS with credentials
       await this.sendCredentialsSMS(agentData.phone, agentData.name, userId, password);
@@ -112,45 +103,34 @@ class DeliveryAuthService {
     }
   }
 
-  // Agent login
+  // Agent login - Supabase only
   async login(userId: string, password: string): Promise<boolean> {
-    // Ensure default agent exists
-    this.initializeDefaultAgent();
-    
     try {
       console.log('🔐 Attempting login for:', userId);
       
-      // Always check localStorage first for faster response
-      let agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
-      console.log('📦 Found agents in localStorage:', agents.length);
+      // Get agents from Supabase
+      const agents = await supabaseApi.getDeliveryAgents();
+      console.log('📦 Found agents in Supabase:', agents.length);
       
-      // If no local agents, try Supabase
-      if (agents.length === 0) {
-        try {
-          console.log('🌐 Trying Supabase...');
-          agents = await supabaseApi.getDeliveryAgents();
-          console.log('✅ Supabase agents:', agents.length);
-        } catch (error) {
-          console.warn('⚠️ Supabase failed:', error);
-          // Re-initialize default agent if needed
-          this.initializeDefaultAgent();
-          agents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
-        }
-      }
-      
-      console.log('🔍 Searching for agent with userId:', userId);
-      const agent = agents.find(a => {
-        console.log('Checking agent:', a.userId, 'password match:', a.password === password, 'active:', a.isActive, 'approved:', a.isApproved);
-        return a.userId === userId && 
-               a.password === password && 
-               a.isActive && 
-               a.isApproved;
-      });
+      const agent = agents.find(a => 
+        a.userId === userId && 
+        a.password === password && 
+        a.isActive && 
+        a.isApproved
+      );
 
       if (agent) {
         console.log('✅ Login successful for:', agent.name);
         this.currentAgent = agent;
-        localStorage.setItem('deliveryAgent', JSON.stringify(agent));
+        
+        // Create session in Supabase
+        await supabaseApi.createDeliverySession({
+          agent_id: agent.id,
+          user_id: agent.userId,
+          login_time: new Date().toISOString(),
+          is_active: true
+        });
+        
         return true;
       } else {
         console.log('❌ No matching agent found');
@@ -162,27 +142,41 @@ class DeliveryAuthService {
     }
   }
 
-  // Get current logged in agent
-  getCurrentAgent(): DeliveryAgent | null {
+  // Get current logged in agent from Supabase session
+  async getCurrentAgent(): Promise<DeliveryAgent | null> {
     if (this.currentAgent) return this.currentAgent;
     
-    const stored = localStorage.getItem('deliveryAgent');
-    if (stored) {
-      this.currentAgent = JSON.parse(stored);
-      return this.currentAgent;
+    try {
+      const session = await supabaseApi.getActiveDeliverySession();
+      if (session) {
+        const agents = await supabaseApi.getDeliveryAgents();
+        this.currentAgent = agents.find(a => a.id === session.agent_id) || null;
+        return this.currentAgent;
+      }
+    } catch (error) {
+      console.error('Failed to get current agent:', error);
     }
     return null;
   }
 
-  // Check if agent is authenticated
-  isAuthenticated(): boolean {
-    return !!this.getCurrentAgent();
+  // Check if agent is authenticated via Supabase session
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const session = await supabaseApi.getActiveDeliverySession();
+      return !!session;
+    } catch (error) {
+      return false;
+    }
   }
 
-  // Logout
-  logout(): void {
-    this.currentAgent = null;
-    localStorage.removeItem('deliveryAgent');
+  // Logout - end Supabase session
+  async logout(): Promise<void> {
+    try {
+      await supabaseApi.endDeliverySession();
+      this.currentAgent = null;
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
   }
 
   // Admin approves agent
@@ -196,22 +190,9 @@ class DeliveryAuthService {
     }
   }
 
-  // Admin gets all agents for approval
+  // Admin gets all agents from Supabase
   async getAllAgents(): Promise<DeliveryAgent[]> {
-    try {
-      // Try Supabase first
-      const supabaseAgents = await supabaseApi.getDeliveryAgents();
-      if (supabaseAgents.length > 0) {
-        return supabaseAgents;
-      }
-    } catch (error) {
-      console.warn('Supabase agents failed:', error);
-    }
-    
-    // Fallback to localStorage
-    const localAgents = JSON.parse(localStorage.getItem('deliveryAgents') || '[]');
-    console.log('Using local agents:', localAgents.length);
-    return localAgents;
+    return await supabaseApi.getDeliveryAgents();
   }
 }
 

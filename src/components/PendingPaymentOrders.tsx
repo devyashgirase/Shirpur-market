@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, CreditCard, X } from "lucide-react";
+import { DatabaseService } from "@/lib/databaseService";
+import { authService } from "@/lib/authService";
 
 interface PendingOrder {
   id: string;
@@ -25,9 +27,29 @@ const PendingPaymentOrders = ({ onPayNow, onRemove }: PendingPaymentOrdersProps)
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
 
   useEffect(() => {
-    const loadPendingOrders = () => {
-      const orders = JSON.parse(localStorage.getItem('pendingPaymentOrders') || '[]');
-      setPendingOrders(orders);
+    const loadPendingOrders = async () => {
+      try {
+        const user = authService.getCurrentUser();
+        if (!user?.phone) return;
+        
+        const orders = await DatabaseService.getOrders();
+        const userPendingOrders = orders
+          .filter(order => 
+            order.customer_phone === user.phone && 
+            order.payment_status === 'pending'
+          )
+          .map(order => ({
+            id: order.id?.toString() || order.order_id,
+            orderId: order.order_id,
+            items: JSON.parse(order.items || '[]'),
+            total: order.total_amount || order.total,
+            createdAt: order.created_at || order.createdAt
+          }));
+        
+        setPendingOrders(userPendingOrders);
+      } catch (error) {
+        console.error('Failed to load pending orders:', error);
+      }
     };
 
     loadPendingOrders();
@@ -35,11 +57,15 @@ const PendingPaymentOrders = ({ onPayNow, onRemove }: PendingPaymentOrdersProps)
     return () => clearInterval(interval);
   }, []);
 
-  const handleRemoveOrder = (orderId: string) => {
-    const updatedOrders = pendingOrders.filter(order => order.orderId !== orderId);
-    localStorage.setItem('pendingPaymentOrders', JSON.stringify(updatedOrders));
-    setPendingOrders(updatedOrders);
-    onRemove(orderId);
+  const handleRemoveOrder = async (orderId: string) => {
+    try {
+      await DatabaseService.updateOrderStatus(orderId, 'cancelled');
+      const updatedOrders = pendingOrders.filter(order => order.orderId !== orderId);
+      setPendingOrders(updatedOrders);
+      onRemove(orderId);
+    } catch (error) {
+      console.error('Failed to remove order:', error);
+    }
   };
 
   if (pendingOrders.length === 0) return null;

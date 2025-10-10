@@ -437,6 +437,151 @@ export const supabaseApi = {
       }
     }
     return { id: orderId, paymentStatus };
+  },
+
+  async createDeliverySession(session: any) {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request('delivery_sessions', {
+          method: 'POST',
+          body: JSON.stringify(session)
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to create delivery session:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
+  },
+
+  async getActiveDeliverySession() {
+    if (supabaseClient) {
+      try {
+        const data = await supabaseClient.request('delivery_sessions?select=*&is_active=eq.true&order=login_time.desc&limit=1');
+        return data[0] || null;
+      } catch (error) {
+        console.error('Failed to get active delivery session:', error);
+        return null;
+      }
+    }
+    return null;
+  },
+
+  async endDeliverySession() {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request('delivery_sessions?is_active=eq.true', {
+          method: 'PATCH',
+          body: JSON.stringify({ 
+            is_active: false,
+            logout_time: new Date().toISOString()
+          })
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to end delivery session:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
+  },
+
+  async getCart(userPhone) {
+    if (supabaseClient) {
+      try {
+        const cartItems = await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&select=*`);
+        const result = [];
+        
+        for (const item of cartItems) {
+          const products = await supabaseClient.request(`products?id=eq.${item.product_id}&select=*`);
+          const product = products[0];
+          
+          if (product) {
+            result.push({
+              id: item.id,
+              product: {
+                id: item.product_id.toString(),
+                name: product.name,
+                price: product.price,
+                image_url: product.imageUrl || '/placeholder.svg',
+                stock_qty: product.stockQuantity
+              },
+              quantity: item.quantity
+            });
+          }
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('Failed to get cart:', error);
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async addToCart(userPhone, productId, quantity) {
+    if (supabaseClient) {
+      try {
+        const existing = await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}&select=*`);
+        
+        if (existing.length > 0) {
+          await supabaseClient.request(`cart_items?id=eq.${existing[0].id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ quantity: existing[0].quantity + quantity })
+          });
+        } else {
+          await supabaseClient.request('cart_items', {
+            method: 'POST',
+            body: JSON.stringify({ user_phone: userPhone, product_id: parseInt(productId), quantity })
+          });
+        }
+      } catch (error) {
+        console.error('Failed to add to cart:', error);
+        throw error;
+      }
+    }
+  },
+
+  async updateCartQuantity(userPhone, productId, quantity) {
+    if (supabaseClient) {
+      try {
+        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ quantity })
+        });
+      } catch (error) {
+        console.error('Failed to update cart quantity:', error);
+        throw error;
+      }
+    }
+  },
+
+  async removeFromCart(userPhone, productId) {
+    if (supabaseClient) {
+      try {
+        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        console.error('Failed to remove from cart:', error);
+        throw error;
+      }
+    }
+  },
+
+  async clearCart(userPhone) {
+    if (supabaseClient) {
+      try {
+        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}`, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        console.error('Failed to clear cart:', error);
+        throw error;
+      }
+    }
   }
 };
 

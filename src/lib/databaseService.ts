@@ -145,6 +145,37 @@ export class DatabaseService {
     return apiService.updateAgentAvailability(phone, isAvailable);
   }
 
+  static async getCart(userPhone: string) {
+    if (isSupabaseEnabled()) {
+      return SupabaseService.getCart(userPhone);
+    }
+    return [];
+  }
+
+  static async addToCart(userPhone: string, productId: string, quantity: number) {
+    if (isSupabaseEnabled()) {
+      return SupabaseService.addToCart(userPhone, productId, quantity);
+    }
+  }
+
+  static async updateCartQuantity(userPhone: string, productId: string, quantity: number) {
+    if (isSupabaseEnabled()) {
+      return SupabaseService.updateCartQuantity(userPhone, productId, quantity);
+    }
+  }
+
+  static async removeFromCart(userPhone: string, productId: string) {
+    if (isSupabaseEnabled()) {
+      return SupabaseService.removeFromCart(userPhone, productId);
+    }
+  }
+
+  static async clearCart(userPhone: string) {
+    if (isSupabaseEnabled()) {
+      return SupabaseService.clearCart(userPhone);
+    }
+  }
+
   static getConnectionType() {
     return isSupabaseEnabled() ? 'Supabase' : 'MySQL';
   }
