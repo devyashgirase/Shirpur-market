@@ -152,44 +152,41 @@ const AdminOrders = () => {
       
       // Status update successful
         
-        // Create delivery notification for nearby agents when status is packing
-        if (newStatus === 'packing') {
-          const orderData = OrderService.getOrderById(orderId);
-          if (orderData) {
-            console.log('📦 Creating delivery notification for packing status');
-            OrderService.createDeliveryNotification(orderData);
-            NotificationService.sendDeliveryRequestNotification(
-              orderId, 
-              orderData.customerAddress.address, 
-              orderData.total
-            );
-            
-            // Trigger delivery agent refresh
-            window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', { detail: orderData }));
-            window.dispatchEvent(new CustomEvent('ordersUpdated'));
-          }
+      // Create delivery notification for nearby agents when status is packing
+      if (newStatus === 'packing') {
+        const orderData = OrderService.getOrderById(orderId);
+        if (orderData) {
+          console.log('📦 Creating delivery notification for packing status');
+          OrderService.createDeliveryNotification(orderData);
+          NotificationService.sendDeliveryRequestNotification(
+            orderId, 
+            orderData.customerAddress.address, 
+            orderData.total
+          );
+          
+          // Trigger delivery agent refresh
+          window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', { detail: orderData }));
+          window.dispatchEvent(new CustomEvent('ordersUpdated'));
         }
-        
-        // Trigger order status change event for delivery agents
-        if (newStatus === 'out_for_delivery') {
-          window.dispatchEvent(new CustomEvent('orderStatusChanged', {
-            detail: { orderId, status: newStatus }
-          }));
-        }
-        
-        toast({
-          title: "Status Updated Successfully",
-          description: `Order ${orderId} is now ${newStatus.replace('_', ' ')}`,
-        });
-        
-        // Reload orders to reflect changes
-        await loadOrders();
-        
-        // Send admin notification
-        NotificationService.sendOrderStatusNotification(orderId, newStatus, 'admin');
-      } else {
-        throw new Error('OrderService.updateOrderStatus returned false');
       }
+      
+      // Trigger order status change event for delivery agents
+      if (newStatus === 'out_for_delivery') {
+        window.dispatchEvent(new CustomEvent('orderStatusChanged', {
+          detail: { orderId, status: newStatus }
+        }));
+      }
+      
+      toast({
+        title: "Status Updated Successfully",
+        description: `Order ${orderId} is now ${newStatus.replace('_', ' ')}`,
+      });
+      
+      // Reload orders to reflect changes
+      await loadOrders();
+      
+      // Send admin notification
+      NotificationService.sendOrderStatusNotification(orderId, newStatus, 'admin');
     } catch (error) {
       console.error('❌ Failed to update order status:', error);
       toast({
