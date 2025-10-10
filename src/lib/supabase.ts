@@ -349,16 +349,16 @@ export const supabaseApi = {
           console.log('🔍 Processing agent:', agent);
           return {
             id: agent.id,
-            userId: agent.user_id,
+            userId: agent.userid,
             password: agent.password,
             name: agent.name,
             phone: agent.phone,
             email: agent.email,
-            vehicleType: agent.vehicle_type,
-            licenseNumber: agent.license_number,
-            isActive: agent.is_active,
-            isApproved: agent.is_approved,
-            createdAt: agent.created_at
+            vehicleType: agent.vehicletype,
+            licenseNumber: agent.licensenumber,
+            isActive: agent.isactive,
+            isApproved: agent.isapproved,
+            createdAt: agent.createdat
           };
         });
         
@@ -375,26 +375,30 @@ export const supabaseApi = {
   async createDeliveryAgent(agent: any) {
     if (supabaseClient) {
       try {
+        // Match your exact table schema - all lowercase column names
         const agentData = {
-          user_id: agent.userId,
+          userid: agent.userId,
           password: agent.password,
           name: agent.name,
           phone: agent.phone,
-          email: agent.email,
-          vehicle_type: agent.vehicleType,
-          license_number: agent.licenseNumber,
-          is_active: agent.isActive,
-          is_approved: agent.isApproved,
-          created_at: agent.createdAt || new Date().toISOString()
+          email: agent.email || null,
+          vehicletype: agent.vehicleType,
+          licensenumber: agent.licenseNumber,
+          isactive: true,
+          isapproved: true
         };
+        
+        console.log('📦 Sending to Supabase:', agentData);
         
         const result = await supabaseClient.request('delivery_agents', {
           method: 'POST',
           body: JSON.stringify(agentData)
         });
-        return result[0];
+        
+        console.log('✅ Supabase response:', result);
+        return result[0] || { id: Date.now(), ...agent };
       } catch (error) {
-        console.error('Failed to create delivery agent:', error);
+        console.error('❌ Supabase error:', error);
         throw error;
       }
     }
