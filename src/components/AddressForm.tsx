@@ -18,6 +18,8 @@ export interface AddressData {
   phone: string;
   address: string;
   landmark?: string;
+  city?: string;
+  state?: string;
   pincode: string;
   coordinates?: { lat: number; lng: number };
 }
@@ -29,6 +31,8 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
     phone: '',
     address: '',
     landmark: '',
+    city: '',
+    state: '',
     pincode: '',
   });
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -64,10 +68,14 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
         
         const formattedAddress = addressParts.length > 0 ? addressParts.join(', ') : data.display_name;
         const pincode = data.address?.postcode || '';
+        const city = data.address?.city || data.address?.town || data.address?.village || '';
+        const state = data.address?.state || '';
         
         setFormData(prev => ({
           ...prev,
           address: formattedAddress,
+          city: city,
+          state: state,
           pincode: pincode
         }));
       }
@@ -247,6 +255,30 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
               className="text-sm md:text-base"
               required
             />
+          </div>
+
+          {/* City & State */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div>
+              <Label htmlFor="city" className="text-sm">City</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                placeholder="Your city"
+                className="text-sm md:text-base"
+              />
+            </div>
+            <div>
+              <Label htmlFor="state" className="text-sm">State</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                placeholder="Your state"
+                className="text-sm md:text-base"
+              />
+            </div>
           </div>
 
           {/* Landmark & Pincode */}

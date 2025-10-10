@@ -83,7 +83,7 @@ const CustomerCart = () => {
       order_id: `ORD-${Date.now()}`,
       customer_name: addressData.name,
       customer_phone: addressData.phone,
-      delivery_address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+      delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
       items: JSON.stringify(cart.map(item => ({
         product_id: parseInt(item.product.id),
         product_name: item.product.name,
@@ -124,7 +124,7 @@ const CustomerCart = () => {
           {
             name: addressData.name,
             phone: addressData.phone,
-            address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
             coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
           },
           cart,
@@ -165,7 +165,7 @@ const CustomerCart = () => {
           {
             name: addressData.name,
             phone: addressData.phone,
-            address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
             coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
           },
           cart,
@@ -179,7 +179,7 @@ const CustomerCart = () => {
             order_id: orderId,
             customer_name: addressData.name,
             customer_phone: addressData.phone,
-            delivery_address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
             items: JSON.stringify(cart.map(item => ({
               product_id: parseInt(item.product.id),
               product_name: item.product.name,
@@ -248,7 +248,7 @@ const CustomerCart = () => {
           {
             name: addressData.name,
             phone: addressData.phone,
-            address: `${addressData.address}, ${addressData.city}, ${addressData.state} - ${addressData.pincode}`,
+            address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
             coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
           },
           cart,
@@ -280,7 +280,7 @@ const CustomerCart = () => {
         order_id: orderId,
         customer_name: customerAddress.name,
         customer_phone: customerAddress.phone,
-        delivery_address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+        delivery_address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
         items: JSON.stringify(cart.map(item => ({
           product_id: parseInt(item.product.id),
           product_name: item.product.name,
@@ -298,7 +298,7 @@ const CustomerCart = () => {
         {
           name: customerAddress.name,
           phone: customerAddress.phone,
-          address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
           coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
         },
         cart,
@@ -338,7 +338,7 @@ const CustomerCart = () => {
         {
           name: customerAddress.name,
           phone: customerAddress.phone,
-          address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
           coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
         },
         cart,
@@ -355,7 +355,7 @@ const CustomerCart = () => {
           order_id: orderId,
           customer_name: customerAddress.name,
           customer_phone: customerAddress.phone,
-          delivery_address: `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.state} - ${customerAddress.pincode}`,
+          delivery_address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
           items: JSON.stringify(cart.map(item => ({
             product_id: parseInt(item.product.id),
             product_name: item.product.name,
