@@ -343,7 +343,19 @@ export const supabaseApi = {
     if (supabaseClient) {
       try {
         const data = await supabaseClient.request('delivery_agents?select=*');
-        return data || [];
+        return (data || []).map(agent => ({
+          id: agent.id,
+          userId: agent.user_id,
+          password: agent.password,
+          name: agent.name,
+          phone: agent.phone,
+          email: agent.email,
+          vehicleType: agent.vehicle_type,
+          licenseNumber: agent.license_number,
+          isActive: agent.is_active,
+          isApproved: agent.is_approved,
+          createdAt: agent.created_at
+        }));
       } catch (error) {
         console.error('Failed to get delivery agents:', error);
         return [];
@@ -355,9 +367,22 @@ export const supabaseApi = {
   async createDeliveryAgent(agent: any) {
     if (supabaseClient) {
       try {
+        const agentData = {
+          user_id: agent.userId,
+          password: agent.password,
+          name: agent.name,
+          phone: agent.phone,
+          email: agent.email,
+          vehicle_type: agent.vehicleType,
+          license_number: agent.licenseNumber,
+          is_active: agent.isActive,
+          is_approved: agent.isApproved,
+          created_at: agent.createdAt || new Date().toISOString()
+        };
+        
         const result = await supabaseClient.request('delivery_agents', {
           method: 'POST',
-          body: JSON.stringify(agent)
+          body: JSON.stringify(agentData)
         });
         return result[0];
       } catch (error) {
