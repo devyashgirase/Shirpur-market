@@ -236,11 +236,6 @@ const CustomerCart = () => {
       });
       
       setTimeout(async () => {
-        // Clear cart in development mode
-        await cartService.clearCart();
-        setCart([]);
-        window.dispatchEvent(new CustomEvent('cartUpdated'));
-        
         const paymentId = 'dev_payment_' + Date.now();
         
         // Create order immediately
@@ -256,10 +251,32 @@ const CustomerCart = () => {
           paymentId
         );
         
-        // Show success
-        setShowAddressForm(false);
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
+        // Store order for tracking
+        const orderForTracking = {
+          orderId,
+          customerName: addressData.name,
+          customerPhone: addressData.phone,
+          deliveryAddress: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+          total: getTotalAmount(),
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          createdAt: new Date().toISOString(),
+          items: cart
+        };
+        
+        localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
+        
+        // Clear cart after storing order
+        await cartService.clearCart();
+        setCart([]);
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
+        // Show success with slight delay to ensure cart is cleared
+        setTimeout(() => {
+          setShowAddressForm(false);
+          setLastOrderId(orderId);
+          setShowSuccessModal(true);
+        }, 100);
         
         toast({
           title: "Order Placed Successfully!",
@@ -389,17 +406,32 @@ const CustomerCart = () => {
       setCart([]);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
       
-
-      
       // Trigger admin panel updates
       window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));
       window.dispatchEvent(new CustomEvent('ordersUpdated'));
       window.dispatchEvent(new CustomEvent('inventoryUpdated'));
       
-      // Close address form and show success
-      setShowAddressForm(false);
-      setLastOrderId(orderId);
-      setShowSuccessModal(true);
+      // Store order for tracking and redirect
+      const orderForTracking = {
+        orderId,
+        customerName: customerAddress.name,
+        customerPhone: customerAddress.phone,
+        deliveryAddress: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
+        total: getTotalAmount(),
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        createdAt: new Date().toISOString(),
+        items: cart
+      };
+      
+      localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
+      
+      // Close address form and show success with slight delay
+      setTimeout(() => {
+        setShowAddressForm(false);
+        setLastOrderId(orderId);
+        setShowSuccessModal(true);
+      }, 100);
       
       toast({
         title: "Order Placed Successfully!",
