@@ -48,7 +48,7 @@ class CartService {
     }
   }
 
-  async addToCart(productId: string, quantity: number = 1): Promise<boolean> {
+  async addToCart(productId: string, quantity: number = 1, productData?: any): Promise<boolean> {
     try {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return false;
@@ -67,15 +67,26 @@ class CartService {
       if (existingItem) {
         existingItem.quantity += quantity;
       } else {
-        // Get product details (you'll need to implement this)
+        // Use provided product data or get from products
+        let productInfo = productData;
+        if (!productInfo) {
+          try {
+            const { CustomerDataService } = await import('./customerDataService');
+            const products = await CustomerDataService.getAvailableProducts();
+            productInfo = products.find(p => String(p.id) === String(productId));
+          } catch (error) {
+            console.warn('Could not fetch product details:', error);
+          }
+        }
+        
         const newItem: CartItem = {
           id: Date.now(),
           product: {
             id: productId,
-            name: `Product ${productId}`,
-            price: 0, // Will be updated from product data
-            image_url: '/placeholder.svg',
-            stock_qty: 100
+            name: productInfo?.name || `Product ${productId}`,
+            price: productInfo?.price || 0,
+            image_url: productInfo?.image_url || productInfo?.imageUrl || '/placeholder.svg',
+            stock_qty: productInfo?.stock_quantity || productInfo?.stockQuantity || 100
           },
           quantity
         };

@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselDots } from "@/components/ui/carousel";
 import { Plus, Minus, ShoppingCart, Package, Star, Heart, Zap, TrendingUp } from "lucide-react";
-import { addToCart, type Product } from "@/lib/mockData";
+import { type Product } from "@/lib/mockData";
+import { cartService } from "@/lib/cartService";
 import { CustomerDataService } from "@/lib/customerDataService";
 import { useToast } from "@/hooks/use-toast";
 import { sweetAlert } from "@/components/ui/sweet-alert";
@@ -130,7 +131,7 @@ const CustomerCatalog = () => {
   const handleAddToCart = async (product: Product) => {
     if (product.stock_qty > 0) {
       try {
-        const success = await addToCart(product, 1);
+        const success = await cartService.addToCart(product.id, 1, product);
         
         if (success) {
           sweetAlert.success(
@@ -152,6 +153,11 @@ const CustomerCatalog = () => {
           "Failed to add item to cart. Please try again."
         );
       }
+    } else {
+      sweetAlert.warning(
+        "Out of Stock!",
+        `${product.name} is currently out of stock.`
+      );
     }
   };
 
