@@ -33,6 +33,8 @@ class CartService {
       try {
         const cartData = await DatabaseService.getCart(userPhone);
         if (cartData && cartData.length > 0) {
+          // Also sync to localStorage
+          localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cartData));
           return cartData;
         }
       } catch (dbError) {
@@ -41,7 +43,9 @@ class CartService {
 
       // Fallback to localStorage
       const localCart = localStorage.getItem(`cart_${userPhone}`);
-      return localCart ? JSON.parse(localCart) : [];
+      const cartItems = localCart ? JSON.parse(localCart) : [];
+      console.log('Cart items from localStorage:', cartItems);
+      return cartItems;
     } catch (error) {
       console.error('Failed to get cart items:', error);
       return [];
@@ -111,7 +115,22 @@ class CartService {
       }
 
       // Update in Supabase cart
-      await DatabaseService.updateCartQuantity(userPhone, productId, quantity);
+      try {
+        await DatabaseService.updateCartQuantity(userPhone, productId, quantity);
+      } catch (dbError) {
+        console.warn('Supabase update failed, using localStorage:', dbError);
+      }
+
+      // Always update localStorage
+      const currentCart = await this.getCartItems();
+      const updatedCart = currentCart.map(item => 
+        item.product.id === productId 
+          ? { ...item, quantity }
+          : item
+      );
+      localStorage.setItem(`cart_${userPhone}`, JSON.stringify(updatedCart));
+      
+      console.log('Updated cart quantity:', productId, quantity);
       return true;
     } catch (error) {
       console.error('Failed to update cart quantity:', error);
@@ -125,7 +144,18 @@ class CartService {
       if (!userPhone) return false;
 
       // Remove from Supabase cart
-      await DatabaseService.removeFromCart(userPhone, productId);
+      try {
+        await DatabaseService.removeFromCart(userPhone, productId);
+      } catch (dbError) {
+        console.warn('Supabase remove failed, using localStorage:', dbError);
+      }
+
+      // Always update localStorage
+      const currentCart = await this.getCartItems();
+      const updatedCart = currentCart.filter(item => item.product.id !== productId);
+      localStorage.setItem(`cart_${userPhone}`, JSON.stringify(updatedCart));
+      
+      console.log('Removed item from cart:', productId);
       return true;
     } catch (error) {
       console.error('Failed to remove from cart:', error);
@@ -139,7 +169,16 @@ class CartService {
       if (!userPhone) return false;
 
       // Clear Supabase cart
-      await DatabaseService.clearCart(userPhone);
+      try {
+        await DatabaseService.clearCart(userPhone);
+      } catch (dbError) {
+        console.warn('Supabase clear failed, using localStorage:', dbError);
+      }
+
+      // Always clear localStorage
+      localStorage.removeItem(`cart_${userPhone}`);
+      
+      console.log('Cart cleared for user:', userPhone);
       return true;
     } catch (error) {
       console.error('Failed to clear cart:', error);

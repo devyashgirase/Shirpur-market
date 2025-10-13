@@ -35,22 +35,40 @@ const CustomerCart = () => {
   useEffect(() => {
     const loadCart = async () => {
       try {
+        console.log('Loading cart items...');
         const cartItems = await cartService.getCartItems();
+        console.log('Cart items loaded:', cartItems);
         setCart(cartItems);
       } catch (error) {
         console.error('Failed to load cart:', error);
         setCart([]);
       }
     };
+    
     loadCart();
+    
+    // Listen for cart updates
+    const handleCartUpdate = () => {
+      console.log('Cart update event received, reloading cart...');
+      loadCart();
+    };
+    
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, []);
 
   const updateQuantity = async (productId: string, newQuantity: number) => {
     try {
-      await cartService.updateCartQuantity(productId, newQuantity);
-      const updatedCart = await cartService.getCartItems();
-      setCart(updatedCart);
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      console.log('Updating quantity for product:', productId, 'to:', newQuantity);
+      const success = await cartService.updateCartQuantity(productId, newQuantity);
+      if (success) {
+        const updatedCart = await cartService.getCartItems();
+        setCart(updatedCart);
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+      }
     } catch (error) {
       console.error('Failed to update quantity:', error);
     }
@@ -58,16 +76,24 @@ const CustomerCart = () => {
 
   const removeItem = async (productId: string) => {
     try {
-      await cartService.removeFromCart(productId);
-      const updatedCart = await cartService.getCartItems();
-      setCart(updatedCart);
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
-      toast({
-        title: "Item removed",
-        description: "Item has been removed from your cart",
-      });
+      console.log('Removing item from cart:', productId);
+      const success = await cartService.removeFromCart(productId);
+      if (success) {
+        const updatedCart = await cartService.getCartItems();
+        setCart(updatedCart);
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        toast({
+          title: "Item removed",
+          description: "Item has been removed from your cart",
+        });
+      }
     } catch (error) {
       console.error('Failed to remove item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item from cart",
+        variant: "destructive"
+      });
     }
   };
 
