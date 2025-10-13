@@ -23,6 +23,8 @@ const OrderSuccessModal = ({ isOpen, onClose, orderId }: OrderSuccessModalProps)
 
   const handleViewOrders = () => {
     onClose();
+    // Navigate to orders page
+    window.location.href = '/customer/orders';
   };
 
   return (

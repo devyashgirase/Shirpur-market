@@ -128,14 +128,17 @@ const CustomerCart = () => {
 
     
     // Proceed with payment
+    console.log('Starting payment process for order total:', getTotalAmount());
     toast({
       title: "Processing Payment",
       description: "Redirecting to payment gateway...",
     });
     
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+    console.log('Razorpay Key Check:', razorpayKey ? 'Key found' : 'Key missing');
     
     if (!razorpayKey || razorpayKey.includes('your_razorpay')) {
+      console.log('Using development mode - no valid Razorpay key');
       // Fallback to test mode with simulation
       toast({
         title: "Development Mode",
@@ -158,15 +161,34 @@ const CustomerCart = () => {
           paymentId
         );
         
+        // Store order for tracking first
+        const orderForTracking = {
+          orderId,
+          customerName: addressData.name,
+          customerPhone: addressData.phone,
+          deliveryAddress: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+          total: getTotalAmount(),
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          createdAt: new Date().toISOString(),
+          items: cart
+        };
+        
+        localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
+        
         // Clear cart
         await cartService.clearCart();
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-        // Show success
-        setShowAddressForm(false);
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
+        // Force reload to ensure cart is empty
+        setTimeout(async () => {
+          const emptyCart = await cartService.getCartItems();
+          setCart(emptyCart);
+          setShowAddressForm(false);
+          setLastOrderId(orderId);
+          setShowSuccessModal(true);
+        }, 200);
         
         toast({
           title: "Order Placed Successfully!",
@@ -219,17 +241,34 @@ const CustomerCart = () => {
           });
         } catch (e) { console.warn('DB save failed:', e); }
         
+        // Store order for tracking first
+        const orderForTracking = {
+          orderId,
+          customerName: addressData.name,
+          customerPhone: addressData.phone,
+          deliveryAddress: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+          total: getTotalAmount(),
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          createdAt: new Date().toISOString(),
+          items: cart
+        };
+        
+        localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
+        
         // Clear cart and update UI
         await cartService.clearCart();
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-
-        
-        // Show success immediately
-        setShowAddressForm(false);
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
+        // Force reload to ensure cart is empty
+        setTimeout(async () => {
+          const emptyCart = await cartService.getCartItems();
+          setCart(emptyCart);
+          setShowAddressForm(false);
+          setLastOrderId(orderId);
+          setShowSuccessModal(true);
+        }, 200);
         
         toast({
           title: "Order Placed Successfully!",
@@ -238,6 +277,7 @@ const CustomerCart = () => {
       },
       modal: {
         ondismiss: function() {
+          console.log('Razorpay modal dismissed');
           handlePaymentFailure();
         }
       },
@@ -252,9 +292,11 @@ const CustomerCart = () => {
     };
     
     if ((window as any).Razorpay) {
+      console.log('Razorpay SDK loaded, opening payment gateway');
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
     } else {
+      console.log('Razorpay SDK not loaded, using fallback');
       // Fallback for development - simulate payment process
       toast({
         title: "Development Mode",
@@ -297,12 +339,14 @@ const CustomerCart = () => {
         setCart([]);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-        // Show success with slight delay to ensure cart is cleared
-        setTimeout(() => {
+        // Force reload cart to ensure it's empty
+        setTimeout(async () => {
+          const emptyCart = await cartService.getCartItems();
+          setCart(emptyCart);
           setShowAddressForm(false);
           setLastOrderId(orderId);
           setShowSuccessModal(true);
-        }, 100);
+        }, 200);
         
         toast({
           title: "Order Placed Successfully!",
@@ -691,6 +735,42 @@ const CustomerCart = () => {
                 size="lg"
               >
                 Proceed to Checkout
+              </Button>
+              
+              {/* Test Razorpay Button */}
+              <Button 
+                onClick={() => {
+                  console.log('Testing Razorpay integration...');
+                  console.log('Razorpay available:', !!(window as any).Razorpay);
+                  console.log('Environment key:', import.meta.env.VITE_RAZORPAY_KEY_ID ? 'Set' : 'Not set');
+                  if ((window as any).Razorpay) {
+                    const testOptions = {
+                      key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_key',
+                      amount: 100, // ₹1 for testing
+                      currency: 'INR',
+                      name: 'Test Payment',
+                      description: 'Testing Razorpay Integration',
+                      handler: function(response: any) {
+                        console.log('Test payment successful:', response);
+                        toast({ title: 'Test Payment Success', description: 'Razorpay is working!' });
+                      },
+                      modal: {
+                        ondismiss: function() {
+                          console.log('Test payment cancelled');
+                        }
+                      }
+                    };
+                    const rzp = new (window as any).Razorpay(testOptions);
+                    rzp.open();
+                  } else {
+                    toast({ title: 'Razorpay Not Loaded', description: 'Check console for details', variant: 'destructive' });
+                  }
+                }}
+                variant="outline"
+                className="w-full"
+                size="sm"
+              >
+                🧪 Test Razorpay
               </Button>
               
               <Link to="/customer" className="block">
