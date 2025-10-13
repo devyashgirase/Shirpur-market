@@ -29,9 +29,19 @@ class CartService {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return [];
 
-      // Get cart from Supabase
-      const cartData = await DatabaseService.getCart(userPhone);
-      return cartData || [];
+      // Try Supabase first
+      try {
+        const cartData = await DatabaseService.getCart(userPhone);
+        if (cartData && cartData.length > 0) {
+          return cartData;
+        }
+      } catch (dbError) {
+        console.warn('Supabase cart failed, using localStorage fallback:', dbError);
+      }
+
+      // Fallback to localStorage
+      const localCart = localStorage.getItem(`cart_${userPhone}`);
+      return localCart ? JSON.parse(localCart) : [];
     } catch (error) {
       console.error('Failed to get cart items:', error);
       return [];
@@ -43,8 +53,36 @@ class CartService {
       const userPhone = await this.getCurrentUserPhone();
       if (!userPhone) return false;
 
-      // Add to Supabase cart
-      await DatabaseService.addToCart(userPhone, productId, quantity);
+      // Try Supabase first
+      try {
+        await DatabaseService.addToCart(userPhone, productId, quantity);
+      } catch (dbError) {
+        console.warn('Supabase add to cart failed, using localStorage:', dbError);
+      }
+
+      // Always update localStorage as backup
+      const currentCart = await this.getCartItems();
+      const existingItem = currentCart.find(item => item.product.id === productId);
+      
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        // Get product details (you'll need to implement this)
+        const newItem: CartItem = {
+          id: Date.now(),
+          product: {
+            id: productId,
+            name: `Product ${productId}`,
+            price: 0, // Will be updated from product data
+            image_url: '/placeholder.svg',
+            stock_qty: 100
+          },
+          quantity
+        };
+        currentCart.push(newItem);
+      }
+      
+      localStorage.setItem(`cart_${userPhone}`, JSON.stringify(currentCart));
       return true;
     } catch (error) {
       console.error('Failed to add to cart:', error);

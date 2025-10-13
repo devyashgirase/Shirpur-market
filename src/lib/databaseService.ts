@@ -146,33 +146,59 @@ export class DatabaseService {
   }
 
   static async getCart(userPhone: string) {
-    if (isSupabaseEnabled()) {
-      return SupabaseService.getCart(userPhone);
+    try {
+      if (isSupabaseEnabled()) {
+        const { supabaseApi } = await import('./supabase');
+        return await supabaseApi.getCart(userPhone);
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to get cart:', error);
+      return [];
     }
-    return [];
   }
 
   static async addToCart(userPhone: string, productId: string, quantity: number) {
-    if (isSupabaseEnabled()) {
-      return SupabaseService.addToCart(userPhone, productId, quantity);
+    try {
+      if (isSupabaseEnabled()) {
+        const { supabaseApi } = await import('./supabase');
+        return await supabaseApi.addToCart(userPhone, productId, quantity);
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
     }
   }
 
   static async updateCartQuantity(userPhone: string, productId: string, quantity: number) {
-    if (isSupabaseEnabled()) {
-      return SupabaseService.updateCartQuantity(userPhone, productId, quantity);
+    try {
+      if (isSupabaseEnabled()) {
+        const { supabaseApi } = await import('./supabase');
+        return await supabaseApi.updateCartQuantity(userPhone, productId, quantity);
+      }
+    } catch (error) {
+      console.error('Failed to update cart quantity:', error);
     }
   }
 
   static async removeFromCart(userPhone: string, productId: string) {
-    if (isSupabaseEnabled()) {
-      return SupabaseService.removeFromCart(userPhone, productId);
+    try {
+      if (isSupabaseEnabled()) {
+        const { supabaseApi } = await import('./supabase');
+        return await supabaseApi.removeFromCart(userPhone, productId);
+      }
+    } catch (error) {
+      console.error('Failed to remove from cart:', error);
     }
   }
 
   static async clearCart(userPhone: string) {
-    if (isSupabaseEnabled()) {
-      return SupabaseService.clearCart(userPhone);
+    try {
+      if (isSupabaseEnabled()) {
+        const { supabaseApi } = await import('./supabase');
+        return await supabaseApi.clearCart(userPhone);
+      }
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
     }
   }
 
