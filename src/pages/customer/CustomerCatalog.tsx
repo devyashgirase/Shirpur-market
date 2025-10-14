@@ -354,7 +354,15 @@ const CustomerCatalog = () => {
           <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
             🌿 Pan Corner Special
           </h2>
-          <PanCornerCarousel onBannerClick={() => setSelectedCategory('pan-corner')} />
+          <PanCornerCarousel onBannerClick={() => {
+            setSelectedCategory('pan-corner');
+            setTimeout(() => {
+              const productsSection = document.getElementById('products-section');
+              if (productsSection) {
+                productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 100);
+          }} />
         </div>
       </div>
 
@@ -455,9 +463,9 @@ const CustomerCatalog = () => {
           </Tabs>
         )}
 
-        <div className="mb-6">
+        <div className="mb-6" id="products-section">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-            🛍️ All Products
+            {selectedCategory === 'pan-corner' ? '🌿 Pan Corner Products' : '🛍️ All Products'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map(product => (
