@@ -21,6 +21,7 @@ import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
 import { personalizationService } from "@/lib/personalizationService";
 import PersonalizedRecommendations from "@/components/PersonalizedRecommendations";
+import PanCornerCarousel from "@/components/PanCornerCarousel";
 import "@/styles/carousel.css";
 
 const CustomerCatalog = () => {
@@ -344,6 +345,16 @@ const CustomerCatalog = () => {
               </div>
             </Carousel>
           )}
+        </div>
+      </div>
+
+      {/* Pan Corner Section */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            🌿 Pan Corner Special
+          </h2>
+          <PanCornerCarousel onBannerClick={() => setSelectedCategory('pan-corner')} />
         </div>
       </div>
 
