@@ -196,7 +196,6 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
     }
 
     onSubmit(formData);
-    onClose();
   };
 
   return (

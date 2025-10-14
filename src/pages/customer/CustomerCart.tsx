@@ -103,6 +103,7 @@ const CustomerCart = () => {
 
   const handleAddressSubmit = async (addressData: AddressData) => {
     setCustomerAddress(addressData);
+    setShowAddressForm(false); // Close address form before opening payment
     
     // Create pending order in Supabase
     const pendingOrder = {
@@ -185,7 +186,6 @@ const CustomerCart = () => {
         setTimeout(async () => {
           const emptyCart = await cartService.getCartItems();
           setCart(emptyCart);
-          setShowAddressForm(false);
           setLastOrderId(orderId);
           setShowSuccessModal(true);
         }, 200);
@@ -265,7 +265,6 @@ const CustomerCart = () => {
         setTimeout(async () => {
           const emptyCart = await cartService.getCartItems();
           setCart(emptyCart);
-          setShowAddressForm(false);
           setLastOrderId(orderId);
           setShowSuccessModal(true);
         }, 200);
@@ -343,7 +342,6 @@ const CustomerCart = () => {
         setTimeout(async () => {
           const emptyCart = await cartService.getCartItems();
           setCart(emptyCart);
-          setShowAddressForm(false);
           setLastOrderId(orderId);
           setShowSuccessModal(true);
         }, 200);
@@ -496,9 +494,8 @@ const CustomerCart = () => {
       
       localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
       
-      // Close address form and show success with slight delay
+      // Show success with slight delay
       setTimeout(() => {
-        setShowAddressForm(false);
         setLastOrderId(orderId);
         setShowSuccessModal(true);
       }, 100);
