@@ -5,23 +5,20 @@ import { Button } from '@/components/ui/button';
 const banners = [
   {
     id: 1,
-    title: 'Fresh Groceries Delivered',
-    subtitle: 'Get fresh vegetables, fruits & more delivered to your doorstep',
-    image: '/api/placeholder/800/400',
+    title: 'Fresh Groceries',
+    subtitle: 'Quality products delivered fresh',
     color: 'bg-gradient-to-r from-green-500 to-green-600'
   },
   {
     id: 2,
     title: 'Fast Delivery',
-    subtitle: 'Order now and get delivery within 30 minutes',
-    image: '/api/placeholder/800/400',
+    subtitle: 'Quick delivery to your doorstep',
     color: 'bg-gradient-to-r from-blue-500 to-blue-600'
   },
   {
     id: 3,
-    title: 'Best Prices',
-    subtitle: 'Quality products at unbeatable prices',
-    image: '/api/placeholder/800/400',
+    title: 'Best Quality',
+    subtitle: 'Premium products at great prices',
     color: 'bg-gradient-to-r from-orange-500 to-orange-600'
   }
 ];
