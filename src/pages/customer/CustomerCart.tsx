@@ -118,53 +118,51 @@ const CustomerCart = () => {
         handler: async function (response: any) {
           console.log('✅ Payment Successful:', response.razorpay_payment_id);
           
-          // Generate order ID
-          const orderId = `ORD-${Date.now()}`;
-          
-          // Create simple order object
-          const orderData = {
-            orderId,
-            status: 'confirmed',
-            timestamp: new Date().toISOString(),
-            customerAddress: {
-              name: addressData.name,
-              phone: addressData.phone,
-              address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-              coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
-            },
-            items: cart,
-            total: getTotalAmount(),
-            paymentStatus: 'paid'
-          };
-          
-          // Save to localStorage immediately
-          const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-          allOrders.unshift(orderData);
-          localStorage.setItem('allOrders', JSON.stringify(allOrders));
-          
-          // Save customer-specific orders
-          localStorage.setItem('customerPhone', addressData.phone);
-          const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${addressData.phone}`) || '[]');
-          customerOrders.unshift(orderData);
-          localStorage.setItem(`customerOrders_${addressData.phone}`, JSON.stringify(customerOrders));
-          
-          // Clear cart
-          await cartService.clearCart();
-          setCart([]);
-          
-          // Trigger events
-          window.dispatchEvent(new CustomEvent('cartUpdated'));
-          window.dispatchEvent(new CustomEvent('ordersUpdated'));
-          
-          // Show success
-          setShowAddressForm(false);
-          setLastOrderId(orderId);
-          setShowSuccessModal(true);
-          
-          toast({
-            title: "Order Placed Successfully!",
-            description: `Order ${orderId} confirmed and added to My Orders!`,
-          });
+          try {
+            // Create order in database
+            const orderData = {
+              order_id: `ORD-${Date.now()}`,
+              customer_name: addressData.name,
+              customer_phone: addressData.phone,
+              delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+              items: JSON.stringify(cart.map(item => ({
+                product_id: parseInt(item.product.id),
+                product_name: item.product.name,
+                price: item.product.price,
+                quantity: item.quantity
+              }))),
+              total_amount: getTotalAmount(),
+              status: 'confirmed',
+              payment_status: 'paid',
+              created_at: new Date().toISOString()
+            };
+            
+            await DatabaseService.createOrder(orderData);
+            
+            // Clear cart from database
+            await cartService.clearCart();
+            
+            // Reload cart from database
+            const updatedCart = await cartService.getCartItems();
+            setCart(updatedCart);
+            
+            // Show success
+            setShowAddressForm(false);
+            setLastOrderId(orderData.order_id);
+            setShowSuccessModal(true);
+            
+            toast({
+              title: "Order Placed Successfully!",
+              description: `Order ${orderData.order_id} confirmed!`,
+            });
+          } catch (error) {
+            console.error('Order creation failed:', error);
+            toast({
+              title: "Order Failed",
+              description: "Please try again or contact support.",
+              variant: "destructive"
+            });
+          }
         },
         modal: {
           ondismiss: function() {
@@ -190,48 +188,46 @@ const CustomerCart = () => {
     // Development mode
     console.log('Development mode - simulating payment');
     setTimeout(async () => {
-      const orderId = `ORD-${Date.now()}`;
-      
-      // Create order object
-      const orderData = {
-        orderId,
-        status: 'confirmed',
-        timestamp: new Date().toISOString(),
-        customerAddress: {
-          name: addressData.name,
-          phone: addressData.phone,
-          address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-          coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
-        },
-        items: cart,
-        total: getTotalAmount(),
-        paymentStatus: 'paid'
-      };
-      
-      // Save to localStorage
-      const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-      allOrders.unshift(orderData);
-      localStorage.setItem('allOrders', JSON.stringify(allOrders));
-      
-      localStorage.setItem('customerPhone', addressData.phone);
-      const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${addressData.phone}`) || '[]');
-      customerOrders.unshift(orderData);
-      localStorage.setItem(`customerOrders_${addressData.phone}`, JSON.stringify(customerOrders));
-      
-      // Clear cart
-      await cartService.clearCart();
-      setCart([]);
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
-      
-      setShowAddressForm(false);
-      setLastOrderId(orderId);
-      setShowSuccessModal(true);
-      
-      toast({
-        title: "Order Placed Successfully!",
-        description: `Test order ${orderId} confirmed!`,
-      });
+      try {
+        const orderData = {
+          order_id: `ORD-${Date.now()}`,
+          customer_name: addressData.name,
+          customer_phone: addressData.phone,
+          delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+          items: JSON.stringify(cart.map(item => ({
+            product_id: parseInt(item.product.id),
+            product_name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity
+          }))),
+          total_amount: getTotalAmount(),
+          status: 'confirmed',
+          payment_status: 'paid',
+          created_at: new Date().toISOString()
+        };
+        
+        await DatabaseService.createOrder(orderData);
+        await cartService.clearCart();
+        
+        const updatedCart = await cartService.getCartItems();
+        setCart(updatedCart);
+        
+        setShowAddressForm(false);
+        setLastOrderId(orderData.order_id);
+        setShowSuccessModal(true);
+        
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Test order ${orderData.order_id} confirmed!`,
+        });
+      } catch (error) {
+        console.error('Test order failed:', error);
+        toast({
+          title: "Order Failed",
+          description: "Please try again.",
+          variant: "destructive"
+        });
+      }
     }, 1000);
   };
 
@@ -450,7 +446,7 @@ const CustomerCart = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-base">{item.product.name}</h3>
                         <p className="text-xs text-muted-foreground">
-                          SKU: {item.product.sku} • Per {item.product.unit}
+                          Product ID: {item.product.id}
                         </p>
                         <p className="text-base font-bold text-primary mt-1">
                           ₹{Number(item.product.price || 0).toFixed(2)}
@@ -511,7 +507,7 @@ const CustomerCart = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg">{item.product.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        SKU: {item.product.sku} • Per {item.product.unit}
+                        Product ID: {item.product.id}
                       </p>
                       <p className="text-lg font-bold text-primary mt-1">
                         ₹{Number(item.product.price || 0).toFixed(2)}

@@ -37,64 +37,21 @@ const CustomerOrders = () => {
   const loadCustomerOrders = async () => {
     try {
       setLoading(true);
-      console.log('📊 Loading customer orders from all sources...');
       
-      // Get customer phone from localStorage
-      const customerPhone = localStorage.getItem('customerPhone');
+      // Load orders directly from database
+      const dbOrders = await unifiedDB.getOrders();
       
-      let allOrders = [];
-      
-      // 1. Load from OrderService (includes recent orders)
-      const localOrders = OrderService.getAllOrders();
-      console.log(`📱 Local orders found: ${localOrders.length}`);
-      
-      // 2. Load customer-specific orders from localStorage
-      if (customerPhone) {
-        const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${customerPhone}`) || '[]');
-        console.log(`👤 Customer orders found: ${customerOrders.length}`);
-        allOrders = [...allOrders, ...customerOrders];
-      }
-      
-      // 3. Try to load from database
-      try {
-        const dbOrders = await unifiedDB.getOrders();
-        let customerDbOrders = dbOrders;
-        if (customerPhone) {
-          customerDbOrders = dbOrders.filter(order => 
-            order.customerPhone === customerPhone || 
-            order.customer_phone === customerPhone
-          );
-        }
-        console.log(`🗄️ Database orders found: ${customerDbOrders.length}`);
-        allOrders = [...allOrders, ...customerDbOrders];
-      } catch (dbError) {
-        console.warn('⚠️ Database not available, using local orders only:', dbError);
-      }
-      
-      // Add local orders to the mix
-      allOrders = [...allOrders, ...localOrders];
-      
-      // Deduplicate orders by orderId
-      const uniqueOrders = allOrders.filter((order, index, self) => {
-        const orderId = order.orderId || order.id;
-        return index === self.findIndex(o => (o.orderId || o.id) === orderId);
-      });
-      
-      // Sort by timestamp (newest first)
-      uniqueOrders.sort((a, b) => {
-        const dateA = new Date(a.timestamp || a.createdAt || a.created_at || 0);
-        const dateB = new Date(b.timestamp || b.createdAt || b.created_at || 0);
+      // Sort by creation date (newest first)
+      dbOrders.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
         return dateB.getTime() - dateA.getTime();
       });
       
-      console.log(`✅ Total unique orders loaded: ${uniqueOrders.length}`);
-      setOrders(uniqueOrders);
+      setOrders(dbOrders);
     } catch (error) {
-      console.error('❌ Failed to load customer orders:', error);
-      // Fallback to localStorage orders only
-      const fallbackOrders = OrderService.getAllOrders();
-      console.log(`🔄 Fallback: Using ${fallbackOrders.length} local orders`);
-      setOrders(fallbackOrders);
+      console.error('Failed to load orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -147,7 +104,7 @@ const CustomerOrders = () => {
     // Store the selected order for details view
     localStorage.setItem('selectedOrderDetails', JSON.stringify(order));
     // Navigate to order details page
-    navigate(`/customer/order-details/${order.orderId || order.id}`);
+    navigate(`/customer/order-details/${order.order_id || order.orderId || order.id}`);
   };
 
   const handleTrackOrder = (order: any) => {
@@ -163,7 +120,7 @@ const CustomerOrders = () => {
     }
 
     try {
-      const orderId = order.orderId || order.id;
+      const orderId = order.order_id || order.orderId || order.id;
       
       // Update order status to cancelled in Supabase
       await unifiedDB.updateOrderStatus(parseInt(orderId), 'cancelled');
@@ -205,10 +162,10 @@ const CustomerOrders = () => {
             <p className="text-base md:text-lg text-gray-600">Loading your orders from database...</p>
           </div>
         ) : orders.length > 0 ? orders.map((order) => (
-          <Card key={order.orderId || order.id} className="hover:shadow-md transition-shadow">
+          <Card key={order.order_id || order.orderId || order.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.orderId || order.id}</CardTitle>
+                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.order_id || order.orderId || order.id}</CardTitle>
                 <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
                   {getStatusIcon(order.status)}
                   {formatStatus(order.status)}
@@ -224,11 +181,11 @@ const CustomerOrders = () => {
                 <div>
                   <p className="font-semibold">Delivery Address</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.deliveryAddress || order.customerAddress?.address || order.customer_address}
+                    {order.delivery_address || order.deliveryAddress || order.customerAddress?.address || order.customer_address}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">₹{parseFloat(order.total).toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">₹{parseFloat(order.total || order.total_amount || 0).toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground">
                     Payment: {(order.paymentStatus || order.payment_status) === 'paid' ? '✓ Paid' : 'Pending'}
                   </p>
