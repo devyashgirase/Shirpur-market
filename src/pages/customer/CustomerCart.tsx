@@ -35,7 +35,7 @@ const CustomerCart = () => {
   useEffect(() => {
     const loadCart = async () => {
       try {
-        console.log('Loading cart items...');
+        console.log('Loading cart items from database...');
         const cartItems = await cartService.getCartItems();
         console.log('Cart items loaded:', cartItems);
         setCart(cartItems);
@@ -103,43 +103,11 @@ const CustomerCart = () => {
 
   const handleAddressSubmit = async (addressData: AddressData) => {
     setCustomerAddress(addressData);
-    setShowAddressForm(false); // Close address form before opening payment
-    
-    // Create pending order in Supabase
-    const pendingOrder = {
-      order_id: `ORD-${Date.now()}`,
-      customer_name: addressData.name,
-      customer_phone: addressData.phone,
-      delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-      items: JSON.stringify(cart.map(item => ({
-        product_id: parseInt(item.product.id),
-        product_name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity
-      }))),
-      total_amount: getTotalAmount(),
-      status: 'pending',
-      payment_status: 'pending',
-      created_at: new Date().toISOString()
-    };
-    
-    // Save pending order to Supabase
-    await DatabaseService.createOrder(pendingOrder);
-    
-    // Proceed with payment
-    console.log('Starting payment process for order total:', getTotalAmount());
-    toast({
-      title: "Processing Payment",
-      description: "Redirecting to payment gateway...",
-    });
     
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
-    console.log('Razorpay Key:', razorpayKey);
-    console.log('Razorpay SDK loaded:', !!(window as any).Razorpay);
     
-    // Force use Razorpay if key exists and SDK is loaded
     if (razorpayKey && (window as any).Razorpay) {
-      console.log('Using live Razorpay payment');
+      console.log('✅ Opening Razorpay payment gateway...');
       
       const options = {
         key: razorpayKey,
@@ -148,9 +116,8 @@ const CustomerCart = () => {
         name: 'Shirpur Delivery',
         description: 'Order Payment',
         handler: async function (response: any) {
-          console.log('✅ Razorpay Payment Successful:', response.razorpay_payment_id);
+          console.log('✅ Payment Successful:', response.razorpay_payment_id);
           
-          // Create order immediately when Razorpay shows success
           const orderId = await OrderService.createOrderFromCart(
             {
               name: addressData.name,
@@ -163,63 +130,45 @@ const CustomerCart = () => {
             response.razorpay_payment_id
           );
           
-          // Save to database immediately for admin
-          try {
-            await DatabaseService.createOrder({
-              order_id: orderId,
-              customer_name: addressData.name,
-              customer_phone: addressData.phone,
-              delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-              items: JSON.stringify(cart.map(item => ({
-                product_id: parseInt(item.product.id),
-                product_name: item.product.name,
-                price: item.product.price,
-                quantity: item.quantity
-              }))),
-              total_amount: getTotalAmount(),
-              status: 'confirmed',
-              payment_status: 'paid',
-              created_at: new Date().toISOString()
-            });
-          } catch (e) { console.warn('DB save failed:', e); }
-          
-          // Store order for tracking first
-          const orderForTracking = {
-            orderId,
-            customerName: addressData.name,
-            customerPhone: addressData.phone,
-            deliveryAddress: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-            total: getTotalAmount(),
+          await DatabaseService.createOrder({
+            order_id: orderId,
+            customer_name: addressData.name,
+            customer_phone: addressData.phone,
+            delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+            items: JSON.stringify(cart.map(item => ({
+              product_id: parseInt(item.product.id),
+              product_name: item.product.name,
+              price: item.product.price,
+              quantity: item.quantity
+            }))),
+            total_amount: getTotalAmount(),
             status: 'confirmed',
-            paymentStatus: 'paid',
-            createdAt: new Date().toISOString(),
-            items: cart
-          };
+            payment_status: 'paid',
+            created_at: new Date().toISOString()
+          });
           
-          localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
-          
-          // Clear cart and update UI
           await cartService.clearCart();
           setCart([]);
           window.dispatchEvent(new CustomEvent('cartUpdated'));
+          setShowAddressForm(false);
+          setLastOrderId(orderId);
+          setShowSuccessModal(true);
           
-          // Force reload to ensure cart is empty
+          // Force reload cart to ensure it's empty
           setTimeout(async () => {
             const emptyCart = await cartService.getCartItems();
             setCart(emptyCart);
-            setLastOrderId(orderId);
-            setShowSuccessModal(true);
-          }, 200);
+          }, 100);
           
           toast({
             title: "Order Placed Successfully!",
-            description: `Order ${orderId} confirmed and available in tracking!`,
+            description: `Order ${orderId} confirmed!`,
           });
         },
         modal: {
           ondismiss: function() {
-            console.log('Razorpay modal dismissed');
-            handlePaymentFailure();
+            console.log('Payment cancelled');
+            setShowAddressForm(false);
           }
         },
         prefill: {
@@ -237,17 +186,9 @@ const CustomerCart = () => {
       return;
     }
     
-    console.log('Using development mode - no valid Razorpay key or SDK not loaded');
-    // Fallback to test mode with simulation
-    toast({
-      title: "Development Mode",
-      description: "Simulating payment process...",
-    });
-    
+    // Development mode
+    console.log('Development mode - simulating payment');
     setTimeout(async () => {
-      const paymentId = 'dev_payment_' + Date.now();
-      
-      // Create order immediately in dev mode
       const orderId = await OrderService.createOrderFromCart(
         {
           name: addressData.name,
@@ -257,42 +198,27 @@ const CustomerCart = () => {
         },
         cart,
         getTotalAmount(),
-        paymentId
+        'dev_payment_' + Date.now()
       );
       
-      // Store order for tracking first
-      const orderForTracking = {
-        orderId,
-        customerName: addressData.name,
-        customerPhone: addressData.phone,
-        deliveryAddress: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-        total: getTotalAmount(),
-        status: 'confirmed',
-        paymentStatus: 'paid',
-        createdAt: new Date().toISOString(),
-        items: cart
-      };
-      
-      localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
-      
-      // Clear cart
       await cartService.clearCart();
       setCart([]);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
+      setShowAddressForm(false);
+      setLastOrderId(orderId);
+      setShowSuccessModal(true);
       
-      // Force reload to ensure cart is empty
+      // Force reload cart to ensure it's empty
       setTimeout(async () => {
         const emptyCart = await cartService.getCartItems();
         setCart(emptyCart);
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
-      }, 200);
+      }, 100);
       
       toast({
         title: "Order Placed Successfully!",
         description: `Test order ${orderId} confirmed!`,
       });
-    }, 2000);
+    }, 1000);
   };
 
   const handlePaymentFailure = async () => {
@@ -420,20 +346,7 @@ const CustomerCart = () => {
       window.dispatchEvent(new CustomEvent('ordersUpdated'));
       window.dispatchEvent(new CustomEvent('inventoryUpdated'));
       
-      // Store order for tracking and redirect
-      const orderForTracking = {
-        orderId,
-        customerName: customerAddress.name,
-        customerPhone: customerAddress.phone,
-        deliveryAddress: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-        total: getTotalAmount(),
-        status: 'confirmed',
-        paymentStatus: 'paid',
-        createdAt: new Date().toISOString(),
-        items: cart
-      };
-      
-      localStorage.setItem('currentOrder', JSON.stringify(orderForTracking));
+      // Order saved to database only
       
       // Show success with slight delay
       setTimeout(() => {
