@@ -616,8 +616,7 @@ export const supabaseApi = {
         
         return result;
       } catch (error) {
-        console.error('Failed to get cart:', error);
-        // Return empty cart if table doesn't exist
+        console.warn('Cart table not found, using localStorage fallback:', error);
         return [];
       }
     }
@@ -641,8 +640,7 @@ export const supabaseApi = {
           });
         }
       } catch (error) {
-        console.error('Failed to add to cart:', error);
-        // Silently fail if table doesn't exist
+        console.warn('Cart table not available, using localStorage only:', error);
       }
     }
   },
@@ -655,8 +653,7 @@ export const supabaseApi = {
           body: JSON.stringify({ quantity })
         });
       } catch (error) {
-        console.error('Failed to update cart quantity:', error);
-        // Silently fail if table doesn't exist
+        console.warn('Cart table not available, using localStorage only:', error);
       }
     }
   },
@@ -668,8 +665,7 @@ export const supabaseApi = {
           method: 'DELETE'
         });
       } catch (error) {
-        console.error('Failed to remove from cart:', error);
-        // Silently fail if table doesn't exist
+        console.warn('Cart table not available, using localStorage only:', error);
       }
     }
   },
@@ -681,8 +677,7 @@ export const supabaseApi = {
           method: 'DELETE'
         });
       } catch (error) {
-        console.error('Failed to clear cart:', error);
-        // Silently fail if table doesn't exist
+        console.warn('Cart table not available, using localStorage only:', error);
       }
     }
   }

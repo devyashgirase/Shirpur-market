@@ -118,51 +118,52 @@ const CustomerCart = () => {
         handler: async function (response: any) {
           console.log('✅ Payment Successful:', response.razorpay_payment_id);
           
-          const orderId = await OrderService.createOrderFromCart(
-            {
+          // Generate order ID
+          const orderId = `ORD-${Date.now()}`;
+          
+          // Create simple order object
+          const orderData = {
+            orderId,
+            status: 'confirmed',
+            timestamp: new Date().toISOString(),
+            customerAddress: {
               name: addressData.name,
               phone: addressData.phone,
               address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
               coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
             },
-            cart,
-            getTotalAmount(),
-            response.razorpay_payment_id
-          );
+            items: cart,
+            total: getTotalAmount(),
+            paymentStatus: 'paid'
+          };
           
-          await DatabaseService.createOrder({
-            order_id: orderId,
-            customer_name: addressData.name,
-            customer_phone: addressData.phone,
-            delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-            items: JSON.stringify(cart.map(item => ({
-              product_id: parseInt(item.product.id),
-              product_name: item.product.name,
-              price: item.product.price,
-              quantity: item.quantity
-            }))),
-            total_amount: getTotalAmount(),
-            status: 'confirmed',
-            payment_status: 'paid',
-            created_at: new Date().toISOString()
-          });
+          // Save to localStorage immediately
+          const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+          allOrders.unshift(orderData);
+          localStorage.setItem('allOrders', JSON.stringify(allOrders));
           
+          // Save customer-specific orders
+          localStorage.setItem('customerPhone', addressData.phone);
+          const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${addressData.phone}`) || '[]');
+          customerOrders.unshift(orderData);
+          localStorage.setItem(`customerOrders_${addressData.phone}`, JSON.stringify(customerOrders));
+          
+          // Clear cart
           await cartService.clearCart();
           setCart([]);
+          
+          // Trigger events
           window.dispatchEvent(new CustomEvent('cartUpdated'));
+          window.dispatchEvent(new CustomEvent('ordersUpdated'));
+          
+          // Show success
           setShowAddressForm(false);
           setLastOrderId(orderId);
           setShowSuccessModal(true);
           
-          // Force reload cart to ensure it's empty
-          setTimeout(async () => {
-            const emptyCart = await cartService.getCartItems();
-            setCart(emptyCart);
-          }, 100);
-          
           toast({
             title: "Order Placed Successfully!",
-            description: `Order ${orderId} confirmed!`,
+            description: `Order ${orderId} confirmed and added to My Orders!`,
           });
         },
         modal: {
@@ -189,30 +190,43 @@ const CustomerCart = () => {
     // Development mode
     console.log('Development mode - simulating payment');
     setTimeout(async () => {
-      const orderId = await OrderService.createOrderFromCart(
-        {
+      const orderId = `ORD-${Date.now()}`;
+      
+      // Create order object
+      const orderData = {
+        orderId,
+        status: 'confirmed',
+        timestamp: new Date().toISOString(),
+        customerAddress: {
           name: addressData.name,
           phone: addressData.phone,
           address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
           coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
         },
-        cart,
-        getTotalAmount(),
-        'dev_payment_' + Date.now()
-      );
+        items: cart,
+        total: getTotalAmount(),
+        paymentStatus: 'paid'
+      };
       
+      // Save to localStorage
+      const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+      allOrders.unshift(orderData);
+      localStorage.setItem('allOrders', JSON.stringify(allOrders));
+      
+      localStorage.setItem('customerPhone', addressData.phone);
+      const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${addressData.phone}`) || '[]');
+      customerOrders.unshift(orderData);
+      localStorage.setItem(`customerOrders_${addressData.phone}`, JSON.stringify(customerOrders));
+      
+      // Clear cart
       await cartService.clearCart();
       setCart([]);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
+      window.dispatchEvent(new CustomEvent('ordersUpdated'));
+      
       setShowAddressForm(false);
       setLastOrderId(orderId);
       setShowSuccessModal(true);
-      
-      // Force reload cart to ensure it's empty
-      setTimeout(async () => {
-        const emptyCart = await cartService.getCartItems();
-        setCart(emptyCart);
-      }, 100);
       
       toast({
         title: "Order Placed Successfully!",

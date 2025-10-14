@@ -107,10 +107,16 @@ export class OrderService {
     // Set as current order for customer tracking
     localStorage.setItem('currentOrder', JSON.stringify(newOrder));
     
-    // Save customer order history
+    // Save customer order history and set customer phone
+    localStorage.setItem('customerPhone', customerInfo.phone);
     const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${customerInfo.phone}`) || '[]');
     customerOrders.unshift(newOrder);
     localStorage.setItem(`customerOrders_${customerInfo.phone}`, JSON.stringify(customerOrders));
+    
+    // Also save to general customer orders for easy access
+    const allCustomerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    allCustomerOrders.unshift(newOrder);
+    localStorage.setItem('customerOrders', JSON.stringify(allCustomerOrders));
     
     // Create delivery notification for delivery partners
     this.createDeliveryNotification(newOrder);
