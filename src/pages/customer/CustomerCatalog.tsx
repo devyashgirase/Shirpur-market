@@ -73,7 +73,16 @@ const CustomerCatalog = () => {
             });
           }
         });
-        setCategories(Array.from(categoryMap.values()));
+        const categoriesArray = Array.from(categoryMap.values());
+        // Always ensure pan-corner category is available
+        if (!categoriesArray.find(c => c.id === 'pan-corner')) {
+          categoriesArray.push({
+            id: 'pan-corner',
+            name: 'Pan Corner',
+            is_active: true
+          });
+        }
+        setCategories(categoriesArray);
       } catch (error) {
         console.error('Failed to load products:', error);
         setProducts([]);
@@ -124,6 +133,11 @@ const CustomerCatalog = () => {
     
     return matchesCategory && matchesSearch;
   });
+  
+  // Debug logging
+  console.log('Selected category:', selectedCategory);
+  console.log('All products:', products.map(p => ({ name: p.name, category: p.category_id })));
+  console.log('Filtered products:', filteredProducts.length);
   
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'Unknown';
@@ -355,6 +369,7 @@ const CustomerCatalog = () => {
             🌿 Pan Corner Special
           </h2>
           <PanCornerCarousel onBannerClick={() => {
+            console.log('Pan Corner clicked - setting category to pan-corner');
             setSelectedCategory('pan-corner');
             setTimeout(() => {
               const productsSection = document.getElementById('products-section');
