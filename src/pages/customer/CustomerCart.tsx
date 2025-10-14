@@ -737,42 +737,6 @@ const CustomerCart = () => {
                 Proceed to Checkout
               </Button>
               
-              {/* Test Razorpay Button */}
-              <Button 
-                onClick={() => {
-                  console.log('Testing Razorpay integration...');
-                  console.log('Razorpay available:', !!(window as any).Razorpay);
-                  console.log('Environment key:', import.meta.env.VITE_RAZORPAY_KEY_ID ? 'Set' : 'Not set');
-                  if ((window as any).Razorpay) {
-                    const testOptions = {
-                      key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_key',
-                      amount: 100, // ₹1 for testing
-                      currency: 'INR',
-                      name: 'Test Payment',
-                      description: 'Testing Razorpay Integration',
-                      handler: function(response: any) {
-                        console.log('Test payment successful:', response);
-                        toast({ title: 'Test Payment Success', description: 'Razorpay is working!' });
-                      },
-                      modal: {
-                        ondismiss: function() {
-                          console.log('Test payment cancelled');
-                        }
-                      }
-                    };
-                    const rzp = new (window as any).Razorpay(testOptions);
-                    rzp.open();
-                  } else {
-                    toast({ title: 'Razorpay Not Loaded', description: 'Check console for details', variant: 'destructive' });
-                  }
-                }}
-                variant="outline"
-                className="w-full"
-                size="sm"
-              >
-                🧪 Test Razorpay
-              </Button>
-              
               <Link to="/customer" className="block">
                 <Button variant="outline" className="w-full">
                   Continue Shopping
