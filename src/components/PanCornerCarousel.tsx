@@ -6,19 +6,25 @@ const panCornerBanners = [
   {
     id: 1,
     title: 'Fresh Pan Masala',
-    subtitle: 'Premium quality pan ingredients',
+    subtitle: 'Premium quality pan ingredients & accessories',
     color: 'bg-gradient-to-r from-green-600 to-emerald-700'
   },
   {
     id: 2,
-    title: 'Betel Leaves Special',
-    subtitle: 'Fresh betel leaves daily',
-    color: 'bg-gradient-to-r from-emerald-600 to-green-700'
+    title: 'Wine & Beverages',
+    subtitle: 'Premium wine collection (21+ only)',
+    color: 'bg-gradient-to-r from-purple-600 to-red-700'
   },
   {
     id: 3,
-    title: 'Pan Corner Combo',
-    subtitle: 'Complete pan making kit',
+    title: 'Cigarettes & Tobacco',
+    subtitle: 'Authentic brands (18+ only)',
+    color: 'bg-gradient-to-r from-gray-600 to-slate-700'
+  },
+  {
+    id: 4,
+    title: 'Pan Corner Special',
+    subtitle: 'Complete collection of snacks & more',
     color: 'bg-gradient-to-r from-teal-600 to-green-600'
   }
 ];
