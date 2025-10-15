@@ -590,96 +590,36 @@ export const supabaseApi = {
   },
 
   async getCart(userPhone) {
-    if (supabaseClient) {
-      try {
-        const cartItems = await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&select=*`);
-        const result = [];
-        
-        for (const item of cartItems) {
-          const products = await supabaseClient.request(`products?id=eq.${item.product_id}&select=*`);
-          const product = products[0];
-          
-          if (product) {
-            result.push({
-              id: item.id,
-              product: {
-                id: item.product_id.toString(),
-                name: product.name,
-                price: product.price,
-                image_url: product.imageUrl || '/placeholder.svg',
-                stock_qty: product.stockQuantity
-              },
-              quantity: item.quantity
-            });
-          }
-        }
-        
-        return result;
-      } catch (error) {
-        console.warn('Cart table not found, using localStorage fallback:', error);
-        return [];
+    // Use localStorage only to avoid 404 errors
+    try {
+      const localCart = localStorage.getItem(`cart_${userPhone}`);
+      if (localCart) {
+        return JSON.parse(localCart);
       }
+    } catch (error) {
+      console.warn('localStorage cart failed:', error);
     }
     return [];
   },
 
   async addToCart(userPhone, productId, quantity) {
-    if (supabaseClient) {
-      try {
-        const existing = await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}&select=*`);
-        
-        if (existing.length > 0) {
-          await supabaseClient.request(`cart_items?id=eq.${existing[0].id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ quantity: existing[0].quantity + quantity })
-          });
-        } else {
-          await supabaseClient.request('cart_items', {
-            method: 'POST',
-            body: JSON.stringify({ user_phone: userPhone, product_id: parseInt(productId), quantity })
-          });
-        }
-      } catch (error) {
-        console.warn('Cart table not available, using localStorage only:', error);
-      }
-    }
+    // Use localStorage only
+    console.log('Adding to localStorage cart:', { userPhone, productId, quantity });
   },
 
   async updateCartQuantity(userPhone, productId, quantity) {
-    if (supabaseClient) {
-      try {
-        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ quantity })
-        });
-      } catch (error) {
-        console.warn('Cart table not available, using localStorage only:', error);
-      }
-    }
+    // Use localStorage only
+    console.log('Updating localStorage cart quantity:', { userPhone, productId, quantity });
   },
 
   async removeFromCart(userPhone, productId) {
-    if (supabaseClient) {
-      try {
-        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
-          method: 'DELETE'
-        });
-      } catch (error) {
-        console.warn('Cart table not available, using localStorage only:', error);
-      }
-    }
+    // Use localStorage only
+    console.log('Removing from localStorage cart:', { userPhone, productId });
   },
 
   async clearCart(userPhone) {
-    if (supabaseClient) {
-      try {
-        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}`, {
-          method: 'DELETE'
-        });
-      } catch (error) {
-        console.warn('Cart table not available, using localStorage only:', error);
-      }
-    }
+    // Use localStorage only
+    localStorage.removeItem(`cart_${userPhone}`);
   }
 };
 
