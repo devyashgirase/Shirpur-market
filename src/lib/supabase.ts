@@ -590,36 +590,108 @@ export const supabaseApi = {
   },
 
   async getCart(userPhone) {
-    // Use localStorage only to avoid 404 errors
-    try {
-      const localCart = localStorage.getItem(`cart_${userPhone}`);
-      if (localCart) {
-        return JSON.parse(localCart);
+    if (supabaseClient) {
+      try {
+        const data = await supabaseClient.request(`cart_items?select=*,products(*)&user_phone=eq.${userPhone}`);
+        console.log('📊 Fetched cart from Supabase:', data.length);
+        
+        return (data || []).map(item => ({
+          id: item.id,
+          product: {
+            id: item.products.id,
+            name: item.products.name,
+            price: item.products.price,
+            image_url: item.products.imageUrl || item.products.image_url || '/placeholder.svg',
+            stock_qty: item.products.stockQuantity || item.products.stock_quantity || 0
+          },
+          quantity: item.quantity
+        }));
+      } catch (error) {
+        console.warn('Supabase cart failed:', error);
       }
-    } catch (error) {
-      console.warn('localStorage cart failed:', error);
     }
     return [];
   },
 
   async addToCart(userPhone, productId, quantity) {
-    // Use localStorage only
-    console.log('Adding to localStorage cart:', { userPhone, productId, quantity });
+    if (supabaseClient) {
+      try {
+        // Check if item already exists
+        const existing = await supabaseClient.request(`cart_items?select=*&user_phone=eq.${userPhone}&product_id=eq.${productId}`);
+        
+        if (existing && existing.length > 0) {
+          // Update existing item
+          const newQuantity = existing[0].quantity + quantity;
+          const result = await supabaseClient.request(`cart_items?id=eq.${existing[0].id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ quantity: newQuantity })
+          });
+          return result[0];
+        } else {
+          // Create new item
+          const result = await supabaseClient.request('cart_items', {
+            method: 'POST',
+            body: JSON.stringify({
+              user_phone: userPhone,
+              product_id: productId,
+              quantity: quantity,
+              created_at: new Date().toISOString()
+            })
+          });
+          return result[0];
+        }
+      } catch (error) {
+        console.error('Failed to add to cart:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
   },
 
   async updateCartQuantity(userPhone, productId, quantity) {
-    // Use localStorage only
-    console.log('Updating localStorage cart quantity:', { userPhone, productId, quantity });
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ quantity })
+        });
+        return result[0];
+      } catch (error) {
+        console.error('Failed to update cart quantity:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
   },
 
   async removeFromCart(userPhone, productId) {
-    // Use localStorage only
-    console.log('Removing from localStorage cart:', { userPhone, productId });
+    if (supabaseClient) {
+      try {
+        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
+          method: 'DELETE'
+        });
+        return true;
+      } catch (error) {
+        console.error('Failed to remove from cart:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
   },
 
   async clearCart(userPhone) {
-    // Use localStorage only
-    localStorage.removeItem(`cart_${userPhone}`);
+    if (supabaseClient) {
+      try {
+        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}`, {
+          method: 'DELETE'
+        });
+        return true;
+      } catch (error) {
+        console.error('Failed to clear cart:', error);
+        throw error;
+      }
+    }
+    throw new Error('Database not available');
   }
 };
 

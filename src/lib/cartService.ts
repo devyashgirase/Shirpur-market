@@ -1,4 +1,4 @@
-import { DatabaseService } from './databaseService';
+import { supabaseApi } from './supabase';
 import { authService } from './authService';
 
 export interface CartItem {
@@ -23,69 +23,29 @@ class CartService {
     }
   }
 
-  private getLocalStorageKey(userPhone: string): string {
-    return `cart_${userPhone}`;
-  }
-
-  private getLocalCart(userPhone: string): CartItem[] {
-    try {
-      const stored = localStorage.getItem(this.getLocalStorageKey(userPhone));
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private saveLocalCart(userPhone: string, cart: CartItem[]): void {
-    localStorage.setItem(this.getLocalStorageKey(userPhone), JSON.stringify(cart));
-  }
-
   async getCartItems(): Promise<CartItem[]> {
     const userPhone = await this.getCurrentUserPhone();
     if (!userPhone) return [];
 
     try {
-      const cartData = await DatabaseService.getCart(userPhone);
+      const cartData = await supabaseApi.getCart(userPhone);
       return cartData || [];
     } catch (error) {
-      console.warn('Database cart failed, using localStorage:', error);
-      return this.getLocalCart(userPhone);
+      console.error('Failed to get cart items:', error);
+      return [];
     }
   }
 
-  async addToCart(productId: string, quantity: number = 1, productData?: any): Promise<boolean> {
+  async addToCart(productId: string, quantity: number = 1): Promise<boolean> {
     const userPhone = await this.getCurrentUserPhone();
     if (!userPhone) return false;
 
     try {
-      await DatabaseService.addToCart(userPhone, productId, quantity);
+      await supabaseApi.addToCart(userPhone, productId, quantity);
       return true;
     } catch (error) {
-      console.warn('Database add failed, using localStorage:', error);
-      
-      if (!productData) return false;
-      
-      const cart = this.getLocalCart(userPhone);
-      const existingIndex = cart.findIndex(item => item.product.id === productId);
-      
-      if (existingIndex >= 0) {
-        cart[existingIndex].quantity += quantity;
-      } else {
-        cart.push({
-          id: Date.now(),
-          product: {
-            id: productId,
-            name: productData.name,
-            price: productData.price,
-            image_url: productData.image_url || '/placeholder.svg',
-            stock_qty: productData.stock_qty || 100
-          },
-          quantity
-        });
-      }
-      
-      this.saveLocalCart(userPhone, cart);
-      return true;
+      console.error('Failed to add to cart:', error);
+      return false;
     }
   }
 
@@ -98,19 +58,10 @@ class CartService {
     }
 
     try {
-      await DatabaseService.updateCartQuantity(userPhone, productId, quantity);
+      await supabaseApi.updateCartQuantity(userPhone, productId, quantity);
       return true;
     } catch (error) {
-      console.warn('Database update failed, using localStorage:', error);
-      
-      const cart = this.getLocalCart(userPhone);
-      const itemIndex = cart.findIndex(item => item.product.id === productId);
-      
-      if (itemIndex >= 0) {
-        cart[itemIndex].quantity = quantity;
-        this.saveLocalCart(userPhone, cart);
-        return true;
-      }
+      console.error('Failed to update cart quantity:', error);
       return false;
     }
   }
@@ -120,15 +71,11 @@ class CartService {
     if (!userPhone) return false;
 
     try {
-      await DatabaseService.removeFromCart(userPhone, productId);
+      await supabaseApi.removeFromCart(userPhone, productId);
       return true;
     } catch (error) {
-      console.warn('Database remove failed, using localStorage:', error);
-      
-      const cart = this.getLocalCart(userPhone);
-      const filteredCart = cart.filter(item => item.product.id !== productId);
-      this.saveLocalCart(userPhone, filteredCart);
-      return true;
+      console.error('Failed to remove from cart:', error);
+      return false;
     }
   }
 
@@ -137,13 +84,12 @@ class CartService {
     if (!userPhone) return false;
 
     try {
-      await DatabaseService.clearCart(userPhone);
+      await supabaseApi.clearCart(userPhone);
+      return true;
     } catch (error) {
-      console.warn('Database clear failed, using localStorage:', error);
+      console.error('Failed to clear cart:', error);
+      return false;
     }
-    
-    this.saveLocalCart(userPhone, []);
-    return true;
   }
 
   async getCartTotal(): Promise<number> {
