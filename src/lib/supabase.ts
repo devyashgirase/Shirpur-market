@@ -303,6 +303,8 @@ export const supabaseApi = {
   },
 
   async createOrder(order: any) {
+    console.log('🔍 Creating order in Supabase:', order);
+    
     if (supabaseClient) {
       try {
         const orderData = {
@@ -310,15 +312,23 @@ export const supabaseApi = {
           order_id: order.order_id || `ORD${Date.now()}`,
           created_at: new Date().toISOString()
         };
+        
+        console.log('📦 Order data to insert:', orderData);
+        
         const result = await supabaseClient.request('orders', {
           method: 'POST',
           body: JSON.stringify(orderData)
         });
-        return result[0];
+        
+        console.log('✅ Order created successfully in Supabase:', result);
+        return result[0] || result;
       } catch (error) {
-        console.error('Failed to create order:', error);
+        console.error('❌ Failed to create order in Supabase:', error);
+        throw error; // Re-throw to handle in calling code
       }
     }
+    
+    console.warn('⚠️ No Supabase client, returning mock order');
     return { id: Date.now(), order_id: `ORD${Date.now()}`, ...order };
   },
 
@@ -592,22 +602,36 @@ export const supabaseApi = {
   async getCart(userPhone) {
     if (supabaseClient) {
       try {
-        const data = await supabaseClient.request(`cart_items?select=*,products(*)&user_phone=eq.${userPhone}`);
-        console.log('📊 Fetched cart from Supabase:', data.length);
+        // Use products table to store cart data in description field as JSON
+        const cartProducts = await supabaseClient.request(`products?select=*&category=eq.CART_${userPhone}`);
         
-        return (data || []).map(item => ({
-          id: item.id,
-          product: {
-            id: item.products.id,
-            name: item.products.name,
-            price: item.products.price,
-            image_url: item.products.imageUrl || item.products.image_url || '/placeholder.svg',
-            stock_qty: item.products.stockQuantity || item.products.stock_quantity || 0
-          },
-          quantity: item.quantity
-        }));
+        if (cartProducts && cartProducts.length > 0) {
+          const cartItems = [];
+          
+          for (const cartProduct of cartProducts) {
+            try {
+              const cartItem = JSON.parse(cartProduct.description || '{}');
+              if (cartItem.product && cartItem.quantity) {
+                cartItems.push({
+                  id: cartProduct.id,
+                  product: cartItem.product,
+                  quantity: cartItem.quantity
+                });
+              }
+            } catch (e) {
+              console.warn('Invalid cart item:', e);
+            }
+          }
+          
+          console.log('📊 Fetched cart from products table:', cartItems.length);
+          return cartItems;
+        }
+        
+        console.log('📊 No cart found, empty cart');
+        return [];
       } catch (error) {
-        console.warn('Supabase cart failed:', error);
+        console.warn('Failed to get cart:', error);
+        return [];
       }
     }
     return [];
@@ -616,30 +640,51 @@ export const supabaseApi = {
   async addToCart(userPhone, productId, quantity) {
     if (supabaseClient) {
       try {
-        // Check if item already exists
-        const existing = await supabaseClient.request(`cart_items?select=*&user_phone=eq.${userPhone}&product_id=eq.${productId}`);
+        const products = await supabaseClient.request(`products?select=*&id=eq.${productId}`);
+        const product = products[0];
         
-        if (existing && existing.length > 0) {
-          // Update existing item
-          const newQuantity = existing[0].quantity + quantity;
-          const result = await supabaseClient.request(`cart_items?id=eq.${existing[0].id}`, {
+        if (!product) throw new Error('Product not found');
+        
+        // Check if cart item already exists
+        const existingCartItems = await supabaseClient.request(`products?select=*&name=eq.CART_${userPhone}_${productId}`);
+        
+        const cartItemData = {
+          product: {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image_url: '/placeholder.svg',
+            stock_qty: product.stockQuantity || 100
+          },
+          quantity: quantity
+        };
+        
+        if (existingCartItems && existingCartItems.length > 0) {
+          // Update existing cart item
+          const existingItem = existingCartItems[0];
+          const existingData = JSON.parse(existingItem.description || '{}');
+          cartItemData.quantity = (existingData.quantity || 0) + quantity;
+          
+          await supabaseClient.request(`products?id=eq.${existingItem.id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ quantity: newQuantity })
-          });
-          return result[0];
-        } else {
-          // Create new item
-          const result = await supabaseClient.request('cart_items', {
-            method: 'POST',
             body: JSON.stringify({
-              user_phone: userPhone,
-              product_id: productId,
-              quantity: quantity,
-              created_at: new Date().toISOString()
+              description: JSON.stringify(cartItemData)
             })
           });
-          return result[0];
+        } else {
+          // Create new cart item
+          await supabaseClient.request('products', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: `CART_${userPhone}_${productId}`,
+              description: JSON.stringify(cartItemData),
+              price: 0,
+              category: `CART_${userPhone}`
+            })
+          });
         }
+        
+        return { success: true };
       } catch (error) {
         console.error('Failed to add to cart:', error);
         throw error;
@@ -651,11 +696,21 @@ export const supabaseApi = {
   async updateCartQuantity(userPhone, productId, quantity) {
     if (supabaseClient) {
       try {
-        const result = await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ quantity })
-        });
-        return result[0];
+        const cartItems = await supabaseClient.request(`products?select=*&name=eq.CART_${userPhone}_${productId}`);
+        
+        if (cartItems && cartItems.length > 0) {
+          const cartItem = cartItems[0];
+          const cartData = JSON.parse(cartItem.description || '{}');
+          cartData.quantity = quantity;
+          
+          await supabaseClient.request(`products?id=eq.${cartItem.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              description: JSON.stringify(cartData)
+            })
+          });
+        }
+        return { success: true };
       } catch (error) {
         console.error('Failed to update cart quantity:', error);
         throw error;
@@ -667,7 +722,7 @@ export const supabaseApi = {
   async removeFromCart(userPhone, productId) {
     if (supabaseClient) {
       try {
-        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}&product_id=eq.${productId}`, {
+        await supabaseClient.request(`products?name=eq.CART_${userPhone}_${productId}`, {
           method: 'DELETE'
         });
         return true;
@@ -682,7 +737,7 @@ export const supabaseApi = {
   async clearCart(userPhone) {
     if (supabaseClient) {
       try {
-        await supabaseClient.request(`cart_items?user_phone=eq.${userPhone}`, {
+        await supabaseClient.request(`products?category=eq.CART_${userPhone}`, {
           method: 'DELETE'
         });
         return true;

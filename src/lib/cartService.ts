@@ -31,7 +31,7 @@ class CartService {
       const cartData = await supabaseApi.getCart(userPhone);
       return cartData || [];
     } catch (error) {
-      console.error('Failed to get cart items:', error);
+      console.warn('Cart not available, please set up cart_items table:', error);
       return [];
     }
   }

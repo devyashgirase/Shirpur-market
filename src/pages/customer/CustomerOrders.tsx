@@ -38,17 +38,27 @@ const CustomerOrders = () => {
     try {
       setLoading(true);
       
-      // Load orders directly from database
-      const dbOrders = await unifiedDB.getOrders();
+      // Load orders directly from Supabase
+      console.log('🔄 Loading orders from Supabase...');
       
-      // Sort by creation date (newest first)
-      dbOrders.sort((a, b) => {
-        const dateA = new Date(a.created_at || 0);
-        const dateB = new Date(b.created_at || 0);
-        return dateB.getTime() - dateA.getTime();
+      const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?select=*&order=created_at.desc', {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Content-Type': 'application/json'
+        }
       });
       
-      setOrders(dbOrders);
+      if (response.ok) {
+        const dbOrders = await response.json();
+        console.log('✅ Orders loaded from Supabase:', dbOrders.length);
+        setOrders(dbOrders || []);
+      } else {
+        console.error('❌ Failed to load orders from Supabase:', response.status);
+        // Fallback to unifiedDB
+        const dbOrders = await unifiedDB.getOrders();
+        setOrders(dbOrders || []);
+      }
     } catch (error) {
       console.error('Failed to load orders:', error);
       setOrders([]);
