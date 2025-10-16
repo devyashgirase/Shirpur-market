@@ -29,9 +29,15 @@ const DeliveryNotifications = () => {
   }, []);
   
   const loadNewOrders = async () => {
+    console.log('🔄 Loading new orders for delivery agent...');
     const result = await orderManagementService.getOrdersReadyForDelivery();
+    console.log('📦 Orders result:', result);
+    
     if (result.success) {
+      console.log('✅ Found orders ready for delivery:', result.orders.length);
       setNewOrders(result.orders);
+    } else {
+      console.error('❌ Failed to load orders:', result.error);
     }
     setLoading(false);
   };
