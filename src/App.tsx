@@ -34,6 +34,8 @@ import DeliveryTasks from "./pages/delivery/DeliveryTasks";
 import DeliveryTaskDetail from "./pages/delivery/DeliveryTaskDetail";
 import DeliveryNotifications from "./pages/delivery/DeliveryNotifications";
 import DeliveryTracking from "./pages/delivery/DeliveryTracking";
+import DeliveryProfile from "./pages/delivery/DeliveryProfile";
+import DeliveryProfile from "./pages/delivery/DeliveryProfile";
 import TrackingDemo from "./pages/TrackingDemo";
 import NotFound from "./pages/NotFound";
 
@@ -113,6 +115,8 @@ const App = () => {
             <Route path="notifications" element={<DeliveryNotifications />} />
             <Route path="task/:taskId" element={<DeliveryTaskDetail />} />
             <Route path="tracking" element={<DeliveryTracking />} />
+            <Route path="profile" element={<DeliveryProfile />} />
+            <Route path="profile" element={<DeliveryProfile />} />
           </Route>
           
           {/* Catch-all route */}

@@ -19,6 +19,8 @@ class OrderManagementService {
   // Admin marks order as ready for delivery
   async markOrderReadyForDelivery(orderId: string) {
     try {
+      console.log('🔄 Marking order ready for delivery:', orderId);
+      
       const { data, error } = await supabase
         .from('orders')
         .update({ 
@@ -28,21 +30,33 @@ class OrderManagementService {
         .eq('id', orderId)
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.error('❌ No order found with ID:', orderId);
+        return { success: false, error: 'Order not found' };
+      }
 
+      console.log('✅ Order updated successfully:', data[0]);
+      
       // Notify all active delivery agents
       await this.notifyDeliveryAgents(data[0]);
       
       return { success: true, order: data[0] };
     } catch (error) {
-      console.error('Error marking order ready:', error);
-      return { success: false, error };
+      console.error('❌ Error marking order ready:', error);
+      return { success: false, error: error.message };
     }
   }
 
   // Get orders ready for delivery (for delivery agents)
   async getOrdersReadyForDelivery() {
     try {
+      console.log('🔍 Fetching orders ready for delivery...');
+      
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -50,10 +64,17 @@ class OrderManagementService {
         .is('delivery_agent_id', null)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error fetching orders:', error);
+        throw error;
+      }
+      
+      console.log('📦 Found ready orders:', data?.length || 0);
+      console.log('📋 Orders data:', data);
+      
       return { success: true, orders: data || [] };
     } catch (error) {
-      console.error('Error fetching ready orders:', error);
+      console.error('❌ Error fetching ready orders:', error);
       return { success: false, orders: [] };
     }
   }

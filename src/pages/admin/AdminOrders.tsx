@@ -16,6 +16,7 @@ import { DatabaseService } from "@/lib/databaseService";
 import { useToast } from "@/hooks/use-toast";
 import { deliveryCoordinationService } from "@/lib/deliveryCoordinationService";
 import { DataGenerator } from "@/lib/dataGenerator";
+import AdminOrderStatusManager from "@/components/AdminOrderStatusManager";
 
 // Function to notify nearby delivery agents
 const notifyNearbyDeliveryAgents = async (orderData: any) => {
@@ -506,9 +507,12 @@ const AdminOrders = () => {
                 </div>
 
                 {/* Status Management */}
-                <StatusManagement 
+                <AdminOrderStatusManager 
                   order={selectedOrder} 
-                  onStatusUpdate={updateOrderStatus}
+                  onStatusUpdate={() => {
+                    loadOrders();
+                    setShowOrderDetails(false);
+                  }}
                 />
               </TabsContent>
               
