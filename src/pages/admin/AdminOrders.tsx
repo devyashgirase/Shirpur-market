@@ -69,38 +69,76 @@ const AdminOrders = () => {
   
   const loadOrders = async () => {
     try {
-      console.log('📊 Loading orders from database...');
+      console.log('📊 Loading orders directly from Supabase...');
       
-      // Load orders from Supabase database
-      const dbOrders = await DatabaseService.getOrders();
-      const formattedOrders = dbOrders.map(order => ({
-        orderId: order.order_id || order.orderId,
-        status: order.status || 'pending',
-        timestamp: order.created_at || order.createdAt || new Date().toISOString(),
-        customerAddress: {
-          name: order.customer_name || order.customerName || 'Customer',
-          phone: order.customer_phone || order.customerPhone || '',
-          address: order.delivery_address || order.deliveryAddress || '',
-          coordinates: { lat: 21.3486, lng: 74.8811 }
-        },
-        items: order.items ? (Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')).map(item => ({
-          product: {
-            id: item.product_id?.toString() || item.id?.toString() || '0',
-            name: item.product_name || item.name || 'Product',
-            price: parseFloat(item.price || item.product_price || 0)
+      // Load orders directly from Supabase
+      const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?select=*&order=created_at.desc', {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const dbOrders = await response.json();
+        console.log('✅ Loaded orders directly from Supabase:', dbOrders.length);
+        
+        const formattedOrders = dbOrders.map(order => ({
+          orderId: order.order_id || order.orderId,
+          status: order.status || 'pending',
+          timestamp: order.created_at || order.createdAt || new Date().toISOString(),
+          customerAddress: {
+            name: order.customer_name || order.customerName || 'Customer',
+            phone: order.customer_phone || order.customerPhone || '',
+            address: order.delivery_address || order.deliveryAddress || '',
+            coordinates: { lat: 21.3486, lng: 74.8811 }
           },
-          quantity: parseInt(item.quantity || 1)
-        })) : [],
-        total: parseFloat(order.total_amount || order.total || 0),
-        paymentStatus: order.payment_status || order.paymentStatus || 'paid',
-        databaseId: order.id
-      }));
-      
-      console.log('✅ Loaded orders from database:', formattedOrders.length);
-      setOrders([...formattedOrders].reverse()); // Show newest first
+          items: order.items ? (Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')).map(item => ({
+            product: {
+              id: item.product_id?.toString() || item.id?.toString() || '0',
+              name: item.product_name || item.name || 'Product',
+              price: parseFloat(item.price || item.product_price || 0)
+            },
+            quantity: parseInt(item.quantity || 1)
+          })) : [],
+          total: parseFloat(order.total_amount || order.total || 0),
+          paymentStatus: order.payment_status || order.paymentStatus || 'paid',
+          databaseId: order.id
+        }));
+        
+        setOrders(formattedOrders); // Already sorted by created_at desc
+      } else {
+        console.error('❌ Failed to load orders from Supabase:', response.status);
+        // Fallback to DatabaseService
+        const dbOrders = await DatabaseService.getOrders();
+        const formattedOrders = dbOrders.map(order => ({
+          orderId: order.order_id || order.orderId,
+          status: order.status || 'pending',
+          timestamp: order.created_at || order.createdAt || new Date().toISOString(),
+          customerAddress: {
+            name: order.customer_name || order.customerName || 'Customer',
+            phone: order.customer_phone || order.customerPhone || '',
+            address: order.delivery_address || order.deliveryAddress || '',
+            coordinates: { lat: 21.3486, lng: 74.8811 }
+          },
+          items: order.items ? (Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')).map(item => ({
+            product: {
+              id: item.product_id?.toString() || item.id?.toString() || '0',
+              name: item.product_name || item.name || 'Product',
+              price: parseFloat(item.price || item.product_price || 0)
+            },
+            quantity: parseInt(item.quantity || 1)
+          })) : [],
+          total: parseFloat(order.total_amount || order.total || 0),
+          paymentStatus: order.payment_status || order.paymentStatus || 'paid',
+          databaseId: order.id
+        }));
+        setOrders([...formattedOrders].reverse());
+      }
       
     } catch (error) {
-      console.warn('⚠️ Database failed, using fallback data:', error);
+      console.warn('⚠️ All methods failed, using fallback data:', error);
       // Use fallback data from DatabaseService
       const fallbackOrders = DatabaseService.getFallbackOrders().map(order => ({
         orderId: order.orderId,
@@ -138,9 +176,25 @@ const AdminOrders = () => {
         throw new Error(`Invalid status: ${newStatus}`);
       }
       
-      // Update in database
-      await DatabaseService.updateOrderStatus(orderId, newStatus);
-      console.log('✅ Database status update successful');
+      // Update in database directly
+      const updateResponse = await fetch(`https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?order_id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (updateResponse.ok) {
+        console.log('✅ Supabase status update successful');
+      } else {
+        console.error('❌ Supabase status update failed:', updateResponse.status);
+        // Fallback to DatabaseService
+        await DatabaseService.updateOrderStatus(orderId, newStatus);
+        console.log('✅ Fallback database status update successful');
+      }
       
       // Also update in localStorage for compatibility
       try {
@@ -170,12 +224,13 @@ const AdminOrders = () => {
         }
       }
       
-      // Trigger order status change event for delivery agents
-      if (newStatus === 'out_for_delivery') {
-        window.dispatchEvent(new CustomEvent('orderStatusChanged', {
-          detail: { orderId, status: newStatus }
-        }));
-      }
+      // Trigger order status change event for delivery agents and customers
+      window.dispatchEvent(new CustomEvent('orderStatusChanged', {
+        detail: { orderId, status: newStatus }
+      }));
+      
+      // Also trigger general orders update for customer side
+      window.dispatchEvent(new CustomEvent('ordersUpdated'));
       
       toast({
         title: "Status Updated Successfully",

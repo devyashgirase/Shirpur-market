@@ -291,6 +291,7 @@ const AdminProducts = () => {
                     <SelectItem value="Bakery">Bakery</SelectItem>
                     <SelectItem value="Snacks">Snacks</SelectItem>
                     <SelectItem value="Instant Food">Instant Food</SelectItem>
+                    <SelectItem value="Pan Corner">Pan Corner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

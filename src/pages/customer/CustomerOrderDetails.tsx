@@ -104,10 +104,10 @@ const CustomerOrderDetails = () => {
                   {new Date(order.createdAt || order.created_at || order.timestamp).toLocaleString()}
                 </p>
               </div>
-              {['out_for_delivery', 'confirmed', 'preparing'].includes(order.status) && (
+              {order.status === 'out_for_delivery' && (
                 <Button onClick={handleTrackOrder} className="bg-gradient-primary">
                   <MapPin className="w-4 h-4 mr-2" />
-                  Track Order
+                  🚚 Track Live Delivery
                 </Button>
               )}
             </div>
@@ -121,7 +121,10 @@ const CustomerOrderDetails = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {order.items?.map((item: any, index: number) => (
+              {(() => {
+                try {
+                  const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
+                  return items.map((item: any, index: number) => (
                 <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
                   {item.product?.image && (
                     <img 
@@ -145,7 +148,12 @@ const CustomerOrderDetails = () => {
                     </p>
                   </div>
                 </div>
-              ))}
+                  ));
+                } catch (error) {
+                  console.error('Error parsing order items:', error);
+                  return <p className="text-muted-foreground">Unable to load order items</p>;
+                }
+              })()}
             </div>
           </CardContent>
         </Card>

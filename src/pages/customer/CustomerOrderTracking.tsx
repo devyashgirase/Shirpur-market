@@ -348,26 +348,40 @@ const CustomerOrderTracking = () => {
           </CardContent>
         </Card>
 
-        {/* Enhanced Live Tracking Dashboard - Show when out for delivery */}
+        {/* Enhanced Live Tracking Dashboard - Only show when out for delivery */}
         {currentOrder && currentOrder.status === 'out_for_delivery' && (
           <div className="space-y-4">
-            <Card className="bg-gradient-to-r from-green-50 to-blue-50">
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
               <CardHeader className="p-6">
                 <CardTitle className="flex items-center text-lg">
-                  <MapPin className="w-6 h-6 mr-2 text-green-600" />
-                  Enhanced Live Tracking System
-                  <Badge className="ml-2 bg-green-500 text-white animate-pulse px-3 py-1">
+                  <Truck className="w-6 h-6 mr-2 text-green-600" />
+                  🚚 Live Delivery Tracking
+                  <Badge className="ml-2 bg-red-500 text-white animate-pulse px-3 py-1">
                     🔴 LIVE
                   </Badge>
                 </CardTitle>
                 <p className="text-sm text-gray-600 mt-2">
-                  Real-time GPS tracking with AI-powered route optimization and traffic analysis
+                  Real-time GPS tracking of your delivery agent
                 </p>
               </CardHeader>
             </Card>
             
+            <LiveTrackingComponent orderId={currentOrder.orderId} />
             <TrackingDashboard orderId={currentOrder.orderId} userType="customer" />
           </div>
+        )}
+        
+        {/* Show message for other statuses */}
+        {currentOrder && currentOrder.status !== 'out_for_delivery' && (
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-6 text-center">
+              <Package className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+              <h3 className="text-lg font-semibold text-blue-800 mb-2">Live Tracking Not Available</h3>
+              <p className="text-blue-700">
+                Live tracking will be available when your order status changes to "Out for Delivery"
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {false && currentOrder && currentOrder.status === 'out_for_delivery' && currentOrder.deliveryAgent?.location && customerAddress?.coordinates && (

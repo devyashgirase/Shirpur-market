@@ -26,11 +26,20 @@ const CustomerOrders = () => {
     window.addEventListener('orderCreated', handleOrderUpdate);
     window.addEventListener('ordersUpdated', handleOrderUpdate);
     window.addEventListener('cartUpdated', handleOrderUpdate);
+    window.addEventListener('orderStatusChanged', handleOrderUpdate);
+    
+    // Auto-refresh every 30 seconds to catch admin status changes
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing customer orders...');
+      loadCustomerOrders();
+    }, 30000);
     
     return () => {
       window.removeEventListener('orderCreated', handleOrderUpdate);
       window.removeEventListener('ordersUpdated', handleOrderUpdate);
       window.removeEventListener('cartUpdated', handleOrderUpdate);
+      window.removeEventListener('orderStatusChanged', handleOrderUpdate);
+      clearInterval(interval);
     };
   }, []);
 
@@ -238,9 +247,9 @@ const CustomerOrders = () => {
                 <Button variant="outline" size="sm" onClick={() => handleViewDetails(order)}>
                   View Details
                 </Button>
-                {['out_for_delivery', 'confirmed', 'preparing'].includes(order.status) && (
+                {order.status === 'out_for_delivery' && (
                   <Button variant="outline" size="sm" onClick={() => handleTrackOrder(order)} className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
-                    Track Order
+                    🚚 Track Live
                   </Button>
                 )}
                 {order.status === 'delivered' && (
