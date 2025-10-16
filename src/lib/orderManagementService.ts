@@ -201,6 +201,11 @@ class OrderManagementService {
             }))
           );
       }
+      
+      // Also trigger custom event for immediate UI updates
+      window.dispatchEvent(new CustomEvent('newOrderReady', {
+        detail: { order }
+      }));
     } catch (error) {
       console.error('Error notifying agents:', error);
     }
@@ -226,31 +231,37 @@ class OrderManagementService {
     }
   }
 
-  // Real-time subscription for order updates
+  // Real-time subscription for order updates (simplified)
   subscribeToOrderUpdates(callback: (payload: any) => void) {
-    return supabase
-      .channel('order-updates')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        callback
-      )
-      .subscribe();
+    // Use custom events instead of Supabase realtime to avoid errors
+    const handleOrderUpdate = (event: any) => {
+      callback({ new: event.detail.order });
+    };
+    
+    window.addEventListener('newOrderReady', handleOrderUpdate);
+    
+    return {
+      unsubscribe: () => {
+        window.removeEventListener('newOrderReady', handleOrderUpdate);
+      }
+    };
   }
 
-  // Real-time subscription for delivery tracking
+  // Real-time subscription for delivery tracking (simplified)
   subscribeToDeliveryTracking(orderId: string, callback: (payload: any) => void) {
-    return supabase
-      .channel(`tracking-${orderId}`)
-      .on('postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'delivery_tracking',
-          filter: `order_id=eq.${orderId}`
-        },
-        callback
-      )
-      .subscribe();
+    const handleTrackingUpdate = (event: any) => {
+      if (event.detail.orderId === orderId) {
+        callback({ new: event.detail.tracking });
+      }
+    };
+    
+    window.addEventListener('trackingUpdate', handleTrackingUpdate);
+    
+    return {
+      unsubscribe: () => {
+        window.removeEventListener('trackingUpdate', handleTrackingUpdate);
+      }
+    };
   }
 }
 
