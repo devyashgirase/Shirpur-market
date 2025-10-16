@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,22 +11,8 @@ const DeliveryLogin = () => {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentBg, setCurrentBg] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const deliveryImages = [
-    'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
-    'https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBg((prev) => (prev + 1) % deliveryImages.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,13 +46,7 @@ const DeliveryLogin = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 transition-all duration-1000 ease-in-out" 
-         style={{
-           backgroundImage: `url('${deliveryImages[currentBg]}')`,
-           backgroundSize: 'cover',
-           backgroundPosition: 'center',
-           backgroundRepeat: 'no-repeat'
-         }}>
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-green-600 relative flex items-center justify-center p-4">
       
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/60"></div>
