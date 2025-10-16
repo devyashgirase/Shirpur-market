@@ -46,35 +46,61 @@ const DeliveryLogin = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4" 
-         style={{
-           backgroundImage: `url('https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')`,
-           backgroundSize: 'cover',
-           backgroundPosition: 'center',
-           backgroundRepeat: 'no-repeat'
-         }}>
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 via-blue-500 to-green-500">
       
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50"></div>
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-20 left-20 w-32 h-32 bg-white rounded-full animate-pulse"></div>
+        <div className="absolute bottom-32 right-16 w-24 h-24 bg-white rounded-full animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-white rounded-full animate-pulse delay-500"></div>
+      </div>
+
+      {/* Delivery Agent Illustration */}
+      <div className="absolute top-10 left-10 opacity-20">
+        <svg width="120" height="120" viewBox="0 0 120 120" className="text-white">
+          <circle cx="60" cy="40" r="20" fill="currentColor" />
+          <rect x="45" y="55" width="30" height="40" rx="5" fill="currentColor" />
+          <rect x="35" y="65" width="50" height="15" rx="3" fill="currentColor" />
+          <text x="60" y="110" textAnchor="middle" className="text-xs font-bold" fill="currentColor">SHIRPUR</text>
+          <text x="60" y="118" textAnchor="middle" className="text-xs" fill="currentColor">DELIVERY</text>
+        </svg>
+      </div>
+
+      {/* Delivery Truck with Logo */}
+      <div className="absolute bottom-20 right-20 opacity-30">
+        <svg width="150" height="100" viewBox="0 0 150 100" className="text-white">
+          <rect x="20" y="40" width="60" height="35" rx="5" fill="currentColor" />
+          <rect x="80" y="45" width="30" height="30" rx="3" fill="currentColor" />
+          <circle cx="40" cy="85" r="10" fill="currentColor" />
+          <circle cx="90" cy="85" r="10" fill="currentColor" />
+          <text x="50" y="58" textAnchor="middle" className="text-xs font-bold" fill="#3B82F6">SD</text>
+          <rect x="25" y="20" width="50" height="15" rx="2" fill="#3B82F6" />
+          <text x="50" y="30" textAnchor="middle" className="text-xs font-bold" fill="white">SHIRPUR DELIVERY</text>
+        </svg>
+      </div>
 
       {/* Login Card */}
       <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm shadow-2xl">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-            <Truck className="w-8 h-8 text-white" />
+          {/* Shirpur Delivery Logo */}
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+            <div className="text-center">
+              <Truck className="w-8 h-8 text-white mx-auto mb-1" />
+              <div className="text-xs font-bold text-white leading-none">SD</div>
+            </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Delivery Agent Login</CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-800">Shirpur Delivery Agent</CardTitle>
           <p className="text-gray-600">Enter your credentials to access delivery dashboard</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">User ID</label>
+              <label className="text-sm font-medium">Agent ID</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Enter your user ID"
+                  placeholder="Enter your agent ID"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   className="pl-10"
@@ -100,28 +126,28 @@ const DeliveryLogin = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-blue-500 hover:bg-blue-600"
+              className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
               disabled={loading}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Logging in...' : 'Login to Shirpur Delivery'}
             </Button>
           </form>
           
           <div className="mt-4 space-y-3">
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-sm text-green-800 text-center font-medium">
-                <strong>Demo Credentials:</strong>
+                <strong>Demo Agent Credentials:</strong>
               </p>
               <p className="text-sm text-green-700 text-center font-mono">
-                User ID: DA123456
+                Agent ID: DA123456
               </p>
               <p className="text-sm text-green-700 text-center font-mono">
                 Password: delivery123
               </p>
             </div>
             <div className="text-center text-xs text-gray-600">
-              <p>Only registered and approved agents can login</p>
-              <p>Contact admin for registration</p>
+              <p>🚚 Shirpur Delivery System</p>
+              <p>Only registered agents can access</p>
             </div>
           </div>
         </CardContent>
