@@ -46,8 +46,19 @@ const DeliveryLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4" 
+         style={{
+           backgroundImage: `url('https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')`,
+           backgroundSize: 'cover',
+           backgroundPosition: 'center',
+           backgroundRepeat: 'no-repeat'
+         }}>
+      
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/50"></div>
+
+      {/* Login Card */}
+      <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
             <Truck className="w-8 h-8 text-white" />
@@ -112,8 +123,6 @@ const DeliveryLogin = () => {
               <p>Only registered and approved agents can login</p>
               <p>Contact admin for registration</p>
             </div>
-            
-
           </div>
         </CardContent>
       </Card>

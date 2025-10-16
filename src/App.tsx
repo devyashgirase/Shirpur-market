@@ -9,6 +9,7 @@ import "@/components/ui/animations.css";
 import { useEffect } from "react";
 import { startNotificationDemo } from "@/lib/testNotifications";
 import { SupabaseVerification } from "@/lib/supabaseVerification";
+import DeliveryBackground from "@/components/DeliveryBackground";
 import OTPLogin from "./pages/OTPLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -62,6 +63,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SweetAlertProvider>
+          <DeliveryBackground />
           <Toaster />
           <Sonner />
         <BrowserRouter>

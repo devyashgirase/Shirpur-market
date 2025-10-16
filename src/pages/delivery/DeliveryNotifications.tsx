@@ -33,14 +33,38 @@ const DeliveryNotifications = () => {
       if (!isMounted) return;
       
       try {
-        const allNotifications = JSON.parse(localStorage.getItem('deliveryNotifications') || '[]');
-        const pendingNotifications = allNotifications.filter((n: DeliveryNotification) => n.status === 'pending');
+        // Get current agent ID from session
+        const currentAgent = JSON.parse(localStorage.getItem('deliveryAgentSession') || '{}');
+        const agentId = currentAgent.userId || currentAgent.id;
         
-        // Only update if data actually changed
-        const currentData = JSON.stringify(pendingNotifications);
-        if (currentData !== lastUpdate) {
-          setNotifications(pendingNotifications);
-          setLastUpdate(currentData);
+        if (agentId) {
+          // Load notifications specific to this agent
+          const agentNotifications = JSON.parse(localStorage.getItem(`agent_notifications_${agentId}`) || '[]');
+          const pendingNotifications = agentNotifications.filter((n: any) => n.status === 'pending');
+          
+          // Convert to expected format
+          const formattedNotifications = pendingNotifications.map((n: any) => ({
+            id: `${n.orderId}_${n.agentId}`,
+            orderId: n.orderId,
+            customerLocation: { lat: 21.3487, lng: 74.8831 }, // Default Shirpur location
+            customerAddress: {
+              name: 'Customer',
+              address: n.customerAddress,
+              phone: '+91 9876543210'
+            },
+            orderValue: n.totalAmount,
+            items: [{ product: { name: 'Order Items' }, quantity: 1 }], // Simplified
+            timestamp: n.createdAt,
+            status: n.status,
+            radius: n.distance
+          }));
+          
+          // Only update if data actually changed
+          const currentData = JSON.stringify(formattedNotifications);
+          if (currentData !== lastUpdate) {
+            setNotifications(formattedNotifications);
+            setLastUpdate(currentData);
+          }
         }
         
         setLoading(false);
@@ -63,42 +87,60 @@ const DeliveryNotifications = () => {
     
     window.addEventListener('deliveryNotificationCreated', handleNewNotification);
     window.addEventListener('deliveryNotificationsUpdated', handleNewNotification);
+    window.addEventListener('newDeliveryNotification', handleNewNotification);
     
     return () => {
       isMounted = false;
       window.removeEventListener('deliveryNotificationCreated', handleNewNotification);
       window.removeEventListener('deliveryNotificationsUpdated', handleNewNotification);
+      window.removeEventListener('newDeliveryNotification', handleNewNotification);
     };
   }, [lastUpdate]);
 
   const acceptOrder = async (notification: DeliveryNotification) => {
-    // Generate dynamic delivery agent
-    const agentInfo = DataGenerator.generateDeliveryAgent();
-
-    // Use OrderService to accept the order
-    const success = await OrderService.acceptOrder(notification.orderId, agentInfo);
-    
-    if (success) {
-      toast({
-        title: "Order Accepted!",
-        description: `Order ${notification.orderId} is now out for delivery.`,
-      });
-
-      // Send notifications
-      NotificationService.sendOrderStatusNotification(
-        notification.orderId, 
-        'out_for_delivery', 
-        'delivery'
-      );
-
-      // Remove from notifications
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    try {
+      // Get current agent info
+      const currentAgent = JSON.parse(localStorage.getItem('deliveryAgentSession') || '{}');
+      const agentId = currentAgent.userId || currentAgent.id;
       
-      // Trigger updates for customer and admin tracking
-      window.dispatchEvent(new CustomEvent('orderStatusChanged', { 
-        detail: { orderId: notification.orderId, status: 'out_for_delivery', agent: agentInfo }
-      }));
-    } else {
+      // Update order status to accepted by this agent
+      const updateResponse = await fetch(`https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?order_id=eq.${notification.orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status: 'out_for_delivery',
+          delivery_agent_id: agentId
+        })
+      });
+      
+      if (updateResponse.ok) {
+        // Remove notification from agent's list
+        const agentNotifications = JSON.parse(localStorage.getItem(`agent_notifications_${agentId}`) || '[]');
+        const updatedNotifications = agentNotifications.filter((n: any) => n.orderId !== notification.orderId);
+        localStorage.setItem(`agent_notifications_${agentId}`, JSON.stringify(updatedNotifications));
+        
+        // Remove from UI
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        
+        toast({
+          title: "Order Accepted!",
+          description: `Order ${notification.orderId} assigned to you. Start delivery now!`,
+        });
+        
+        // Trigger updates
+        window.dispatchEvent(new CustomEvent('orderStatusChanged', { 
+          detail: { orderId: notification.orderId, status: 'out_for_delivery', agentId }
+        }));
+        window.dispatchEvent(new CustomEvent('ordersUpdated'));
+      } else {
+        throw new Error('Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Error accepting order:', error);
       toast({
         title: "Error",
         description: "Failed to accept order. Please try again.",
@@ -108,17 +150,24 @@ const DeliveryNotifications = () => {
   };
 
   const rejectOrder = async (notification: DeliveryNotification) => {
-    const agentInfo = DataGenerator.generateDeliveryAgent();
-    
-    const success = await OrderService.rejectOrder(notification.orderId, agentInfo, 'Not available');
-    
-    if (success) {
+    try {
+      const currentAgent = JSON.parse(localStorage.getItem('deliveryAgentSession') || '{}');
+      const agentId = currentAgent.userId || currentAgent.id;
+      
+      // Remove notification from agent's list
+      const agentNotifications = JSON.parse(localStorage.getItem(`agent_notifications_${agentId}`) || '[]');
+      const updatedNotifications = agentNotifications.filter((n: any) => n.orderId !== notification.orderId);
+      localStorage.setItem(`agent_notifications_${agentId}`, JSON.stringify(updatedNotifications));
+      
+      // Remove from UI
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      
       toast({
         title: "Order Rejected",
         description: "Order will be offered to other delivery partners.",
       });
-
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    } catch (error) {
+      console.error('Error rejecting order:', error);
     }
   };
 

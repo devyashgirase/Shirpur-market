@@ -15,8 +15,73 @@ import { NotificationService } from "@/lib/notificationService";
 import { DatabaseService } from "@/lib/databaseService";
 import { useToast } from "@/hooks/use-toast";
 import { deliveryCoordinationService } from "@/lib/deliveryCoordinationService";
+import { DataGenerator } from "@/lib/dataGenerator";
 
-
+// Function to notify nearby delivery agents
+const notifyNearbyDeliveryAgents = async (orderData: any) => {
+  try {
+    // Get all active delivery agents
+    const agents = await DatabaseService.getDeliveryAgents();
+    const activeAgents = agents.filter(agent => agent.isActive && agent.isApproved);
+    
+    // Order location (use Shirpur center as default)
+    const orderLocation = orderData.customerAddress?.coordinates || { lat: 21.3487, lng: 74.8831 };
+    
+    // Find agents within 10km
+    const nearbyAgents = activeAgents.filter(agent => {
+      if (!agent.location) {
+        // Generate random location for demo agents
+        agent.location = {
+          lat: 21.3487 + (Math.random() - 0.5) * 0.1,
+          lng: 74.8831 + (Math.random() - 0.5) * 0.1
+        };
+      }
+      
+      const distance = DataGenerator.calculateDistance(
+        orderLocation.lat, orderLocation.lng,
+        agent.location.lat, agent.location.lng
+      );
+      
+      return distance <= 10; // Within 10km
+    });
+    
+    console.log(`📍 Found ${nearbyAgents.length} agents within 10km`);
+    
+    // Create delivery notification for each nearby agent
+    nearbyAgents.forEach(agent => {
+      const notification = {
+        orderId: orderData.orderId,
+        agentId: agent.userId || agent.id,
+        customerAddress: orderData.customerAddress?.address || orderData.delivery_address,
+        totalAmount: orderData.total,
+        distance: DataGenerator.calculateDistance(
+          orderLocation.lat, orderLocation.lng,
+          agent.location.lat, agent.location.lng
+        ),
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      };
+      
+      // Store notification in localStorage for each agent
+      const agentNotifications = JSON.parse(localStorage.getItem(`agent_notifications_${agent.userId || agent.id}`) || '[]');
+      agentNotifications.unshift(notification);
+      localStorage.setItem(`agent_notifications_${agent.userId || agent.id}`, JSON.stringify(agentNotifications));
+      
+      console.log(`🔔 Notification sent to agent ${agent.name} (${notification.distance.toFixed(2)}km away)`);
+    });
+    
+    // Trigger delivery agent dashboard refresh
+    window.dispatchEvent(new CustomEvent('newDeliveryNotification', { 
+      detail: { 
+        orderId: orderData.orderId, 
+        agentCount: nearbyAgents.length 
+      } 
+    }));
+    
+  } catch (error) {
+    console.error('Error notifying delivery agents:', error);
+  }
+};
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -206,21 +271,26 @@ const AdminOrders = () => {
       
       // Status update successful
         
-      // Create delivery notification for nearby agents when status is packing
-      if (newStatus === 'packing') {
-        const orderData = OrderService.getOrderById(orderId);
-        if (orderData) {
-          console.log('📦 Creating delivery notification for packing status');
-          OrderService.createDeliveryNotification(orderData);
-          NotificationService.sendDeliveryRequestNotification(
-            orderId, 
-            orderData.customerAddress.address, 
-            orderData.total
-          );
+      // Create delivery notification for nearby agents when status is out_for_delivery
+      if (newStatus === 'out_for_delivery') {
+        try {
+          console.log('🚚 Order set to out_for_delivery, notifying nearby agents...');
           
-          // Trigger delivery agent refresh
-          window.dispatchEvent(new CustomEvent('deliveryNotificationCreated', { detail: orderData }));
-          window.dispatchEvent(new CustomEvent('ordersUpdated'));
+          // Get order details
+          const orderIndex = orders.findIndex(o => o.orderId === orderId);
+          if (orderIndex !== -1) {
+            const orderData = orders[orderIndex];
+            
+            // Notify nearby delivery agents (within 10km)
+            await notifyNearbyDeliveryAgents(orderData);
+            
+            toast({
+              title: "Delivery Agents Notified",
+              description: "Nearby delivery agents have been notified about this order",
+            });
+          }
+        } catch (error) {
+          console.error('Failed to notify delivery agents:', error);
         }
       }
       
