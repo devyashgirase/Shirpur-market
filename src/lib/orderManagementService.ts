@@ -231,19 +231,11 @@ class OrderManagementService {
     }
   }
 
-  // Real-time subscription for order updates (simplified)
+  // Polling-based order updates (no subscriptions)
   subscribeToOrderUpdates(callback: (payload: any) => void) {
-    // Use custom events instead of Supabase realtime to avoid errors
-    const handleOrderUpdate = (event: any) => {
-      callback({ new: event.detail.order });
-    };
-    
-    window.addEventListener('newOrderReady', handleOrderUpdate);
-    
+    // Return empty subscription to avoid errors
     return {
-      unsubscribe: () => {
-        window.removeEventListener('newOrderReady', handleOrderUpdate);
-      }
+      unsubscribe: () => {}
     };
   }
 

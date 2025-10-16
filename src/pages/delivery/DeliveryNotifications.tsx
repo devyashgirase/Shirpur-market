@@ -18,24 +18,12 @@ const DeliveryNotifications = () => {
   useEffect(() => {
     loadNewOrders();
     
-    // Listen for new order events
-    const handleNewOrder = (event: any) => {
-      loadNewOrders();
-      toast({
-        title: "New Order Available!",
-        description: `Order #${event.detail.order.id.slice(-6)} is ready for delivery`,
-      });
-    };
-    
-    window.addEventListener('newOrderReady', handleNewOrder);
-    
-    // Set up polling for updates
+    // Set up polling for updates only
     const pollInterval = setInterval(() => {
       loadNewOrders();
-    }, 10000); // Poll every 10 seconds
+    }, 5000); // Poll every 5 seconds
     
     return () => {
-      window.removeEventListener('newOrderReady', handleNewOrder);
       clearInterval(pollInterval);
     };
   }, []);
