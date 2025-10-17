@@ -142,13 +142,36 @@ const AdminDeliveryAgents = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Delivery Agents</h1>
-        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-500 hover:bg-blue-600">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Agent
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              try {
+                const { SystemInitializer } = await import('@/lib/initializeSystem');
+                await SystemInitializer.forceReinitialize();
+                toast({
+                  title: "System Reinitialized",
+                  description: "Default delivery agents have been created",
+                });
+                await loadAgents();
+              } catch (error) {
+                toast({
+                  title: "Initialization Failed",
+                  description: "Failed to create default agents",
+                  variant: "destructive"
+                });
+              }
+            }}
+          >
+            🚚 Create Default Agents
+          </Button>
+          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-500 hover:bg-blue-600">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Agent
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Register New Delivery Agent</DialogTitle>

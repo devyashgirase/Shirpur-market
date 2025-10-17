@@ -63,6 +63,9 @@ class DeliveryAuthService {
       
       if (agents.length === 0) {
         console.log('⚠️ No delivery agents found in database');
+        // Initialize default agents
+        const { DataGenerator } = await import('./dataGenerator');
+        await DataGenerator.initializeDefaultAgents();
       }
     } catch (error) {
       console.warn('⚠️ Failed to check delivery agents:', error);
