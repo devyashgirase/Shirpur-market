@@ -226,59 +226,7 @@ export class DataGenerator {
     };
   }
 
-  // Generate default delivery agents for the system
-  static generateDefaultDeliveryAgents() {
-    return [
-      {
-        id: 1,
-        userId: 'DA123456',
-        password: 'delivery123',
-        name: 'Rajesh Patil',
-        phone: '9876543210',
-        email: 'rajesh@shirpur.com',
-        vehicleType: 'Bike',
-        licenseNumber: 'MH15AB1234',
-        isActive: true,
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 2,
-        userId: 'DA789012',
-        password: 'delivery456',
-        name: 'Mahesh Joshi',
-        phone: '9876543211',
-        email: 'mahesh@shirpur.com',
-        vehicleType: 'Scooter',
-        licenseNumber: 'MH15CD5678',
-        isActive: true,
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 3,
-        userId: 'DA345678',
-        password: 'delivery789',
-        name: 'Deepak Yadav',
-        phone: '9876543212',
-        email: 'deepak@shirpur.com',
-        vehicleType: 'Bike',
-        licenseNumber: 'MH15EF9012',
-        isActive: true,
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      }
-    ];
-  }
-
-  // Initialize default delivery agents if none exist
-  static async initializeDefaultAgents() {
-    try {
-      const { supabaseApi } = await import('./supabase');
-      const existingAgents = await supabaseApi.getDeliveryAgents();
-      
-      if (existingAgents.length === 0) {
-        console.log('🚚 No delivery agents found, creating default agents...');
+..');
         const defaultAgents = this.generateDefaultDeliveryAgents();
         
         for (const agent of defaultAgents) {

@@ -10,9 +10,7 @@ import "@/styles/razorpay-fix.css";
 import { useEffect } from "react";
 import { startNotificationDemo } from "@/lib/testNotifications";
 import { SupabaseVerification } from "@/lib/supabaseVerification";
-import { SystemInitializer } from "@/lib/initializeSystem";
 import DeliveryBackground from "@/components/DeliveryBackground";
-import SystemInitializationStatus from "@/components/SystemInitializationStatus";
 import OTPLogin from "./pages/OTPLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -53,9 +51,6 @@ const queryClient = new QueryClient({
 
 const App = () => {
   useEffect(() => {
-    // Initialize system (create delivery agents if needed)
-    SystemInitializer.initialize();
-    
     // Start notification demo for testing
     startNotificationDemo();
     
@@ -72,7 +67,6 @@ const App = () => {
       <TooltipProvider>
         <SweetAlertProvider>
           <DeliveryBackground />
-          <SystemInitializationStatus />
           <Toaster />
           <Sonner />
         <BrowserRouter>
