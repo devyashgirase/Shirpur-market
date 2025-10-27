@@ -52,6 +52,42 @@ class OrderManagementService {
     }
   }
 
+  // Admin marks order as out for delivery (directly assigns to delivery agents)
+  async markOrderOutForDelivery(orderId: string) {
+    try {
+      console.log('🔄 Admin marking order out for delivery:', orderId);
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'out_for_delivery',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select();
+
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.error('❌ No order found with ID:', orderId);
+        return { success: false, error: 'Order not found' };
+      }
+
+      console.log('✅ Order marked out for delivery:', data[0]);
+      
+      // Notify delivery agents about new out for delivery order
+      await this.notifyDeliveryAgentsOutForDelivery(data[0]);
+      
+      return { success: true, order: data[0] };
+    } catch (error) {
+      console.error('❌ Error marking order out for delivery:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Get orders ready for delivery (for delivery agents)
   async getOrdersReadyForDelivery() {
     try {
@@ -128,6 +164,32 @@ class OrderManagementService {
     } catch (error) {
       console.error('Error rejecting order:', error);
       return { success: false, error };
+    }
+  }
+
+  // Get orders marked as "out for delivery" by admin (for delivery agents to see)
+  async getOrdersOutForDelivery() {
+    try {
+      console.log('🔍 Fetching orders marked as out for delivery by admin...');
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'out_for_delivery')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('❌ Supabase error fetching out for delivery orders:', error);
+        throw error;
+      }
+      
+      console.log('📦 Found out for delivery orders:', data?.length || 0);
+      console.log('📋 Orders data:', data);
+      
+      return { success: true, orders: data || [] };
+    } catch (error) {
+      console.error('❌ Error fetching out for delivery orders:', error);
+      return { success: false, orders: [] };
     }
   }
 
@@ -229,6 +291,41 @@ class OrderManagementService {
       }));
     } catch (error) {
       console.error('Error notifying agents:', error);
+    }
+  }
+
+  // Notify delivery agents about orders marked as out for delivery by admin
+  private async notifyDeliveryAgentsOutForDelivery(order: Order) {
+    try {
+      // Get all active delivery agents
+      const { data: agents } = await supabase
+        .from('delivery_agents')
+        .select('id, name, fcm_token')
+        .eq('is_active', true);
+
+      if (agents) {
+        // Send real-time notification via Supabase
+        await supabase
+          .from('notifications')
+          .insert(
+            agents.map(agent => ({
+              user_id: agent.id,
+              user_type: 'delivery',
+              title: 'Order Out for Delivery',
+              message: `Admin marked Order #${order.id.slice(-6)} as out for delivery - ₹${order.total_amount}`,
+              type: 'out_for_delivery',
+              data: JSON.stringify({ orderId: order.id }),
+              created_at: new Date().toISOString()
+            }))
+          );
+      }
+      
+      // Also trigger custom event for immediate UI updates
+      window.dispatchEvent(new CustomEvent('orderOutForDelivery', {
+        detail: { order }
+      }));
+    } catch (error) {
+      console.error('Error notifying agents about out for delivery:', error);
     }
   }
 

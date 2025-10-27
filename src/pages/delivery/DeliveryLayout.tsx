@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User } from "lucide-react";
+import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User, Package } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
 
@@ -13,7 +13,8 @@ const DeliveryLayout = () => {
   const navItems = [
     { path: '/delivery', icon: List, label: 'Tasks', activeColor: 'text-blue-600' },
     { path: '/delivery/tracking', icon: MapPin, label: 'Track', activeColor: 'text-green-600' },
-    { path: '/delivery/notifications', icon: Bell, label: 'Orders', activeColor: 'text-orange-600' },
+    { path: '/delivery/notifications', icon: Bell, label: 'New', activeColor: 'text-orange-600' },
+    { path: '/delivery/out-for-delivery', icon: Package, label: 'Ready', activeColor: 'text-red-600' },
     { path: '/delivery/profile', icon: User, label: 'Profile', activeColor: 'text-purple-600' }
   ];
 
@@ -80,7 +81,7 @@ const DeliveryLayout = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-5 h-16">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
