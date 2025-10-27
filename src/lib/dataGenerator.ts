@@ -226,27 +226,4 @@ export class DataGenerator {
     };
   }
 
-..');
-        const defaultAgents = this.generateDefaultDeliveryAgents();
-        
-        for (const agent of defaultAgents) {
-          try {
-            await supabaseApi.createDeliveryAgent(agent);
-            console.log(`✅ Created default agent: ${agent.name} (${agent.userId})`);
-          } catch (error) {
-            console.error(`❌ Failed to create agent ${agent.name}:`, error);
-          }
-        }
-        
-        console.log('🎉 Default delivery agents initialized!');
-        return true;
-      } else {
-        console.log(`✅ Found ${existingAgents.length} existing delivery agents`);
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Failed to initialize default agents:', error);
-      return false;
-    }
-  }
 }
