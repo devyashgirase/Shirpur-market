@@ -99,6 +99,16 @@ const CustomerCart = () => {
   };
 
   const handleCheckout = () => {
+    if (cart.length === 0) {
+      toast({
+        title: "Cart is Empty",
+        description: "Please add some items to your cart before checkout",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('🛒 Starting checkout with cart items:', cart.length);
     setShowAddressForm(true);
   };
 
