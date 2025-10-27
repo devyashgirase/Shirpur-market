@@ -93,6 +93,12 @@ const AdminOrders = () => {
   useEffect(() => {
     loadOrders();
     
+    // Auto-refresh every 10 seconds to show latest orders
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing admin orders...');
+      loadOrders();
+    }, 10000);
+    
     // Subscribe to real-time order updates
     const unsubscribe = OrderService.subscribe((updatedOrders) => {
       setOrders([...updatedOrders].reverse()); // Show newest first
@@ -125,6 +131,7 @@ const AdminOrders = () => {
     window.addEventListener('orderStatusChanged', handleOrderStatusChanged as EventListener);
     
     return () => {
+      clearInterval(refreshInterval);
       unsubscribe();
       window.removeEventListener('orderCreated', handleNewOrder);
       window.removeEventListener('ordersUpdated', handleOrderUpdate);
@@ -137,18 +144,21 @@ const AdminOrders = () => {
     try {
       console.log('📊 Loading orders directly from Supabase...');
       
-      // Load orders directly from Supabase
-      const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?select=*&order=created_at.desc', {
+      // Load orders directly from Supabase with cache busting
+      const response = await fetch(`https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?select=*&order=created_at.desc&_t=${Date.now()}`, {
+        method: 'GET',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         }
       });
       
       if (response.ok) {
         const dbOrders = await response.json();
         console.log('✅ Loaded orders directly from Supabase:', dbOrders.length);
+        console.log('📋 Raw orders data:', dbOrders);
         
         const formattedOrders = dbOrders.map(order => ({
           orderId: order.order_id || order.orderId,
@@ -173,6 +183,7 @@ const AdminOrders = () => {
           databaseId: order.id
         }));
         
+        console.log('📦 Formatted orders:', formattedOrders.length);
         setOrders(formattedOrders); // Already sorted by created_at desc
       } else {
         console.error('❌ Failed to load orders from Supabase:', response.status);

@@ -11,14 +11,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
 import OrderSuccessModal from "@/components/OrderSuccessModal";
 import PendingPaymentOrders from "@/components/PendingPaymentOrders";
-import { OrderService, Order } from "@/lib/orderService";
-import { NotificationService } from "@/lib/notificationService";
-import { WhatsAppService } from "@/lib/whatsappService";
-import { WhatsAppBusinessService } from "@/lib/whatsappBusinessService";
-import { FreeWhatsAppService } from "@/lib/freeWhatsAppService";
-import { FreeSmsService } from "@/lib/freeSmsService";
-import { DataGenerator } from "@/lib/dataGenerator";
-import { DatabaseService } from "@/lib/databaseService";
+import { simpleOrderService } from "@/lib/simpleOrderService";
 
 
 const CustomerCart = () => {
@@ -122,67 +115,31 @@ const CustomerCart = () => {
             const orderId = `ORD-${Date.now()}`;
             const isTestPayment = response.razorpay_payment_id?.includes('test') || response.razorpay_payment_id?.includes('fake');
             
-            // Create order in database with paid status for both test and live payments
+            // Create order using simple service
             const orderData = {
               order_id: orderId,
               customer_name: addressData.name,
               customer_phone: addressData.phone,
-              delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-              items: JSON.stringify(cart.map(item => ({
+              customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+              items: cart.map(item => ({
                 product_id: parseInt(item.product.id),
                 product_name: item.product.name,
                 price: item.product.price,
                 quantity: item.quantity
-              }))),
+              })),
               total_amount: getTotalAmount(),
-              total: getTotalAmount(),
-              status: 'confirmed',
+              status: 'pending',
               payment_status: 'paid',
-              payment_id: response.razorpay_payment_id
+              created_at: new Date().toISOString()
             };
             
-            console.log('📦 Saving order to database:', orderData);
-            
-            // Direct Supabase insert to ensure it works
-            try {
-              const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders', {
-                method: 'POST',
-                headers: {
-                  'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-                  'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(orderData)
-              });
-              
-              if (response.ok) {
-                const savedOrder = await response.json();
-                console.log('✅ Order saved directly to Supabase:', savedOrder);
-              } else {
-                const error = await response.text();
-                console.error('❌ Direct Supabase save failed:', error);
-              }
-            } catch (directError) {
-              console.error('❌ Direct save error:', directError);
-            }
-            
-            // Also try DatabaseService as backup
-            try {
-              const savedOrder = await DatabaseService.createOrder(orderData);
-              console.log('✅ Order saved via DatabaseService:', savedOrder);
-            } catch (serviceError) {
-              console.error('❌ DatabaseService failed:', serviceError);
-            }
+            await simpleOrderService.createOrder(orderData);
             
             // Clear cart from database
             await cartService.clearCart();
             setCart([]);
             
-            // Trigger events for real-time updates
             window.dispatchEvent(new CustomEvent('cartUpdated'));
-            window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));
-            window.dispatchEvent(new CustomEvent('ordersUpdated'));
             
             // Show success
             setShowAddressForm(false);
@@ -235,52 +192,24 @@ const CustomerCart = () => {
           order_id: orderId,
           customer_name: addressData.name,
           customer_phone: addressData.phone,
-          delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-          items: JSON.stringify(cart.map(item => ({
+          customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+          items: cart.map(item => ({
             product_id: parseInt(item.product.id),
             product_name: item.product.name,
             price: item.product.price,
             quantity: item.quantity
-          }))),
+          })),
           total_amount: getTotalAmount(),
-          total: getTotalAmount(),
-          status: 'confirmed',
+          status: 'pending',
           payment_status: 'paid',
-          payment_id: 'dev_test_payment'
+          created_at: new Date().toISOString()
         };
         
-        console.log('📦 Saving test order to database:', orderData);
-        
-        // Direct Supabase insert for test orders
-        try {
-          const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders', {
-            method: 'POST',
-            headers: {
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(orderData)
-          });
-          
-          if (response.ok) {
-            const savedOrder = await response.json();
-            console.log('✅ Test order saved directly to Supabase:', savedOrder);
-          } else {
-            const error = await response.text();
-            console.error('❌ Direct test order save failed:', error);
-          }
-        } catch (directError) {
-          console.error('❌ Direct test save error:', directError);
-        }
+        await simpleOrderService.createOrder(orderData);
         await cartService.clearCart();
         setCart([]);
         
-        // Trigger events for real-time updates
         window.dispatchEvent(new CustomEvent('cartUpdated'));
-        window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));
-        window.dispatchEvent(new CustomEvent('ordersUpdated'));
         
         setShowAddressForm(false);
         setLastOrderId(orderId);

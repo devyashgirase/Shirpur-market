@@ -146,33 +146,36 @@ const CustomerCatalog = () => {
   const handleAddToCart = async (product: Product) => {
     if (product.stock_qty > 0) {
       try {
-        const success = await cartService.addToCart(product.id, 1, product);
+        const success = await cartService.addToCart(product.id, 1);
         
         if (success) {
-          sweetAlert.success(
-            "Added to Cart!",
-            `${product.name} has been added to your cart successfully`
-          );
+          toast({
+            title: "Added to Cart!",
+            description: `${product.name} has been added to your cart`,
+          });
           
           window.dispatchEvent(new CustomEvent('cartUpdated'));
         } else {
-          sweetAlert.error(
-            "Error!",
-            "Failed to add item to cart. Please try again."
-          );
+          toast({
+            title: "Error",
+            description: "Failed to add item to cart. Please try again.",
+            variant: "destructive"
+          });
         }
       } catch (error) {
         console.error('Error adding to cart:', error);
-        sweetAlert.error(
-          "Error!",
-          "Failed to add item to cart. Please try again."
-        );
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart. Please try again.",
+          variant: "destructive"
+        });
       }
     } else {
-      sweetAlert.warning(
-        "Out of Stock!",
-        `${product.name} is currently out of stock.`
-      );
+      toast({
+        title: "Out of Stock",
+        description: `${product.name} is currently out of stock.`,
+        variant: "destructive"
+      });
     }
   };
 
