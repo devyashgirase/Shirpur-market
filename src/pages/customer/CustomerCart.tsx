@@ -123,6 +123,9 @@ const CustomerCart = () => {
             const orderId = `ORD-${Date.now()}`;
             const isTestPayment = response.razorpay_payment_id?.includes('test') || response.razorpay_payment_id?.includes('fake');
             
+            console.log('🛒 Creating order with cart items:', cart);
+            console.log('📍 Address data:', addressData);
+            
             // Create order using simple service
             const orderData = {
               order_id: orderId,
@@ -141,7 +144,9 @@ const CustomerCart = () => {
               created_at: new Date().toISOString()
             };
             
-            await simpleOrderService.createOrder(orderData);
+            console.log('📦 Order data to be saved:', orderData);
+            const savedOrderId = await simpleOrderService.createOrder(orderData);
+            console.log('✅ Order saved successfully with ID:', savedOrderId);
             
             // Clear cart from database
             await cartService.clearCart();
@@ -196,6 +201,9 @@ const CustomerCart = () => {
       try {
         const orderId = `ORD-${Date.now()}`;
         
+        console.log('🛒 Development mode - Creating order with cart:', cart);
+        console.log('📍 Address data:', addressData);
+        
         const orderData = {
           order_id: orderId,
           customer_name: addressData.name,
@@ -213,7 +221,9 @@ const CustomerCart = () => {
           created_at: new Date().toISOString()
         };
         
-        await simpleOrderService.createOrder(orderData);
+        console.log('📦 Development order data:', orderData);
+        const savedOrderId = await simpleOrderService.createOrder(orderData);
+        console.log('✅ Development order saved with ID:', savedOrderId);
         await cartService.clearCart();
         setCart([]);
         

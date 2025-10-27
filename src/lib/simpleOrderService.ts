@@ -17,6 +17,23 @@ class SimpleOrderService {
     try {
       console.log('📦 Creating order:', orderData);
       
+      // Validate required fields
+      if (!orderData.order_id || !orderData.customer_name || !orderData.customer_phone) {
+        throw new Error('Missing required order fields');
+      }
+      
+      if (!orderData.items || orderData.items.length === 0) {
+        throw new Error('Order must have at least one item');
+      }
+      
+      // Prepare order data with proper JSON formatting
+      const formattedOrderData = {
+        ...orderData,
+        items: JSON.stringify(orderData.items) // Ensure items is JSON string
+      };
+      
+      console.log('📋 Formatted order data:', formattedOrderData);
+      
       // Direct Supabase insert
       const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders', {
         method: 'POST',
@@ -26,7 +43,7 @@ class SimpleOrderService {
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify(formattedOrderData)
       });
       
       if (response.ok) {
@@ -41,12 +58,29 @@ class SimpleOrderService {
         
         return orderData.order_id;
       } else {
-        const error = await response.text();
-        console.error('❌ Failed to save order:', error);
-        throw new Error('Failed to save order');
+        const errorText = await response.text();
+        console.error('❌ Supabase error response:', response.status, errorText);
+        
+        // Try to parse error details
+        let errorDetails = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorDetails = errorJson.message || errorJson.hint || errorText;
+        } catch (e) {
+          // Keep original error text
+        }
+        
+        throw new Error(`Database error: ${errorDetails}`);
       }
     } catch (error) {
       console.error('❌ Order creation error:', error);
+      
+      // Show user-friendly error message
+      if (error.message.includes('relation "orders" does not exist')) {
+        console.error('🚨 Orders table does not exist in Supabase!');
+        throw new Error('Database not properly set up. Please contact support.');
+      }
+      
       throw error;
     }
   }
