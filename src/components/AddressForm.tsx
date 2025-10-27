@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Navigation, User, Phone } from "lucide-react";
+import { MapPin, Navigation, User, Phone, Map } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import LocationPicker from "./LocationPicker";
 
 interface AddressFormProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
     pincode: '',
   });
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -306,40 +308,45 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
             </div>
           </div>
 
-          {/* Location Button */}
-          <div className="border-t pt-3 md:pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGetCurrentLocation}
-              disabled={isGettingLocation}
-              className="w-full text-sm md:text-base"
-              size="sm"
-            >
-              {isGettingLocation ? (
-                <div className="flex items-center">
-                  <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Getting Location...
-                </div>
-              ) : (
-                <>
-                  <Navigation className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                  Use Current Location
-                  {formData.coordinates && (
-                    <span className="ml-2 text-green-600 text-xs md:text-sm">✓ Captured</span>
-                  )}
-                </>
-              )}
-            </Button>
+          {/* Location Buttons */}
+          <div className="border-t pt-3 md:pt-4 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGetCurrentLocation}
+                disabled={isGettingLocation}
+                className="text-sm"
+                size="sm"
+              >
+                {isGettingLocation ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                ) : (
+                  <Navigation className="w-3 h-3 mr-1" />
+                )}
+                GPS Location
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowLocationPicker(true)}
+                className="text-sm"
+                size="sm"
+              >
+                <Map className="w-3 h-3 mr-1" />
+                Pick on Map
+              </Button>
+            </div>
             
             {/* Location Status */}
-            <div className="mt-2 text-xs text-center">
-              {formData.coordinates && (
-                <p className="text-green-600 font-medium">
-                  ✓ Location captured! Lat: {formData.coordinates.lat.toFixed(4)}, Lng: {formData.coordinates.lng.toFixed(4)}
+            {formData.coordinates && (
+              <div className="bg-green-50 p-2 rounded text-xs text-center">
+                <p className="text-green-700 font-medium">
+                  ✓ Location: {formData.coordinates.lat.toFixed(4)}, {formData.coordinates.lng.toFixed(4)}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Buttons */}
@@ -352,6 +359,42 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
             </Button>
           </div>
         </form>
+        
+        {/* Location Picker Modal */}
+        {showLocationPicker && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-4 max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Pick Location</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowLocationPicker(false)}
+                >
+                  ✕
+                </Button>
+              </div>
+              <LocationPicker
+                onLocationSelect={(location) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    coordinates: { lat: location.lat, lng: location.lng },
+                    address: prev.address || location.address,
+                    city: prev.city || 'Shirpur',
+                    state: prev.state || 'Maharashtra',
+                    pincode: prev.pincode || '425405'
+                  }));
+                  setShowLocationPicker(false);
+                  toast({
+                    title: "Location Selected",
+                    description: "Location has been set from map",
+                  });
+                }}
+                defaultLocation={formData.coordinates}
+              />
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
