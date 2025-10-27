@@ -136,7 +136,7 @@ const CustomerCart = () => {
                 quantity: item.quantity
               })),
               total_amount: getTotalAmount(),
-              status: 'pending',
+              status: 'confirmed',
               payment_status: 'paid',
               created_at: new Date().toISOString()
             };
@@ -208,7 +208,7 @@ const CustomerCart = () => {
             quantity: item.quantity
           })),
           total_amount: getTotalAmount(),
-          status: 'pending',
+          status: 'confirmed',
           payment_status: 'paid',
           created_at: new Date().toISOString()
         };
