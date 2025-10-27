@@ -49,72 +49,78 @@ const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayPr
   const handleRazorpayPayment = () => {
     setIsProcessing(true);
     
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
-    const isTestMode = razorpayKey.includes('test');
+    // Close current modal first to prevent focus issues
+    onClose();
     
-    const options = {
-      key: razorpayKey,
-      amount: Math.round(amount * 100), // Amount in paise
-      currency: 'INR',
-      name: 'Shirpur Delivery',
-      description: 'Order Payment',
-      image: '/favicon.ico',
-      handler: function (response: any) {
-        setIsProcessing(false);
-        setIsSuccess(true);
-        
-        // Both test and live payments are considered successful here
-        const isTestMode = options.key.includes('test');
-        const paymentId = response.razorpay_payment_id || `test_${Date.now()}`;
-        
-        setTimeout(() => {
-          toast({
-            title: "Payment Successful!",
-            description: isTestMode ? 
-              "Test payment completed - Order will be created and tracked!" : 
-              `Payment ID: ${paymentId} - Order confirmed!`,
-          });
-          
-          // Call onSuccess with payment details for order creation
-          onSuccess(paymentId, isTestMode);
-          onClose();
-          setIsSuccess(false);
-        }, 2000);
-      },
-      prefill: {
-        name: 'Customer Name',
-        email: 'customer@example.com',
-        contact: '9999999999'
-      },
-      notes: {
-        address: 'Shirpur Delivery Address'
-      },
-      theme: {
-        color: '#3B82F6'
-      },
-      modal: {
-        ondismiss: function() {
+    setTimeout(() => {
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+      const isTestMode = razorpayKey.includes('test');
+      
+      const options = {
+        key: razorpayKey,
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        name: 'Shirpur Delivery',
+        description: 'Order Payment',
+        image: '/favicon.ico',
+        method: {
+          upi: paymentMethod === 'upi',
+          card: paymentMethod === 'card',
+          wallet: paymentMethod === 'wallet',
+          netbanking: false
+        },
+        handler: function (response: any) {
           setIsProcessing(false);
-          toast({
-            title: "Payment Cancelled",
-            description: "Payment was cancelled by user.",
-            variant: "destructive"
-          });
+          setIsSuccess(true);
+          
+          const paymentId = response.razorpay_payment_id || `test_${Date.now()}`;
+          
+          setTimeout(() => {
+            toast({
+              title: "Payment Successful!",
+              description: isTestMode ? 
+                "Test payment completed - Order will be created!" : 
+                `Payment confirmed - Order processing!`,
+            });
+            
+            onSuccess(paymentId, isTestMode);
+            setIsSuccess(false);
+          }, 1500);
+        },
+        prefill: {
+          name: 'Customer Name',
+          email: 'customer@example.com',
+          contact: '9999999999'
+        },
+        theme: {
+          color: '#3B82F6',
+          backdrop_color: 'rgba(0,0,0,0.8)'
+        },
+        modal: {
+          confirm_close: true,
+          ondismiss: function() {
+            setIsProcessing(false);
+            toast({
+              title: "Payment Cancelled",
+              description: "Payment was cancelled.",
+              variant: "destructive"
+            });
+          }
         }
+      };
+      
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        toast({
+          title: "Payment Error",
+          description: "Payment gateway not loaded. Please refresh and try again.",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
       }
-    };
-    
-    if (window.Razorpay) {
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } else {
-      toast({
-        title: "Payment Error",
-        description: "Payment gateway not loaded. Please try again.",
-        variant: "destructive"
-      });
-      setIsProcessing(false);
-    }
+    }, 300); // Small delay to ensure modal closes properly
   };
 
   const handleUPIPayment = () => {
@@ -267,23 +273,23 @@ const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayPr
           {paymentMethod === 'upi' && (
             <div className="space-y-4">
               <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                <p>Pay using any UPI app - GPay, PhonePe, Paytm, BHIM, etc.</p>
+                <p>✅ UPI payment selected - Click Pay to open UPI apps</p>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="p-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded mx-auto mb-1"></div>
+                <div className="p-2 bg-blue-50 rounded">
+                  <div className="w-8 h-8 bg-blue-600 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">G</div>
                   <span className="text-xs">GPay</span>
                 </div>
-                <div className="p-2">
-                  <div className="w-8 h-8 bg-purple-600 rounded mx-auto mb-1"></div>
+                <div className="p-2 bg-purple-50 rounded">
+                  <div className="w-8 h-8 bg-purple-600 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">P</div>
                   <span className="text-xs">PhonePe</span>
                 </div>
-                <div className="p-2">
-                  <div className="w-8 h-8 bg-blue-800 rounded mx-auto mb-1"></div>
+                <div className="p-2 bg-blue-50 rounded">
+                  <div className="w-8 h-8 bg-blue-800 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">P</div>
                   <span className="text-xs">Paytm</span>
                 </div>
-                <div className="p-2">
-                  <div className="w-8 h-8 bg-orange-600 rounded mx-auto mb-1"></div>
+                <div className="p-2 bg-orange-50 rounded">
+                  <div className="w-8 h-8 bg-orange-600 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">B</div>
                   <span className="text-xs">BHIM</span>
                 </div>
               </div>
@@ -293,19 +299,19 @@ const PaymentGateway = ({ isOpen, onClose, amount, onSuccess }: PaymentGatewayPr
           {paymentMethod === 'wallet' && (
             <div className="space-y-4">
               <div className="bg-green-50 p-3 rounded text-sm text-green-800">
-                <p>Pay using your preferred wallet - all major wallets supported.</p>
+                <p>✅ Wallet payment selected - Choose your preferred wallet</p>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center p-2">
-                  <div className="w-8 h-8 bg-blue-800 rounded mx-auto mb-1"></div>
+                <div className="text-center p-2 bg-blue-50 rounded">
+                  <div className="w-8 h-8 bg-blue-800 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">P</div>
                   <span className="text-xs">Paytm</span>
                 </div>
-                <div className="text-center p-2">
-                  <div className="w-8 h-8 bg-orange-500 rounded mx-auto mb-1"></div>
+                <div className="text-center p-2 bg-orange-50 rounded">
+                  <div className="w-8 h-8 bg-orange-500 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">A</div>
                   <span className="text-xs">Amazon Pay</span>
                 </div>
-                <div className="text-center p-2">
-                  <div className="w-8 h-8 bg-purple-600 rounded mx-auto mb-1"></div>
+                <div className="text-center p-2 bg-purple-50 rounded">
+                  <div className="w-8 h-8 bg-purple-600 rounded mx-auto mb-1 flex items-center justify-center text-white text-xs font-bold">M</div>
                   <span className="text-xs">Mobikwik</span>
                 </div>
               </div>

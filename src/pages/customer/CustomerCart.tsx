@@ -13,6 +13,14 @@ import OrderSuccessModal from "@/components/OrderSuccessModal";
 import PendingPaymentOrders from "@/components/PendingPaymentOrders";
 import { simpleOrderService } from "@/lib/simpleOrderService";
 
+// Load Razorpay script
+if (!window.Razorpay && !document.querySelector('script[src*="razorpay"]')) {
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.async = true;
+  document.head.appendChild(script);
+}
+
 
 const CustomerCart = () => {
   const { toast } = useToast();

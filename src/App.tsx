@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "@/components/ui/animations.css";
+import "@/styles/razorpay-fix.css";
 
 import { useEffect } from "react";
 import { startNotificationDemo } from "@/lib/testNotifications";
