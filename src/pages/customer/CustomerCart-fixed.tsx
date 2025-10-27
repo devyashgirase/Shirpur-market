@@ -136,7 +136,7 @@ const CustomerCart = () => {
             console.log('🛒 Creating order with cart items:', cart);
             console.log('📍 Address data:', addressData);
             
-            // Create order using simple service
+            // Create order using simple service - REMOVED status fields
             const orderData = {
               order_id: orderId,
               customer_name: addressData.name,
@@ -211,6 +211,7 @@ const CustomerCart = () => {
         console.log('🛒 Development mode - Creating order with cart:', cart);
         console.log('📍 Address data:', addressData);
         
+        // REMOVED status fields from development mode too
         const orderData = {
           order_id: orderId,
           customer_name: addressData.name,
@@ -250,156 +251,6 @@ const CustomerCart = () => {
         });
       }
     }, 1000);
-  };
-
-  const handlePaymentFailure = async () => {
-    if (!customerAddress) return;
-    
-    try {
-      // Create order in database even when payment fails
-      const orderId = `ORD-${Date.now()}`;
-      
-      await DatabaseService.createOrder({
-        order_id: orderId,
-        customer_name: customerAddress.name,
-        customer_phone: customerAddress.phone,
-        delivery_address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-        items: JSON.stringify(cart.map(item => ({
-          product_id: parseInt(item.product.id),
-          product_name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity
-        }))),
-        total_amount: getTotalAmount(),
-        status: 'pending',
-        payment_status: 'failed',
-        created_at: new Date().toISOString()
-      });
-      
-      // Also save locally for compatibility
-      await OrderService.createOrderFromCart(
-        {
-          name: customerAddress.name,
-          phone: customerAddress.phone,
-          address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-          coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
-        },
-        cart,
-        getTotalAmount(),
-        'payment_failed'
-      );
-      
-      // Update payment status to failed
-      await OrderService.updatePaymentStatus(orderId, 'failed', 'payment_failed');
-      
-      // Trigger admin panel updates
-      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'pending', paymentStatus: 'failed' } }));
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
-      
-      console.log('✅ Order saved to database with failed payment status');
-      
-    } catch (error) {
-      console.error('Failed to save order with failed payment:', error);
-    }
-    
-    toast({
-      title: "Payment Failed",
-      description: "Payment failed but order saved. You can retry payment from pending orders.",
-      variant: "destructive"
-    });
-    setShowAddressForm(false);
-  };
-
-  const handlePaymentSuccess = async (paymentId?: string, isTestMode?: boolean) => {
-    if (!customerAddress) return;
-    
-    const testMode = isTestMode || !paymentId || paymentId.includes('test') || paymentId.includes('dev');
-    
-    try {
-      // Create order using OrderService with confirmed status
-      const orderId = await OrderService.createOrderFromCart(
-        {
-          name: customerAddress.name,
-          phone: customerAddress.phone,
-          address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-          coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
-        },
-        cart,
-        getTotalAmount(),
-        paymentId
-      );
-      
-      // Update payment status to paid for both test and live payments
-      await OrderService.updatePaymentStatus(orderId, 'paid', paymentId);
-      
-      // Save order to database via DatabaseService for admin tracking
-      try {
-        await DatabaseService.createOrder({
-          order_id: orderId,
-          customer_name: customerAddress.name,
-          customer_phone: customerAddress.phone,
-          delivery_address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-          items: JSON.stringify(cart.map(item => ({
-            product_id: parseInt(item.product.id),
-            product_name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity
-          }))),
-          total_amount: getTotalAmount(),
-          status: 'confirmed',
-          payment_status: 'paid',
-          created_at: new Date().toISOString()
-        });
-        console.log('✅ Order saved to database for admin tracking');
-      } catch (dbError) {
-        console.warn('⚠️ Failed to save to database, order saved locally:', dbError);
-      }
-      
-      // Update product inventory
-      try {
-        for (const item of cart) {
-          await DatabaseService.updateProduct(parseInt(item.product.id), {
-            stockQuantity: -item.quantity
-          });
-        }
-        console.log('✅ Product inventory updated');
-      } catch (stockError) {
-        console.warn('⚠️ Failed to update inventory:', stockError);
-      }
-      
-      // Clear cart immediately after successful payment
-      await cartService.clearCart();
-      setCart([]);
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
-      
-      // Trigger admin panel updates
-      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
-      window.dispatchEvent(new CustomEvent('inventoryUpdated'));
-      
-      // Order saved to database only
-      
-      // Show success with slight delay
-      setTimeout(() => {
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
-      }, 100);
-      
-      toast({
-        title: "Order Placed Successfully!",
-        description: testMode ? 
-          `Test order ${orderId} confirmed - Available in admin panel for processing!` :
-          `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed and is being processed.`,
-      });
-       
-    } catch (error) {
-      console.error('Failed to create order:', error);
-      toast({
-        title: "Order Creation Failed",
-        description: "Please try again or contact support.",
-        variant: "destructive"
-      });
-    }
   };
 
   const getTotalAmount = () => {
