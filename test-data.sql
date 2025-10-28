@@ -15,4 +15,4 @@ INSERT INTO orders (order_id, customer_name, customer_phone, customer_address, i
 VALUES 
   ('ORD001', 'Rajesh Patil', '9876543210', 'Shop No. 15, Main Market, Shirpur', '[{"name": "Rice", "quantity": 5, "price": 120}]', 600, 'preparing'),
   ('ORD002', 'Priya Sharma', '9876543211', 'House No. 23, Gandhi Nagar, Shirpur', '[{"name": "Wheat", "quantity": 10, "price": 45}]', 450, 'preparing')
-ON CONFLICT (order_id) DO NOTHING;
+ON CONFLICT (order_id) DO NOTHING;z

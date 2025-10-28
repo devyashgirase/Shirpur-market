@@ -136,24 +136,49 @@ const CustomerCart = () => {
             console.log('🛒 Creating order with cart items:', cart);
             console.log('📍 Address data:', addressData);
             
-            // Create order using simple service
-            const orderData = {
-              order_id: orderId,
-              customer_name: addressData.name,
-              customer_phone: addressData.phone,
-              customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-              items: cart.map(item => ({
-                product_id: parseInt(item.product.id),
-                product_name: item.product.name,
-                price: item.product.price,
-                quantity: item.quantity
-              })),
-              total_amount: getTotalAmount()
+            // Create order using OrderService for proper integration
+            const customerInfo = {
+              name: addressData.name,
+              phone: addressData.phone,
+              address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+              coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
             };
             
-            console.log('📦 Order data to be saved:', orderData);
-            const savedOrderId = await simpleOrderService.createOrder(orderData);
-            console.log('✅ Order saved successfully with ID:', savedOrderId);
+            console.log('📦 Creating order with OrderService...');
+            const { OrderService } = await import('@/lib/orderService');
+            const savedOrderId = await OrderService.createOrderFromCart(
+              customerInfo,
+              cart,
+              getTotalAmount(),
+              response.razorpay_payment_id
+            );
+            console.log('✅ Order created with OrderService:', savedOrderId);
+            
+            // Also save to Supabase for admin tracking
+            try {
+              const { supabaseApi } = await import('@/lib/supabase');
+              await supabaseApi.createOrder({
+                order_id: savedOrderId,
+                customer_name: addressData.name,
+                customer_phone: addressData.phone,
+                customer_address: customerInfo.address,
+                delivery_address: customerInfo.address,
+                items: JSON.stringify(cart.map(item => ({
+                  product_id: parseInt(item.product.id),
+                  product_name: item.product.name,
+                  price: item.product.price,
+                  quantity: item.quantity
+                }))),
+                total: getTotalAmount(),
+                total_amount: getTotalAmount(),
+                status: 'confirmed',
+                payment_status: 'paid',
+                created_at: new Date().toISOString()
+              });
+              console.log('✅ Order also saved to Supabase for admin');
+            } catch (dbError) {
+              console.warn('⚠️ Supabase save failed, order saved locally:', dbError);
+            }
             
             // Clear cart from database
             await cartService.clearCart();
@@ -208,26 +233,49 @@ const CustomerCart = () => {
       try {
         const orderId = `ORD-${Date.now()}`;
         
-        console.log('🛒 Development mode - Creating order with cart:', cart);
-        console.log('📍 Address data:', addressData);
+        console.log('🛒 Development mode - Creating order with OrderService');
         
-        const orderData = {
-          order_id: orderId,
-          customer_name: addressData.name,
-          customer_phone: addressData.phone,
-          customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-          items: cart.map(item => ({
-            product_id: parseInt(item.product.id),
-            product_name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity
-          })),
-          total_amount: getTotalAmount()
+        const customerInfo = {
+          name: addressData.name,
+          phone: addressData.phone,
+          address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+          coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
         };
         
-        console.log('📦 Development order data:', orderData);
-        const savedOrderId = await simpleOrderService.createOrder(orderData);
-        console.log('✅ Development order saved with ID:', savedOrderId);
+        const { OrderService } = await import('@/lib/orderService');
+        const savedOrderId = await OrderService.createOrderFromCart(
+          customerInfo,
+          cart,
+          getTotalAmount(),
+          `dev_${Date.now()}`
+        );
+        console.log('✅ Development order created:', savedOrderId);
+        
+        // Also save to Supabase for admin tracking
+        try {
+          const { supabaseApi } = await import('@/lib/supabase');
+          await supabaseApi.createOrder({
+            order_id: savedOrderId,
+            customer_name: addressData.name,
+            customer_phone: addressData.phone,
+            customer_address: customerInfo.address,
+            delivery_address: customerInfo.address,
+            items: JSON.stringify(cart.map(item => ({
+              product_id: parseInt(item.product.id),
+              product_name: item.product.name,
+              price: item.product.price,
+              quantity: item.quantity
+            }))),
+            total: getTotalAmount(),
+            total_amount: getTotalAmount(),
+            status: 'confirmed',
+            payment_status: 'paid',
+            created_at: new Date().toISOString()
+          });
+          console.log('✅ Development order also saved to Supabase');
+        } catch (dbError) {
+          console.warn('⚠️ Supabase save failed, order saved locally:', dbError);
+        }
         await cartService.clearCart();
         setCart([]);
         

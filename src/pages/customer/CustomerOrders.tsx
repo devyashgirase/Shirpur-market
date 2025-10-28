@@ -47,27 +47,62 @@ const CustomerOrders = () => {
     try {
       setLoading(true);
       
-      // Load orders directly from Supabase
-      console.log('🔄 Loading orders from Supabase...');
+      let allOrders = [];
       
-      const response = await fetch('https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?select=*&order=created_at.desc', {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Content-Type': 'application/json'
-        }
+      // First, try to load from Supabase
+      try {
+        console.log('🔄 Loading orders from Supabase...');
+        const { supabaseApi } = await import('@/lib/supabase');
+        const dbOrders = await supabaseApi.getOrders();
+        console.log('✅ Orders loaded from Supabase:', dbOrders.length);
+        allOrders = [...allOrders, ...dbOrders];
+      } catch (error) {
+        console.warn('⚠️ Supabase orders failed:', error);
+      }
+      
+      // Also load from OrderService (localStorage)
+      try {
+        const localOrders = OrderService.getAllOrders();
+        console.log('📦 Orders loaded from localStorage:', localOrders.length);
+        
+        // Merge orders, avoiding duplicates
+        localOrders.forEach(localOrder => {
+          const exists = allOrders.find(order => 
+            (order.order_id || order.orderId) === localOrder.orderId
+          );
+          if (!exists) {
+            // Convert localStorage order format to match database format
+            allOrders.push({
+              id: Date.now(),
+              order_id: localOrder.orderId,
+              customer_name: localOrder.customerAddress.name,
+              customer_phone: localOrder.customerAddress.phone,
+              customer_address: localOrder.customerAddress.address,
+              delivery_address: localOrder.customerAddress.address,
+              items: JSON.stringify(localOrder.items),
+              total: localOrder.total,
+              total_amount: localOrder.total,
+              status: localOrder.status,
+              payment_status: localOrder.paymentStatus,
+              created_at: localOrder.timestamp,
+              createdAt: localOrder.timestamp
+            });
+          }
+        });
+      } catch (error) {
+        console.warn('⚠️ localStorage orders failed:', error);
+      }
+      
+      // Sort by creation date (newest first)
+      allOrders.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.createdAt || a.timestamp || 0);
+        const dateB = new Date(b.created_at || b.createdAt || b.timestamp || 0);
+        return dateB.getTime() - dateA.getTime();
       });
       
-      if (response.ok) {
-        const dbOrders = await response.json();
-        console.log('✅ Orders loaded from Supabase:', dbOrders.length);
-        setOrders(dbOrders || []);
-      } else {
-        console.error('❌ Failed to load orders from Supabase:', response.status);
-        // Fallback to unifiedDB
-        const dbOrders = await unifiedDB.getOrders();
-        setOrders(dbOrders || []);
-      }
+      console.log('📊 Total orders loaded:', allOrders.length);
+      setOrders(allOrders);
+      
     } catch (error) {
       console.error('Failed to load orders:', error);
       setOrders([]);
@@ -170,7 +205,32 @@ const CustomerOrders = () => {
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4">My Orders</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold">My Orders</h1>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={async () => {
+              try {
+                const { createTestOrder } = await import('@/lib/testOrderCreation');
+                const orderId = await createTestOrder();
+                toast({
+                  title: "Test Order Created",
+                  description: `Order ${orderId} created successfully`,
+                });
+                loadCustomerOrders();
+              } catch (error) {
+                toast({
+                  title: "Test Failed",
+                  description: "Failed to create test order",
+                  variant: "destructive"
+                });
+              }
+            }}
+          >
+            🧪 Create Test Order
+          </Button>
+        </div>
         <p className="text-sm md:text-base text-muted-foreground">Track your order history and delivery status</p>
       </div>
 
