@@ -34,6 +34,15 @@ export class RazorpayOrderService {
     await supabaseApi.createOrder(orderData);
     console.log('✅ Order saved to Supabase with payment status: paid');
     
+    // Trigger real-time update for admin dashboard
+    window.dispatchEvent(new CustomEvent('orderCreated', {
+      detail: { orderId, status: 'confirmed', paymentStatus: 'paid' }
+    }));
+    
+    window.dispatchEvent(new CustomEvent('newOrderAlert', {
+      detail: { orderId, customerName: addressData.name, total: totalAmount }
+    }));
+    
     return orderId;
   }
 }

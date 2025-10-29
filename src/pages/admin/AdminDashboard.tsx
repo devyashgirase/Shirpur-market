@@ -84,17 +84,18 @@ const AdminDashboard = () => {
         const products = await AdminDataService.getAdminProducts();
         setAdminProducts(products);
         
-        // Load orders from Supabase database
-        const dbOrders = await DatabaseService.getOrders();
+        // Load orders from Supabase using AdminOrderService
+        const { AdminOrderService } = await import('@/lib/adminOrderService');
+        const dbOrders = await AdminOrderService.getAllOrders();
         const formattedOrders = dbOrders.map(order => ({
-          orderId: order.order_id || order.orderId,
-          customerName: order.customer_name || order.customerName || 'Customer',
-          customerPhone: order.customer_phone || order.customerPhone || '',
-          deliveryAddress: order.delivery_address || order.deliveryAddress || '',
-          total: order.total_amount || order.total || 0,
-          status: order.status || 'pending',
-          paymentStatus: order.payment_status || order.paymentStatus || 'pending',
-          createdAt: order.created_at || order.createdAt || new Date().toISOString(),
+          orderId: order.id,
+          customerName: order.customer_name || 'Customer',
+          customerPhone: order.customer_phone || '',
+          deliveryAddress: order.customer_address || '',
+          total: order.total_amount || 0,
+          status: order.status || 'placed',
+          paymentStatus: order.payment_status || 'pending',
+          createdAt: order.created_at || new Date().toISOString(),
           itemCount: order.items?.length || 0,
           items: order.items || []
         }));
@@ -166,18 +167,39 @@ const AdminDashboard = () => {
     window.addEventListener('orderCreated', handleNewOrder);
     window.addEventListener('ordersUpdated', handleOrderUpdate);
     window.addEventListener('newOrderAlert', handleNewOrder);
+    window.addEventListener('orderStatusUpdated', handleOrderUpdate);
+    
+    // Subscribe to real-time order updates
+    const { AdminOrderService } = await import('@/lib/adminOrderService');
+    const subscription = AdminOrderService.subscribeToOrderUpdates((updatedOrders) => {
+      const formattedOrders = updatedOrders.map(order => ({
+        orderId: order.id,
+        customerName: order.customer_name || 'Customer',
+        customerPhone: order.customer_phone || '',
+        deliveryAddress: order.customer_address || '',
+        total: order.total_amount || 0,
+        status: order.status || 'placed',
+        paymentStatus: order.payment_status || 'pending',
+        createdAt: order.created_at || new Date().toISOString(),
+        itemCount: order.items?.length || 0,
+        items: order.items || []
+      }));
+      setRecentOrders(formattedOrders);
+      setAdminOrders(formattedOrders);
+    });
     
     loadAdminData();
     
     // Additional fast refresh for critical metrics from database
     const fastInterval = setInterval(async () => {
       try {
-        const dbOrders = await DatabaseService.getOrders();
+        const { AdminOrderService } = await import('@/lib/adminOrderService');
+        const dbOrders = await AdminOrderService.getAllOrders();
         const formattedOrders = dbOrders.map(order => ({
-          total: order.total_amount || order.total || 0,
-          createdAt: order.created_at || order.createdAt || new Date().toISOString(),
-          paymentStatus: order.payment_status || order.paymentStatus || 'pending',
-          status: order.status || 'pending'
+          total: order.total_amount || 0,
+          createdAt: order.created_at || new Date().toISOString(),
+          paymentStatus: order.payment_status || 'pending',
+          status: order.status || 'placed'
         }));
         
         const todaysOrders = formattedOrders.filter(order => {
@@ -207,6 +229,8 @@ const AdminDashboard = () => {
       window.removeEventListener('orderCreated', handleNewOrder);
       window.removeEventListener('ordersUpdated', handleOrderUpdate);
       window.removeEventListener('newOrderAlert', handleNewOrder);
+      window.removeEventListener('orderStatusUpdated', handleOrderUpdate);
+      subscription.unsubscribe();
     };
   }, []);
 
