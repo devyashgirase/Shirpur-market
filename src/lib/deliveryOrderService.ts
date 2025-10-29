@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './directSupabase';
 
 export interface DeliveryOrder {
   id: string;
@@ -15,6 +15,7 @@ export class DeliveryOrderService {
   // Get orders assigned for delivery (status = 'out_for_delivery')
   static async getDeliveryOrders(): Promise<DeliveryOrder[]> {
     try {
+      if (!supabase) return [];
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -32,6 +33,7 @@ export class DeliveryOrderService {
   // Mark order as delivered
   static async markAsDelivered(orderId: string): Promise<boolean> {
     try {
+      if (!supabase) return false;
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -56,6 +58,7 @@ export class DeliveryOrderService {
 
   // Subscribe to delivery order updates
   static subscribeToDeliveryOrders(callback: (orders: DeliveryOrder[]) => void) {
+    if (!supabase) return { unsubscribe: () => {} };
     const subscription = supabase
       .channel('delivery-orders')
       .on('postgres_changes', 

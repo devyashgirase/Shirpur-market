@@ -1,5 +1,5 @@
 // Razorpay Order Service - Direct Supabase save with paid status
-import { supabaseApi } from './supabase';
+import { createOrderDirect } from './directSupabase';
 
 export class RazorpayOrderService {
   static async createPaidOrder(
@@ -28,7 +28,7 @@ export class RazorpayOrderService {
       payment_id: paymentResponse.razorpay_payment_id
     };
 
-    await supabaseApi.createOrder(orderData);
+    await createOrderDirect(orderData);
     console.log('✅ Order saved to Supabase with payment status: paid');
     
     // Trigger real-time update for admin dashboard

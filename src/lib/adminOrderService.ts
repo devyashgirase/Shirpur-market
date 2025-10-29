@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './directSupabase';
 
 export interface AdminOrder {
   id: string;
@@ -18,6 +18,7 @@ export class AdminOrderService {
   // Get all orders for admin
   static async getAllOrders(): Promise<AdminOrder[]> {
     try {
+      if (!supabase) return [];
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -34,6 +35,7 @@ export class AdminOrderService {
   // Update order status
   static async updateOrderStatus(orderId: string, status: AdminOrder['order_status']): Promise<boolean> {
     try {
+      if (!supabase) return false;
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -52,6 +54,7 @@ export class AdminOrderService {
 
   // Subscribe to real-time order updates
   static subscribeToOrderUpdates(callback: (orders: AdminOrder[]) => void) {
+    if (!supabase) return { unsubscribe: () => {} };
     const subscription = supabase
       .channel('admin-orders')
       .on('postgres_changes', 
@@ -81,6 +84,7 @@ export class AdminOrderService {
   // Get order statistics
   static async getOrderStats() {
     try {
+      if (!supabase) return null;
       const { data, error } = await supabase
         .from('orders')
         .select('order_status, total_amount');

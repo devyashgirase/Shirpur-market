@@ -304,16 +304,26 @@ export const supabaseApi = {
 
   async createOrder(order: any) {
     console.log('🔍 Creating order in Supabase:', order);
+    console.log('🔍 Supabase client exists:', !!supabaseClient);
+    console.log('🔍 Supabase URL:', supabaseUrl);
+    console.log('🔍 Supabase Key exists:', !!supabaseKey);
     
     if (supabaseClient) {
       try {
         const orderData = {
-          ...order,
           order_id: order.order_id || `ORD${Date.now()}`,
+          customer_name: order.customer_name,
+          customer_phone: order.customer_phone,
+          customer_address: order.customer_address,
+          items: order.items,
+          total_amount: order.total_amount,
+          order_status: order.order_status || 'confirmed',
+          payment_status: order.payment_status || 'paid',
+          payment_id: order.payment_id,
           created_at: new Date().toISOString()
         };
         
-        console.log('📦 Order data to insert:', orderData);
+        console.log('📦 Order data to insert:', JSON.stringify(orderData, null, 2));
         
         const result = await supabaseClient.request('orders', {
           method: 'POST',
@@ -324,7 +334,8 @@ export const supabaseApi = {
         return result[0] || result;
       } catch (error) {
         console.error('❌ Failed to create order in Supabase:', error);
-        throw error; // Re-throw to handle in calling code
+        console.error('❌ Error details:', error.message);
+        throw error;
       }
     }
     
