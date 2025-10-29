@@ -1,5 +1,5 @@
-// Order Tracking Service - Supabase only with real-time updates
-import { supabaseApi } from './supabase';
+// Order Tracking Service - Direct Supabase connection
+import { supabase } from './directSupabase';
 import { customerOrderService, type CustomerOrder } from './customerOrderService';
 
 export interface TrackingData {
@@ -26,8 +26,8 @@ class OrderTrackingService {
 
       return {
         orderId: order.order_id,
-        status: order.status,
-        customerAddress: order.delivery_address,
+        status: order.order_status,
+        customerAddress: order.customer_address,
         deliveryAgentLocation: order.delivery_latitude && order.delivery_longitude ? {
           lat: order.delivery_latitude,
           lng: order.delivery_longitude,
@@ -46,8 +46,8 @@ class OrderTrackingService {
       { status: 'confirmed', timestamp: order.created_at }
     ];
 
-    if (order.status !== 'confirmed') {
-      history.push({ status: order.status, timestamp: new Date().toISOString() });
+    if (order.order_status !== 'confirmed') {
+      history.push({ status: order.order_status, timestamp: new Date().toISOString() });
     }
 
     return history;
@@ -63,14 +63,29 @@ class OrderTrackingService {
 
     window.addEventListener('orderStatusUpdated', handleStatusUpdate as EventListener);
 
+    // Real-time Supabase subscription
+    let subscription: any = null;
+    if (supabase) {
+      subscription = supabase
+        .channel(`order-${orderId}`)
+        .on('postgres_changes', 
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `order_id=eq.${orderId}` },
+          () => {
+            this.getTrackingData(orderId).then(callback);
+          }
+        )
+        .subscribe();
+    }
+
     const interval = setInterval(async () => {
       const trackingData = await this.getTrackingData(orderId);
       callback(trackingData);
-    }, 3000); // Update every 3 seconds
+    }, 3000);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('orderStatusUpdated', handleStatusUpdate as EventListener);
+      if (subscription) subscription.unsubscribe();
     };
   }
 }

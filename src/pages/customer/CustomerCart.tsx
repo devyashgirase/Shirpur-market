@@ -5,13 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { cartService, type CartItem } from "@/lib/cartService";
-import { saveLastOrder } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
 import OrderSuccessModal from "@/components/OrderSuccessModal";
-import PendingPaymentOrders from "@/components/PendingPaymentOrders";
-import { simpleOrderService } from "@/lib/simpleOrderService";
+import { createOrderInSupabase } from "@/lib/orderCreationService";
+import { authService } from "@/lib/authService";
 
 // Load Razorpay script
 if (!window.Razorpay && !document.querySelector('script[src*="razorpay"]')) {
@@ -21,7 +20,6 @@ if (!window.Razorpay && !document.querySelector('script[src*="razorpay"]')) {
   document.head.appendChild(script);
 }
 
-
 const CustomerCart = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -30,15 +28,11 @@ const CustomerCart = () => {
   const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastOrderId, setLastOrderId] = useState('');
-  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
-
 
   useEffect(() => {
     const loadCart = async () => {
       try {
-        console.log('Loading cart items from database...');
         const cartItems = await cartService.getCartItems();
-        console.log('Cart items loaded:', cartItems);
         setCart(cartItems);
       } catch (error) {
         console.error('Failed to load cart:', error);
@@ -48,9 +42,7 @@ const CustomerCart = () => {
     
     loadCart();
     
-    // Listen for cart updates
     const handleCartUpdate = () => {
-      console.log('Cart update event received, reloading cart...');
       loadCart();
     };
     
@@ -63,7 +55,6 @@ const CustomerCart = () => {
 
   const updateQuantity = async (productId: string, newQuantity: number) => {
     try {
-      console.log('Updating quantity for product:', productId, 'to:', newQuantity);
       const success = await cartService.updateCartQuantity(productId, newQuantity);
       if (success) {
         const updatedCart = await cartService.getCartItems();
@@ -77,7 +68,6 @@ const CustomerCart = () => {
 
   const removeItem = async (productId: string) => {
     try {
-      console.log('Removing item from cart:', productId);
       const success = await cartService.removeFromCart(productId);
       if (success) {
         const updatedCart = await cartService.getCartItems();
@@ -108,15 +98,12 @@ const CustomerCart = () => {
       return;
     }
     
-    console.log('🛒 Starting checkout with cart items:', cart.length);
     setShowAddressForm(true);
   };
 
   const handleAddressSubmit = async (addressData: AddressData) => {
     setCustomerAddress(addressData);
     
-    // Validate user authentication
-    const { authService } = await import('@/lib/authService');
     const currentUser = authService.getCurrentUser();
     if (!currentUser?.phone) {
       toast({
@@ -130,45 +117,17 @@ const CustomerCart = () => {
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
     
     if (razorpayKey && (window as any).Razorpay) {
-      console.log('✅ Opening Razorpay payment gateway...');
-      
       const options = {
         key: razorpayKey,
         amount: Math.round(getTotalAmount() * 100),
         currency: 'INR',
         name: 'Shirpur Delivery',
         description: 'Order Payment',
-            setLastOrderId(orderId);
-            
-            // Clear cart from database
-            await cartService.clearCart();
-            setCart([]);
-            
-            window.dispatchEvent(new CustomEvent('cartUpdated'));
-            
-            // Show success
-            setShowAddressForm(false);
-            setLastOrderId(savedOrderId);
-            setShowSuccessModal(true);
-            
-            toast({
-              title: "Order Placed Successfully!",
-              description: isTestPayment ? 
-                `Test order ${orderId} confirmed - Available in orders section!` :
-                `Order ${orderId} confirmed and will be processed soon!`,
-            });
-          } catch (error) {
-            console.error('Order creation failed:', error);
-            toast({
-              title: "Order Failed",
-              description: "Please try again or contact support.",
-              variant: "destructive"
-            });
-          }
+        handler: async function (response: any) {
+          await handlePaymentSuccess(response, addressData, currentUser.phone);
         },
         modal: {
           ondismiss: function() {
-            console.log('Payment cancelled');
             setShowAddressForm(false);
           }
         },
@@ -187,223 +146,58 @@ const CustomerCart = () => {
       return;
     }
     
-    // Development mode
-    console.log('Development mode - simulating payment');
+    // Development mode - simulate payment
     setTimeout(async () => {
-      try {
-        const orderId = `ORD-${Date.now()}`;
-        
-        console.log('🛒 Development mode - Creating order with OrderService');
-        
-        const customerInfo = {
-          name: addressData.name,
-          phone: addressData.phone,
-          address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-          coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
-        };
-        
-        const { OrderService } = await import('@/lib/orderService');
-        const savedOrderId = await OrderService.createOrderFromCart(
-          customerInfo,
-          cart,
-          getTotalAmount(),
-          `dev_${Date.now()}`
-        );
-        console.log('✅ Development order created:', savedOrderId);
-        
-        // Also save to Supabase for admin tracking
-        try {
-          const { supabaseApi } = await import('@/lib/supabase');
-          await supabaseApi.createOrder({
-            order_id: savedOrderId,
-            customer_name: addressData.name,
-            customer_phone: addressData.phone,
-            customer_address: customerInfo.address,
-            delivery_address: customerInfo.address,
-            items: JSON.stringify(cart.map(item => ({
-              product_id: parseInt(item.product.id),
-              product_name: item.product.name,
-              price: item.product.price,
-              quantity: item.quantity
-            }))),
-            total: getTotalAmount(),
-            total_amount: getTotalAmount(),
-            status: 'confirmed',
-            payment_status: 'paid',
-            created_at: new Date().toISOString()
-          });
-          console.log('✅ Development order also saved to Supabase');
-        } catch (dbError) {
-          console.warn('⚠️ Supabase save failed, order saved locally:', dbError);
-        }
-        await cartService.clearCart();
-        setCart([]);
-        
-        window.dispatchEvent(new CustomEvent('cartUpdated'));
-        
-        setShowAddressForm(false);
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
-        
-        toast({
-          title: "Order Placed Successfully!",
-          description: `Test order ${orderId} confirmed and ready for processing!`,
-        });
-      } catch (error) {
-        console.error('Test order failed:', error);
-        toast({
-          title: "Order Failed",
-          description: "Please try again.",
-          variant: "destructive"
-        });
-      }
+      await handlePaymentSuccess(
+        { razorpay_payment_id: `dev_${Date.now()}` },
+        addressData,
+        currentUser.phone
+      );
     }, 1000);
   };
 
-  const handlePaymentFailure = async () => {
-    if (!customerAddress) return;
-    
+  const handlePaymentSuccess = async (paymentResponse: any, addressData: AddressData, customerPhone: string) => {
     try {
-      // Create order in database even when payment fails
       const orderId = `ORD-${Date.now()}`;
       
-      await DatabaseService.createOrder({
+      const orderData = {
         order_id: orderId,
-        customer_name: customerAddress.name,
-        customer_phone: customerAddress.phone,
-        delivery_address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-        items: JSON.stringify(cart.map(item => ({
+        customer_name: addressData.name,
+        customer_phone: customerPhone,
+        customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+        items: cart.map(item => ({
           product_id: parseInt(item.product.id),
           product_name: item.product.name,
           price: item.product.price,
           quantity: item.quantity
-        }))),
+        })),
         total_amount: getTotalAmount(),
-        status: 'pending',
-        payment_status: 'failed',
-        created_at: new Date().toISOString()
-      });
-      
-      // Also save locally for compatibility
-      await OrderService.createOrderFromCart(
-        {
-          name: customerAddress.name,
-          phone: customerAddress.phone,
-          address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-          coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
-        },
-        cart,
-        getTotalAmount(),
-        'payment_failed'
-      );
-      
-      // Update payment status to failed
-      await OrderService.updatePaymentStatus(orderId, 'failed', 'payment_failed');
-      
-      // Trigger admin panel updates
-      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'pending', paymentStatus: 'failed' } }));
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
-      
-      console.log('✅ Order saved to database with failed payment status');
-      
-    } catch (error) {
-      console.error('Failed to save order with failed payment:', error);
-    }
-    
-    toast({
-      title: "Payment Failed",
-      description: "Payment failed but order saved. You can retry payment from pending orders.",
-      variant: "destructive"
-    });
-    setShowAddressForm(false);
-  };
+        order_status: 'confirmed',
+        payment_status: 'paid',
+        payment_id: paymentResponse.razorpay_payment_id
+      };
 
-  const handlePaymentSuccess = async (paymentId?: string, isTestMode?: boolean) => {
-    if (!customerAddress) return;
-    
-    const testMode = isTestMode || !paymentId || paymentId.includes('test') || paymentId.includes('dev');
-    
-    try {
-      // Create order using OrderService with confirmed status
-      const orderId = await OrderService.createOrderFromCart(
-        {
-          name: customerAddress.name,
-          phone: customerAddress.phone,
-          address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-          coordinates: customerAddress.coordinates || { lat: 21.3099, lng: 75.1178 }
-        },
-        cart,
-        getTotalAmount(),
-        paymentId
-      );
+      await createOrderInSupabase(orderData);
       
-      // Update payment status to paid for both test and live payments
-      await OrderService.updatePaymentStatus(orderId, 'paid', paymentId);
-      
-      // Save order to database via DatabaseService for admin tracking
-      try {
-        await DatabaseService.createOrder({
-          order_id: orderId,
-          customer_name: customerAddress.name,
-          customer_phone: customerAddress.phone,
-          delivery_address: `${customerAddress.address}${customerAddress.landmark ? ', ' + customerAddress.landmark : ''}${customerAddress.city ? ', ' + customerAddress.city : ''}${customerAddress.state ? ', ' + customerAddress.state : ''} - ${customerAddress.pincode}`,
-          items: JSON.stringify(cart.map(item => ({
-            product_id: parseInt(item.product.id),
-            product_name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity
-          }))),
-          total_amount: getTotalAmount(),
-          status: 'confirmed',
-          payment_status: 'paid',
-          created_at: new Date().toISOString()
-        });
-        console.log('✅ Order saved to database for admin tracking');
-      } catch (dbError) {
-        console.warn('⚠️ Failed to save to database, order saved locally:', dbError);
-      }
-      
-      // Update product inventory
-      try {
-        for (const item of cart) {
-          await DatabaseService.updateProduct(parseInt(item.product.id), {
-            stockQuantity: -item.quantity
-          });
-        }
-        console.log('✅ Product inventory updated');
-      } catch (stockError) {
-        console.warn('⚠️ Failed to update inventory:', stockError);
-      }
-      
-      // Clear cart immediately after successful payment
+      // Clear cart
       await cartService.clearCart();
       setCart([]);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
       
-      // Trigger admin panel updates
-      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId, status: 'confirmed', paymentStatus: 'paid' } }));
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
-      window.dispatchEvent(new CustomEvent('inventoryUpdated'));
-      
-      // Order saved to database only
-      
-      // Show success with slight delay
-      setTimeout(() => {
-        setLastOrderId(orderId);
-        setShowSuccessModal(true);
-      }, 100);
+      // Show success
+      setShowAddressForm(false);
+      setLastOrderId(orderId);
+      setShowSuccessModal(true);
       
       toast({
         title: "Order Placed Successfully!",
-        description: testMode ? 
-          `Test order ${orderId} confirmed - Available in admin panel for processing!` :
-          `Order ${orderId} for ₹${getTotalAmount().toFixed(2)} has been confirmed and is being processed.`,
+        description: `Order ${orderId} confirmed and saved to database!`,
       });
-       
+      
     } catch (error) {
-      console.error('Failed to create order:', error);
+      console.error('Order creation failed:', error);
       toast({
-        title: "Order Creation Failed",
+        title: "Order Failed",
         description: "Please try again or contact support.",
         variant: "destructive"
       });
@@ -417,15 +211,6 @@ const CustomerCart = () => {
 
   const getCartTotal = () => {
     return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  };
-
-  const handlePayPendingOrder = (order: any) => {
-    setPendingPaymentOrder(order);
-    setShowAddressForm(true);
-  };
-
-  const handleRemovePendingOrder = (orderId: string) => {
-    // Order already removed in component
   };
 
   if (cart.length === 0) {
@@ -449,14 +234,6 @@ const CustomerCart = () => {
 
   return (
     <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
-      {/* Pending Payment Orders */}
-      <div className="mb-6">
-        <PendingPaymentOrders 
-          onPayNow={handlePayPendingOrder}
-          onRemove={handleRemovePendingOrder}
-        />
-      </div>
-      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
@@ -466,78 +243,13 @@ const CustomerCart = () => {
             {cart.map((item) => (
               <Card key={item.product.id}>
                 <CardContent className="p-3 md:p-6">
-                  {/* Mobile Layout */}
-                  <div className="md:hidden space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
-                        <ShoppingBag className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-base">{item.product.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          Product ID: {item.product.id}
-                        </p>
-                        <p className="text-base font-bold text-primary mt-1">
-                          ₹{Number(item.product.price || 0).toFixed(2)}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(item.product.id)}
-                        className="text-destructive hover:text-destructive p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value) || 1)}
-                          className="w-16 text-center text-sm"
-                          min="1"
-                          max={item.product.stock_qty}
-                        />
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.product.stock_qty}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      
-                      <p className="text-base font-bold">
-                        ₹{(Number(item.product.price || 0) * Number(item.quantity || 0)).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Desktop Layout */}
-                  <div className="hidden md:flex items-center space-x-4">
+                  <div className="flex items-center space-x-4">
                     <div className="w-20 h-20 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
                       <ShoppingBag className="w-8 h-8 text-muted-foreground" />
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg">{item.product.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Product ID: {item.product.id}
-                      </p>
                       <p className="text-lg font-bold text-primary mt-1">
                         ₹{Number(item.product.price || 0).toFixed(2)}
                       </p>
@@ -559,14 +271,12 @@ const CustomerCart = () => {
                         onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value) || 1)}
                         className="w-20 text-center"
                         min="1"
-                        max={item.product.stock_qty}
                       />
                       
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        disabled={item.quantity >= item.product.stock_qty}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>

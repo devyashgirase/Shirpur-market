@@ -1,5 +1,5 @@
 // Razorpay Order Service - Direct Supabase save with paid status
-import { createOrderDirect } from './directSupabase';
+import { createOrderInSupabase } from './orderCreationService';
 
 export class RazorpayOrderService {
   static async createPaidOrder(
@@ -28,18 +28,23 @@ export class RazorpayOrderService {
       payment_id: paymentResponse.razorpay_payment_id
     };
 
-    await createOrderDirect(orderData);
-    console.log('✅ Order saved to Supabase with payment status: paid');
-    
-    // Trigger real-time update for admin dashboard
-    window.dispatchEvent(new CustomEvent('orderCreated', {
-      detail: { orderId, status: 'confirmed', paymentStatus: 'paid' }
-    }));
-    
-    window.dispatchEvent(new CustomEvent('newOrderAlert', {
-      detail: { orderId, customerName: addressData.name, total: totalAmount }
-    }));
-    
-    return orderId;
+    try {
+      await createOrderInSupabase(orderData);
+      console.log('✅ Order saved to Supabase with payment status: paid');
+      
+      // Trigger real-time update for admin dashboard
+      window.dispatchEvent(new CustomEvent('orderCreated', {
+        detail: { orderId, status: 'confirmed', paymentStatus: 'paid' }
+      }));
+      
+      window.dispatchEvent(new CustomEvent('newOrderAlert', {
+        detail: { orderId, customerName: addressData.name, total: totalAmount }
+      }));
+      
+      return orderId;
+    } catch (error) {
+      console.error('❌ Failed to save order:', error);
+      throw new Error(`Order save failed: ${error.message}`);
+    }
   }
 }

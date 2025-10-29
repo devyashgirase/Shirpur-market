@@ -48,6 +48,7 @@ const CustomerOrders = () => {
       setLoading(false);
     }
   };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -100,32 +101,6 @@ const CustomerOrders = () => {
     navigate(`/customer/track?orderId=${order.order_id}`);
   };
 
-  const handleCancelOrder = async (order: CustomerOrder) => {
-    if (!confirm('Are you sure you want to cancel this order?')) {
-      return;
-    }
-
-    try {
-      const { supabaseApi } = await import('@/lib/supabase');
-      await supabaseApi.updateOrderStatus(order.id, 'cancelled');
-      
-      toast({
-        title: "Order Cancelled",
-        description: `Order #${order.order_id} has been cancelled successfully.`,
-      });
-      
-      // Refresh orders
-      await loadCustomerOrders();
-    } catch (error) {
-      console.error('Failed to cancel order:', error);
-      toast({
-        title: "Cancellation Failed",
-        description: "Unable to cancel order. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
@@ -137,16 +112,16 @@ const CustomerOrders = () => {
         {loading ? (
           <div className="text-center py-8 md:py-12">
             <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-base md:text-lg text-gray-600">Loading your orders from database...</p>
+            <p className="text-base md:text-lg text-gray-600">Loading your orders from Supabase...</p>
           </div>
         ) : orders.length > 0 ? orders.map((order) => (
           <Card key={order.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.order_id}</CardTitle>
-                <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
-                  {getStatusIcon(order.status)}
-                  {formatStatus(order.status)}
+                <Badge variant={getStatusVariant(order.order_status)} className="flex items-center gap-1">
+                  {getStatusIcon(order.order_status)}
+                  {formatStatus(order.order_status)}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -159,46 +134,29 @@ const CustomerOrders = () => {
                 <div>
                   <p className="font-semibold">Delivery Address</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.delivery_address}
+                    {order.customer_address}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">₹{parseFloat(order.total_amount).toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">₹{order.total_amount}</p>
                   <p className="text-sm text-muted-foreground">
                     Payment: {order.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
                   </p>
                 </div>
               </div>
 
-              {/* Order Status Timeline */}
               <div className="border rounded-lg p-4 bg-muted/30">
-                <h4 className="font-semibold mb-3">Order Progress</h4>
-                <div className="flex items-center space-x-4 overflow-x-auto">
-                  {['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'].map((status, index) => (
-                    <div key={status} className="flex items-center space-x-2 whitespace-nowrap">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'].indexOf(order.status) >= index
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {getStatusIcon(status)}
-                      </div>
-                      <span className={`text-sm ${
-                        ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'].indexOf(order.status) >= index
-                          ? 'text-foreground font-medium' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        {formatStatus(status)}
-                      </span>
-                      {index < 4 && (
-                        <div className={`w-8 h-0.5 ${
-                          ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'].indexOf(order.status) > index
-                            ? 'bg-primary' 
-                            : 'bg-muted'
-                        }`} />
-                      )}
+                <h4 className="font-semibold mb-3">Order Items</h4>
+                <div className="space-y-2">
+                  {order.items.slice(0, 3).map((item: any, index: number) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>{item.product_name || item.name}</span>
+                      <span>x{item.quantity}</span>
                     </div>
                   ))}
+                  {order.items.length > 3 && (
+                    <p className="text-xs text-muted-foreground">+{order.items.length - 3} more items</p>
+                  )}
                 </div>
               </div>
 
@@ -206,43 +164,20 @@ const CustomerOrders = () => {
                 <Button variant="outline" size="sm" onClick={() => handleViewDetails(order)}>
                   View Details
                 </Button>
-                {order.status === 'out_for_delivery' && (
+                {order.order_status === 'out_for_delivery' && (
                   <Button variant="outline" size="sm" onClick={() => handleTrackOrder(order)} className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
                     🚚 Track Live
                   </Button>
                 )}
-                {order.status === 'delivered' && (
+                {order.order_status === 'delivered' && (
                   <Button variant="outline" size="sm">
                     Reorder
-                  </Button>
-                )}
-                {['pending', 'confirmed'].includes(order.status) && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => handleCancelOrder(order)}
-                  >
-                    Cancel Order
                   </Button>
                 )}
               </div>
             </CardContent>
           </Card>
         )) : (
-          <div className="text-center py-12">
-            <Package className="w-24 h-24 text-muted-foreground mx-auto mb-6" />
-            <h3 className="text-xl font-semibold mb-4">No orders yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Start shopping to see your orders here
-            </p>
-            <Button className="bg-gradient-primary">
-              Browse Products
-            </Button>
-          </div>
-        )}
-
-        {orders.length === 0 && !loading && (
           <div className="text-center py-12">
             <Package className="w-24 h-24 text-muted-foreground mx-auto mb-6" />
             <h3 className="text-xl font-semibold mb-4">No orders yet</h3>

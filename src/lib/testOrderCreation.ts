@@ -1,74 +1,33 @@
-// Test order creation to debug customer orders issue
-import { OrderService } from './orderService';
-import { supabaseApi } from './supabase';
+import { createOrderInSupabase } from './orderCreationService';
 
-export const createTestOrder = async () => {
+export const testOrderCreation = async () => {
+  console.log('🧪 Testing order creation...');
+  
+  const testOrder = {
+    order_id: `TEST-${Date.now()}`,
+    customer_name: 'Test Customer',
+    customer_phone: '9876543210',
+    customer_address: 'Test Address, Test City - 123456',
+    items: [
+      { product_id: 1, product_name: 'Test Product', price: 100, quantity: 2 }
+    ],
+    total_amount: 200,
+    order_status: 'confirmed',
+    payment_status: 'paid',
+    payment_id: `pay_test_${Date.now()}`
+  };
+
   try {
-    console.log('🧪 Creating test order...');
-    
-    const testCustomerInfo = {
-      name: 'Test Customer',
-      phone: '9999999999',
-      address: 'Test Address, Shirpur, Maharashtra',
-      coordinates: { lat: 21.3099, lng: 75.1178 }
-    };
-    
-    const testCartItems = [
-      {
-        product: { id: '1', name: 'Test Product', price: 100 },
-        quantity: 2
-      }
-    ];
-    
-    const testTotal = 200;
-    
-    // Create order using OrderService
-    const orderId = await OrderService.createOrderFromCart(
-      testCustomerInfo,
-      testCartItems,
-      testTotal,
-      'test_payment_123'
-    );
-    
-    console.log('✅ Test order created:', orderId);
-    
-    // Also save to Supabase
-    try {
-      await supabaseApi.createOrder({
-        order_id: orderId,
-        customer_name: testCustomerInfo.name,
-        customer_phone: testCustomerInfo.phone,
-        customer_address: testCustomerInfo.address,
-        delivery_address: testCustomerInfo.address,
-        items: JSON.stringify(testCartItems.map(item => ({
-          product_id: parseInt(item.product.id),
-          product_name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity
-        }))),
-        total: testTotal,
-        total_amount: testTotal,
-        status: 'confirmed',
-        payment_status: 'paid',
-        created_at: new Date().toISOString()
-      });
-      console.log('✅ Test order also saved to Supabase');
-    } catch (dbError) {
-      console.warn('⚠️ Supabase save failed:', dbError);
-    }
-    
-    // Trigger events
-    window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId } }));
-    window.dispatchEvent(new CustomEvent('ordersUpdated'));
-    
-    return orderId;
+    const result = await createOrderInSupabase(testOrder);
+    console.log('✅ Test order created successfully:', result);
+    return { success: true, order: result };
   } catch (error) {
     console.error('❌ Test order creation failed:', error);
-    throw error;
+    return { success: false, error: error.message };
   }
 };
 
-// Make it available globally for testing
+// Make available globally for testing
 if (typeof window !== 'undefined') {
-  (window as any).createTestOrder = createTestOrder;
+  (window as any).testOrderCreation = testOrderCreation;
 }
