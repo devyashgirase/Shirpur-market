@@ -3,106 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Package, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
-import { unifiedDB } from "@/lib/database";
-import { OrderService } from "@/lib/orderService";
+import { customerOrderService, type CustomerOrder } from "@/lib/customerOrderService";
+import { authService } from "@/lib/authService";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const CustomerOrders = () => {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    loadCustomerOrders();
-    
-    // Listen for order updates
-    const handleOrderUpdate = () => {
-      console.log('🔄 Order update detected, refreshing customer orders');
-      loadCustomerOrders();
+    const initializeOrders = async () => {
+      const user = authService.getCurrentUser();
+      if (user?.phone) {
+        customerOrderService.setCurrentUser(user.phone);
+        await loadCustomerOrders();
+        
+        // Subscribe to real-time updates
+        const unsubscribe = customerOrderService.subscribeToOrderUpdates((updatedOrders) => {
+          setOrders(updatedOrders);
+        });
+        
+        return unsubscribe;
+      }
     };
     
-    window.addEventListener('orderCreated', handleOrderUpdate);
-    window.addEventListener('ordersUpdated', handleOrderUpdate);
-    window.addEventListener('cartUpdated', handleOrderUpdate);
-    window.addEventListener('orderStatusChanged', handleOrderUpdate);
-    
-    // Auto-refresh every 30 seconds to catch admin status changes
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing customer orders...');
-      loadCustomerOrders();
-    }, 30000);
-    
+    const cleanup = initializeOrders();
     return () => {
-      window.removeEventListener('orderCreated', handleOrderUpdate);
-      window.removeEventListener('ordersUpdated', handleOrderUpdate);
-      window.removeEventListener('cartUpdated', handleOrderUpdate);
-      window.removeEventListener('orderStatusChanged', handleOrderUpdate);
-      clearInterval(interval);
+      cleanup.then(fn => fn && fn());
     };
   }, []);
 
   const loadCustomerOrders = async () => {
     try {
       setLoading(true);
-      
-      let allOrders = [];
-      
-      // First, try to load from Supabase
-      try {
-        console.log('🔄 Loading orders from Supabase...');
-        const { supabaseApi } = await import('@/lib/supabase');
-        const dbOrders = await supabaseApi.getOrders();
-        console.log('✅ Orders loaded from Supabase:', dbOrders.length);
-        allOrders = [...allOrders, ...dbOrders];
-      } catch (error) {
-        console.warn('⚠️ Supabase orders failed:', error);
-      }
-      
-      // Also load from OrderService (localStorage)
-      try {
-        const localOrders = OrderService.getAllOrders();
-        console.log('📦 Orders loaded from localStorage:', localOrders.length);
-        
-        // Merge orders, avoiding duplicates
-        localOrders.forEach(localOrder => {
-          const exists = allOrders.find(order => 
-            (order.order_id || order.orderId) === localOrder.orderId
-          );
-          if (!exists) {
-            // Convert localStorage order format to match database format
-            allOrders.push({
-              id: Date.now(),
-              order_id: localOrder.orderId,
-              customer_name: localOrder.customerAddress.name,
-              customer_phone: localOrder.customerAddress.phone,
-              customer_address: localOrder.customerAddress.address,
-              delivery_address: localOrder.customerAddress.address,
-              items: JSON.stringify(localOrder.items),
-              total: localOrder.total,
-              total_amount: localOrder.total,
-              status: localOrder.status,
-              payment_status: localOrder.paymentStatus,
-              created_at: localOrder.timestamp,
-              createdAt: localOrder.timestamp
-            });
-          }
-        });
-      } catch (error) {
-        console.warn('⚠️ localStorage orders failed:', error);
-      }
-      
-      // Sort by creation date (newest first)
-      allOrders.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.createdAt || a.timestamp || 0);
-        const dateB = new Date(b.created_at || b.createdAt || b.timestamp || 0);
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      console.log('📊 Total orders loaded:', allOrders.length);
-      setOrders(allOrders);
-      
+      const customerOrders = await customerOrderService.getMyOrders();
+      setOrders(customerOrders);
     } catch (error) {
       console.error('Failed to load orders:', error);
       setOrders([]);
@@ -154,44 +92,30 @@ const CustomerOrders = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  const handleViewDetails = (order: any) => {
-    // Store the selected order for details view
-    localStorage.setItem('selectedOrderDetails', JSON.stringify(order));
-    // Navigate to order details page
-    navigate(`/customer/order-details/${order.order_id || order.orderId || order.id}`);
+  const handleViewDetails = (order: CustomerOrder) => {
+    navigate(`/customer/order-details/${order.order_id}`);
   };
 
-  const handleTrackOrder = (order: any) => {
-    // Store the selected order for tracking
-    localStorage.setItem('currentOrder', JSON.stringify(order));
-    // Navigate to tracking page
-    navigate('/customer/track');
+  const handleTrackOrder = (order: CustomerOrder) => {
+    navigate(`/customer/track?orderId=${order.order_id}`);
   };
 
-  const handleCancelOrder = async (order: any) => {
+  const handleCancelOrder = async (order: CustomerOrder) => {
     if (!confirm('Are you sure you want to cancel this order?')) {
       return;
     }
 
     try {
-      const orderId = order.order_id || order.orderId || order.id;
-      
-      // Update order status to cancelled in Supabase
-      await unifiedDB.updateOrderStatus(parseInt(orderId), 'cancelled');
-      
-      // Update local orders
-      OrderService.updateOrderStatus(orderId, 'cancelled');
-      
-      // Refresh orders list
-      loadCustomerOrders();
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.updateOrderStatus(order.id, 'cancelled');
       
       toast({
         title: "Order Cancelled",
-        description: `Order #${orderId} has been cancelled successfully.`,
+        description: `Order #${order.order_id} has been cancelled successfully.`,
       });
       
-      // Trigger updates for admin panel
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
+      // Refresh orders
+      await loadCustomerOrders();
     } catch (error) {
       console.error('Failed to cancel order:', error);
       toast({
@@ -205,32 +129,7 @@ const CustomerOrders = () => {
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold">My Orders</h1>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={async () => {
-              try {
-                const { createTestOrder } = await import('@/lib/testOrderCreation');
-                const orderId = await createTestOrder();
-                toast({
-                  title: "Test Order Created",
-                  description: `Order ${orderId} created successfully`,
-                });
-                loadCustomerOrders();
-              } catch (error) {
-                toast({
-                  title: "Test Failed",
-                  description: "Failed to create test order",
-                  variant: "destructive"
-                });
-              }
-            }}
-          >
-            🧪 Create Test Order
-          </Button>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold mb-4">My Orders</h1>
         <p className="text-sm md:text-base text-muted-foreground">Track your order history and delivery status</p>
       </div>
 
@@ -241,17 +140,17 @@ const CustomerOrders = () => {
             <p className="text-base md:text-lg text-gray-600">Loading your orders from database...</p>
           </div>
         ) : orders.length > 0 ? orders.map((order) => (
-          <Card key={order.order_id || order.orderId || order.id} className="hover:shadow-md transition-shadow">
+          <Card key={order.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.order_id || order.orderId || order.id}</CardTitle>
+                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.order_id}</CardTitle>
                 <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
                   {getStatusIcon(order.status)}
                   {formatStatus(order.status)}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Placed on {formatDate(order.createdAt || order.created_at || order.timestamp)}
+                Placed on {formatDate(order.created_at)}
               </p>
             </CardHeader>
             
@@ -260,13 +159,13 @@ const CustomerOrders = () => {
                 <div>
                   <p className="font-semibold">Delivery Address</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.delivery_address || order.deliveryAddress || order.customerAddress?.address || order.customer_address}
+                    {order.delivery_address}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">₹{parseFloat(order.total || order.total_amount || 0).toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">₹{parseFloat(order.total_amount).toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground">
-                    Payment: {(order.paymentStatus || order.payment_status) === 'paid' ? '✓ Paid' : 'Pending'}
+                    Payment: {order.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
                   </p>
                 </div>
               </div>

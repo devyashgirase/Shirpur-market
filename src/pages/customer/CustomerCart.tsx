@@ -115,6 +115,18 @@ const CustomerCart = () => {
   const handleAddressSubmit = async (addressData: AddressData) => {
     setCustomerAddress(addressData);
     
+    // Validate user authentication
+    const { authService } = await import('@/lib/authService');
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser?.phone) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to place an order",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
     
     if (razorpayKey && (window as any).Razorpay) {
@@ -126,59 +138,7 @@ const CustomerCart = () => {
         currency: 'INR',
         name: 'Shirpur Delivery',
         description: 'Order Payment',
-        handler: async function (response: any) {
-          console.log('✅ Payment Successful:', response.razorpay_payment_id);
-          
-          try {
-            const orderId = `ORD-${Date.now()}`;
-            const isTestPayment = response.razorpay_payment_id?.includes('test') || response.razorpay_payment_id?.includes('fake');
-            
-            console.log('🛒 Creating order with cart items:', cart);
-            console.log('📍 Address data:', addressData);
-            
-            // Create order using OrderService for proper integration
-            const customerInfo = {
-              name: addressData.name,
-              phone: addressData.phone,
-              address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-              coordinates: addressData.coordinates || { lat: 21.3099, lng: 75.1178 }
-            };
-            
-            console.log('📦 Creating order with OrderService...');
-            const { OrderService } = await import('@/lib/orderService');
-            const savedOrderId = await OrderService.createOrderFromCart(
-              customerInfo,
-              cart,
-              getTotalAmount(),
-              response.razorpay_payment_id
-            );
-            console.log('✅ Order created with OrderService:', savedOrderId);
-            
-            // Also save to Supabase for admin tracking
-            try {
-              const { supabaseApi } = await import('@/lib/supabase');
-              await supabaseApi.createOrder({
-                order_id: savedOrderId,
-                customer_name: addressData.name,
-                customer_phone: addressData.phone,
-                customer_address: customerInfo.address,
-                delivery_address: customerInfo.address,
-                items: JSON.stringify(cart.map(item => ({
-                  product_id: parseInt(item.product.id),
-                  product_name: item.product.name,
-                  price: item.product.price,
-                  quantity: item.quantity
-                }))),
-                total: getTotalAmount(),
-                total_amount: getTotalAmount(),
-                status: 'confirmed',
-                payment_status: 'paid',
-                created_at: new Date().toISOString()
-              });
-              console.log('✅ Order also saved to Supabase for admin');
-            } catch (dbError) {
-              console.warn('⚠️ Supabase save failed, order saved locally:', dbError);
-            }
+            setLastOrderId(orderId);
             
             // Clear cart from database
             await cartService.clearCart();
@@ -188,7 +148,7 @@ const CustomerCart = () => {
             
             // Show success
             setShowAddressForm(false);
-            setLastOrderId(orderId);
+            setLastOrderId(savedOrderId);
             setShowSuccessModal(true);
             
             toast({

@@ -1,1017 +1,208 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Package, Truck, CheckCircle, Eye, MapPin, Navigation, Bell, RefreshCw } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import WhatsAppStatus from "@/components/WhatsAppStatus";
-import SMSHistory from "@/components/SMSHistory";
-import { OrderService, Order } from "@/lib/orderService";
-import { NotificationService } from "@/lib/notificationService";
-import { DatabaseService } from "@/lib/databaseService";
-import { useToast } from "@/hooks/use-toast";
-import { deliveryCoordinationService } from "@/lib/deliveryCoordinationService";
-import { DataGenerator } from "@/lib/dataGenerator";
-import AdminOrderStatusManager from "@/components/AdminOrderStatusManager";
+import React, { useState, useEffect } from 'react';
+import { AdminOrderService, AdminOrder } from '../../lib/adminOrderService';
 
-// Function to notify nearby delivery agents
-const notifyNearbyDeliveryAgents = async (orderData: any) => {
-  try {
-    // Get all active delivery agents
-    const agents = await DatabaseService.getDeliveryAgents();
-    const activeAgents = agents.filter(agent => agent.isActive && agent.isApproved);
-    
-    // Order location (use Shirpur center as default)
-    const orderLocation = orderData.customerAddress?.coordinates || { lat: 21.3487, lng: 74.8831 };
-    
-    // Find agents within 10km
-    const nearbyAgents = activeAgents.filter(agent => {
-      if (!agent.location) {
-        // Generate random location for demo agents
-        agent.location = {
-          lat: 21.3487 + (Math.random() - 0.5) * 0.1,
-          lng: 74.8831 + (Math.random() - 0.5) * 0.1
-        };
-      }
-      
-      const distance = DataGenerator.calculateDistance(
-        orderLocation.lat, orderLocation.lng,
-        agent.location.lat, agent.location.lng
-      );
-      
-      return distance <= 10; // Within 10km
-    });
-    
-    console.log(`📍 Found ${nearbyAgents.length} agents within 10km`);
-    
-    // Create delivery notification for each nearby agent
-    nearbyAgents.forEach(agent => {
-      const notification = {
-        orderId: orderData.orderId,
-        agentId: agent.userId || agent.id,
-        customerAddress: orderData.customerAddress?.address || orderData.delivery_address,
-        totalAmount: orderData.total,
-        distance: DataGenerator.calculateDistance(
-          orderLocation.lat, orderLocation.lng,
-          agent.location.lat, agent.location.lng
-        ),
-        createdAt: new Date().toISOString(),
-        status: 'pending'
-      };
-      
-      // Store notification in localStorage for each agent
-      const agentNotifications = JSON.parse(localStorage.getItem(`agent_notifications_${agent.userId || agent.id}`) || '[]');
-      agentNotifications.unshift(notification);
-      localStorage.setItem(`agent_notifications_${agent.userId || agent.id}`, JSON.stringify(agentNotifications));
-      
-      console.log(`🔔 Notification sent to agent ${agent.name} (${notification.distance.toFixed(2)}km away)`);
-    });
-    
-    // Trigger delivery agent dashboard refresh
-    window.dispatchEvent(new CustomEvent('newDeliveryNotification', { 
-      detail: { 
-        orderId: orderData.orderId, 
-        agentCount: nearbyAgents.length 
-      } 
-    }));
-    
-  } catch (error) {
-    console.error('Error notifying delivery agents:', error);
-  }
-};
-
-const AdminOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const { toast } = useToast();
+const AdminOrders: React.FC = () => {
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     loadOrders();
-    
-    // Auto-refresh every 10 seconds to show latest orders
-    const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing admin orders...');
-      loadOrders();
-    }, 10000);
-    
-    // Subscribe to real-time order updates
-    const unsubscribe = OrderService.subscribe((updatedOrders) => {
-      setOrders([...updatedOrders].reverse()); // Show newest first
+    loadStats();
+
+    // Subscribe to real-time updates
+    const subscription = AdminOrderService.subscribeToOrderUpdates((updatedOrders) => {
+      setOrders(updatedOrders);
+      loadStats();
     });
-    
-    // Listen for new order events
-    const handleNewOrder = () => {
-      console.log('🔔 New order detected, refreshing admin orders...');
-      loadOrders();
-    };
-    
-    const handleOrderUpdate = () => {
-      console.log('🔄 Order update detected, refreshing admin orders...');
-      loadOrders();
-    };
-    
-    // Listen for delivery agent status changes
-    const handleOrderStatusChanged = (event: CustomEvent) => {
-      console.log('🚚 Delivery agent status change:', event.detail);
-      loadOrders();
-      toast({
-        title: "Order Status Updated",
-        description: `Order ${event.detail.orderId} is now out for delivery`,
-      });
-    };
-    
-    window.addEventListener('orderCreated', handleNewOrder);
-    window.addEventListener('ordersUpdated', handleOrderUpdate);
-    window.addEventListener('newOrderAlert', handleNewOrder);
-    window.addEventListener('orderStatusChanged', handleOrderStatusChanged as EventListener);
-    
+
     return () => {
-      clearInterval(refreshInterval);
-      unsubscribe();
-      window.removeEventListener('orderCreated', handleNewOrder);
-      window.removeEventListener('ordersUpdated', handleOrderUpdate);
-      window.removeEventListener('newOrderAlert', handleNewOrder);
-      window.removeEventListener('orderStatusChanged', handleOrderStatusChanged as EventListener);
+      subscription.unsubscribe();
     };
-  }, [toast]);
-  
+  }, []);
+
   const loadOrders = async () => {
-    try {
-      console.log('📊 Loading orders directly from Supabase...');
-      
-      // Load orders directly from Supabase with cache busting
-      const response = await fetch(`https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?select=*&order=created_at.desc&_t=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      if (response.ok) {
-        const dbOrders = await response.json();
-        console.log('✅ Loaded orders directly from Supabase:', dbOrders.length);
-        console.log('📋 Raw orders data:', dbOrders);
-        
-        const formattedOrders = dbOrders.map(order => ({
-          orderId: order.order_id || order.orderId,
-          status: order.status || 'pending',
-          timestamp: order.created_at || order.createdAt || new Date().toISOString(),
-          customerAddress: {
-            name: order.customer_name || order.customerName || 'Customer',
-            phone: order.customer_phone || order.customerPhone || '',
-            address: order.delivery_address || order.deliveryAddress || '',
-            coordinates: { lat: 21.3486, lng: 74.8811 }
-          },
-          items: order.items ? (Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')).map(item => ({
-            product: {
-              id: item.product_id?.toString() || item.id?.toString() || '0',
-              name: item.product_name || item.name || 'Product',
-              price: parseFloat(item.price || item.product_price || 0)
-            },
-            quantity: parseInt(item.quantity || 1)
-          })) : [],
-          total: parseFloat(order.total_amount || order.total || 0),
-          paymentStatus: order.payment_status || order.paymentStatus || 'paid',
-          databaseId: order.id
-        }));
-        
-        console.log('📦 Formatted orders:', formattedOrders.length);
-        setOrders(formattedOrders); // Already sorted by created_at desc
-      } else {
-        console.error('❌ Failed to load orders from Supabase:', response.status);
-        // Fallback to DatabaseService
-        const dbOrders = await DatabaseService.getOrders();
-        const formattedOrders = dbOrders.map(order => ({
-          orderId: order.order_id || order.orderId,
-          status: order.status || 'pending',
-          timestamp: order.created_at || order.createdAt || new Date().toISOString(),
-          customerAddress: {
-            name: order.customer_name || order.customerName || 'Customer',
-            phone: order.customer_phone || order.customerPhone || '',
-            address: order.delivery_address || order.deliveryAddress || '',
-            coordinates: { lat: 21.3486, lng: 74.8811 }
-          },
-          items: order.items ? (Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')).map(item => ({
-            product: {
-              id: item.product_id?.toString() || item.id?.toString() || '0',
-              name: item.product_name || item.name || 'Product',
-              price: parseFloat(item.price || item.product_price || 0)
-            },
-            quantity: parseInt(item.quantity || 1)
-          })) : [],
-          total: parseFloat(order.total_amount || order.total || 0),
-          paymentStatus: order.payment_status || order.paymentStatus || 'paid',
-          databaseId: order.id
-        }));
-        setOrders([...formattedOrders].reverse());
-      }
-      
-    } catch (error) {
-      console.warn('⚠️ All methods failed, using fallback data:', error);
-      // Use fallback data from DatabaseService
-      const fallbackOrders = DatabaseService.getFallbackOrders().map(order => ({
-        orderId: order.orderId,
-        status: order.status,
-        timestamp: order.createdAt,
-        customerAddress: {
-          name: order.customerName,
-          phone: order.customerPhone,
-          address: order.deliveryAddress,
-          coordinates: { lat: 21.3486, lng: 74.8811 }
-        },
-        items: order.items.map(item => ({
-          product: {
-            id: '1',
-            name: item.name,
-            price: item.price
-          },
-          quantity: item.quantity
-        })),
-        total: order.total,
-        paymentStatus: order.paymentStatus,
-        databaseId: order.id
-      }));
-      setOrders(fallbackOrders);
-    }
+    setLoading(true);
+    const orderData = await AdminOrderService.getAllOrders();
+    setOrders(orderData);
+    setLoading(false);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      console.log('🔄 Updating order status:', orderId, '→', newStatus);
-      
-      // Validate status
-      const validStatuses = ['pending', 'confirmed', 'packing', 'out_for_delivery', 'delivered'];
-      if (!validStatuses.includes(newStatus)) {
-        throw new Error(`Invalid status: ${newStatus}`);
-      }
-      
-      // Update in database directly
-      const updateResponse = await fetch(`https://ftexuxkdfahbqjddidaf.supabase.co/rest/v1/orders?order_id=eq.${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      if (updateResponse.ok) {
-        console.log('✅ Supabase status update successful');
-      } else {
-        console.error('❌ Supabase status update failed:', updateResponse.status);
-        // Fallback to DatabaseService
-        await DatabaseService.updateOrderStatus(orderId, newStatus);
-        console.log('✅ Fallback database status update successful');
-      }
-      
-      // Also update in localStorage for compatibility
-      try {
-        await OrderService.updateOrderStatus(orderId, newStatus as any);
-        console.log('✅ Local status update successful');
-      } catch (localError) {
-        console.warn('⚠️ Local update failed, but database update succeeded:', localError);
-      }
-      
-      // Status update successful
-        
-      // Create delivery notification for nearby agents when status is out_for_delivery
-      if (newStatus === 'out_for_delivery') {
-        try {
-          console.log('🚚 Order set to out_for_delivery, notifying nearby agents...');
-          
-          // Get order details
-          const orderIndex = orders.findIndex(o => o.orderId === orderId);
-          if (orderIndex !== -1) {
-            const orderData = orders[orderIndex];
-            
-            // Notify nearby delivery agents (within 10km)
-            await notifyNearbyDeliveryAgents(orderData);
-            
-            toast({
-              title: "Delivery Agents Notified",
-              description: "Nearby delivery agents have been notified about this order",
-            });
-          }
-        } catch (error) {
-          console.error('Failed to notify delivery agents:', error);
-        }
-      }
-      
-      // Trigger order status change event for delivery agents and customers
-      window.dispatchEvent(new CustomEvent('orderStatusChanged', {
-        detail: { orderId, status: newStatus }
-      }));
-      
-      // Also trigger general orders update for customer side
-      window.dispatchEvent(new CustomEvent('ordersUpdated'));
-      
-      toast({
-        title: "Status Updated Successfully",
-        description: `Order ${orderId} is now ${newStatus.replace('_', ' ')}`,
-      });
-      
-      // Reload orders to reflect changes
-      await loadOrders();
-      
-      // Send admin notification
-      NotificationService.sendOrderStatusNotification(orderId, newStatus, 'admin');
-    } catch (error) {
-      console.error('❌ Failed to update order status:', error);
-      toast({
-        title: "Update Failed",
-        description: `Failed to update order status: ${error.message}`,
-        variant: "destructive"
-      });
+  const loadStats = async () => {
+    const statsData = await AdminOrderService.getOrderStats();
+    setStats(statsData);
+  };
+
+  const handleStatusUpdate = async (orderId: string, newStatus: AdminOrder['status']) => {
+    const success = await AdminOrderService.updateOrderStatusWithNotification(orderId, newStatus);
+    if (success) {
+      // Orders will update automatically via real-time subscription
+      console.log('Order status updated successfully');
+    } else {
+      alert('Failed to update order status');
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-gray-500';
-      case 'confirmed': return 'bg-blue-500';
-      case 'packing': return 'bg-orange-500';
-      case 'out_for_delivery': return 'bg-purple-500';
-      case 'delivered': return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <Clock className="w-4 h-4" />;
-      case 'confirmed': return <CheckCircle className="w-4 h-4" />;
-      case 'packing': return <Package className="w-4 h-4" />;
-      case 'out_for_delivery': return <Truck className="w-4 h-4" />;
-      case 'delivered': return <CheckCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const openOrderDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setShowOrderDetails(true);
-  };
-
-  return (
-    <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
-      <div className="flex items-center justify-between mb-4 md:mb-6">
-        <h1 className="text-xl md:text-3xl font-bold">Recent Orders</h1>
-        <Button 
-          onClick={loadOrders}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh Orders
-        </Button>
-      </div>
-      
-      {orders.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Orders Yet</h3>
-            <p className="text-muted-foreground">Orders will appear here when customers make purchases</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order.orderId} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-3 md:p-6">
-                {/* Mobile Layout */}
-                <div className="md:hidden space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      {getStatusIcon(order.status)}
-                      <div>
-                        <h3 className="font-semibold text-sm">#{order.orderId}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(order.timestamp).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className={`${getStatusColor(order.status)} text-white text-xs`}>
-                      {order.status.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">₹{order.total.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">{order.items.length} items</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <QuickStatusChanger order={order} onStatusUpdate={updateOrderStatus} />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openOrderDetails(order)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Desktop Layout */}
-                <div className="hidden md:flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      {getStatusIcon(order.status)}
-                      <div>
-                        <h3 className="font-semibold text-lg">Order #{order.orderId}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(order.timestamp).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <p className="font-semibold">₹{order.total.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">{order.items.length} items</p>
-                    </div>
-                    
-                    <Badge className={`${getStatusColor(order.status)} text-white`}>
-                      {order.status.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                    
-                    <QuickStatusChanger order={order} onStatusUpdate={updateOrderStatus} />
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openOrderDetails(order)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Order Details Dialog */}
-      <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Order Details - #{selectedOrder?.orderId}</DialogTitle>
-            <DialogDescription>
-              View and manage order details, tracking, and WhatsApp communications
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedOrder && (
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Order Details</TabsTrigger>
-                <TabsTrigger value="tracking">Live Tracking</TabsTrigger>
-                <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="details" className="space-y-6">
-                {/* Customer Info */}
-                <div>
-                  <h4 className="font-semibold mb-2">Customer Information</h4>
-                  <div className="bg-muted p-4 rounded-lg">
-                    <p><strong>Name:</strong> {selectedOrder.customerAddress?.name || 'N/A'}</p>
-                    <p><strong>Phone:</strong> {selectedOrder.customerAddress?.phone || 'N/A'}</p>
-                    <p><strong>Address:</strong> {selectedOrder.customerAddress?.address || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {/* Order Items */}
-                <div>
-                  <h4 className="font-semibold mb-2">Order Items</h4>
-                  <div className="space-y-2">
-                    {selectedOrder.items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                        <div>
-                          <p className="font-medium">{item.product.name}</p>
-                          <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                        </div>
-                        <p className="font-semibold">₹{(item.product.price * item.quantity).toFixed(2)}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 p-3 bg-primary/10 rounded-lg">
-                    <div className="flex justify-between font-bold">
-                      <span>Total Amount:</span>
-                      <span>₹{selectedOrder.total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Management */}
-                <AdminOrderStatusManager 
-                  order={selectedOrder} 
-                  onStatusUpdate={() => {
-                    loadOrders();
-                    setShowOrderDetails(false);
-                  }}
-                />
-              </TabsContent>
-              
-              <TabsContent value="tracking" className="space-y-4">
-                <LiveTrackingMap order={selectedOrder} />
-              </TabsContent>
-              
-              <TabsContent value="whatsapp" className="space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <WhatsAppStatus orderId={selectedOrder?.orderId || ''} />
-                  <SMSHistory />
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-// Live Tracking Map Component
-const LiveTrackingMap = ({ order }: { order: Order }) => {
-  const [deliveryLocation, setDeliveryLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [deliveryAgent, setDeliveryAgent] = useState<any>(null);
-  const [mapReady, setMapReady] = useState(false);
-  const [distance, setDistance] = useState<number | null>(null);
-
-  // Calculate distance between two points
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
-
-  // Fix Leaflet default marker icons
-  useEffect(() => {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
-    setMapReady(true);
-  }, []);
-
-  const getOrderStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-blue-500';
-      case 'preparing': return 'bg-yellow-500';
-      case 'packing': return 'bg-orange-500';
-      case 'out_for_delivery': return 'bg-purple-500';
-      case 'delivered': return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  useEffect(() => {
-    // Get delivery agent location and customer location
-    const updateLocations = () => {
-      // Get delivery agent location from order or localStorage
-      if (order.deliveryAgent?.location) {
-        setDeliveryLocation(order.deliveryAgent.location);
-        setDeliveryAgent(order.deliveryAgent);
-      } else {
-        const agentLocation = JSON.parse(localStorage.getItem('deliveryAgentLocation') || 'null');
-        if (agentLocation && agentLocation.orderId === order.orderId) {
-          setDeliveryLocation({ lat: agentLocation.lat, lng: agentLocation.lng });
-          setDeliveryAgent(agentLocation);
-        }
-      }
-      
-      // Set customer location from order
-      if (order.customerAddress.coordinates) {
-        setCustomerLocation(order.customerAddress.coordinates);
-      }
+    const colors = {
+      placed: 'bg-blue-100 text-blue-800',
+      confirmed: 'bg-yellow-100 text-yellow-800',
+      preparing: 'bg-orange-100 text-orange-800',
+      out_for_delivery: 'bg-purple-100 text-purple-800',
+      delivered: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800'
     };
-    
-    updateLocations();
-    const interval = setInterval(updateLocations, 3000); // Update every 3 seconds
-    return () => clearInterval(interval);
-  }, [order]);
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
 
-  // Calculate distance when both locations are available
-  useEffect(() => {
-    if (deliveryLocation && customerLocation) {
-      const dist = calculateDistance(
-        deliveryLocation.lat, deliveryLocation.lng,
-        customerLocation.lat, customerLocation.lng
-      );
-      setDistance(dist);
-    } else {
-      setDistance(null);
-    }
-  }, [deliveryLocation, customerLocation]);
+  const statusOptions: AdminOrder['status'][] = [
+    'placed', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'
+  ];
 
-  // Create custom icons
-  const deliveryIcon = L.divIcon({
-    html: '<div style="background: #3B82F6; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚚</div>',
-    className: 'custom-div-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
-  });
-
-  const customerIcon = L.divIcon({
-    html: '<div style="background: #EF4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">📍</div>',
-    className: 'custom-div-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
-  });
-
-  const mapCenter = deliveryLocation || customerLocation || { lat: 21.3487, lng: 74.8831 };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold flex items-center gap-2">
-          <Navigation className="w-5 h-5" />
-          Live Delivery Tracking
-        </h4>
-        <Badge className={`${getOrderStatusColor(order.status)} text-white`}>
-          {order.status.replace('_', ' ').toUpperCase()}
-        </Badge>
-      </div>
-      
-      {/* Tracking Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Truck className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h5 className="font-medium">Delivery Agent</h5>
-                <p className="text-sm text-muted-foreground">
-                  {order.deliveryAgent ? `${order.deliveryAgent.name}` : 'Not assigned yet'}
-                </p>
-                <p className="text-xs text-green-600">
-                  {deliveryLocation ? '📍 Live' : '⚫ Offline'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Order Management</h1>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <h5 className="font-medium">Customer</h5>
-                <p className="text-sm text-muted-foreground">{order.customerAddress?.name || 'N/A'}</p>
-                <p className="text-xs text-muted-foreground">{order.customerAddress?.phone || 'N/A'}</p>
-              </div>
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+              <div className="text-sm text-gray-600">Total Orders</div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <Navigation className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <h5 className="font-medium">Distance</h5>
-                <p className="text-lg font-bold text-green-600">
-                  {distance ? `${distance.toFixed(2)} km` : 'Calculating...'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {distance ? `~${Math.round(distance * 3)} min` : 'ETA pending'}
-                </p>
-              </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-yellow-600">{stats.placed}</div>
+              <div className="text-sm text-gray-600">Placed</div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Map */}
-      <div className="h-96 rounded-lg overflow-hidden border">
-        {mapReady ? (
-          <MapContainer
-            center={[mapCenter.lat, mapCenter.lng]}
-            zoom={13}
-            style={{ height: '100%', width: '100%' }}
-            key={`map-${order.orderId}`}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            
-            {deliveryLocation && (
-              <Marker position={[deliveryLocation.lat, deliveryLocation.lng]} icon={deliveryIcon}>
-                <Popup>
-                  <div className="text-center">
-                    <strong>🚚 Delivery Agent</strong><br />
-                    {order.deliveryAgent?.name || 'Agent'}<br />
-                    <span className="text-green-600">📍 Live Location</span>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-            
-            {customerLocation && (
-              <Marker position={[customerLocation.lat, customerLocation.lng]} icon={customerIcon}>
-                <Popup>
-                  <div className="text-center">
-                    <strong>🏠 Customer Location</strong><br />
-                    {order.customerAddress?.name || 'Customer'}<br />
-                    <span className="text-xs">{order.customerAddress?.address || 'Address not available'}</span>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-          </MapContainer>
-        ) : (
-          <div className="flex items-center justify-center h-full bg-muted">
-            <div className="text-center">
-              <div className="loading-spinner mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Loading map...</p>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-orange-600">{stats.confirmed}</div>
+              <div className="text-sm text-gray-600">Confirmed</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-purple-600">{stats.preparing}</div>
+              <div className="text-sm text-gray-600">Preparing</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-indigo-600">{stats.out_for_delivery}</div>
+              <div className="text-sm text-gray-600">Out for Delivery</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-green-600">{stats.delivered}</div>
+              <div className="text-sm text-gray-600">Delivered</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-red-600">{stats.cancelled}</div>
+              <div className="text-sm text-gray-600">Cancelled</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-2xl font-bold text-green-600">₹{stats.totalRevenue}</div>
+              <div className="text-sm text-gray-600">Revenue</div>
             </div>
           </div>
         )}
       </div>
-      
-      {/* Delivery Status */}
-      <div className="bg-muted p-4 rounded-lg">
-        <h5 className="font-medium mb-2">📋 Delivery Information</h5>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span>Order ID:</span>
-            <span className="font-medium">#{order.orderId}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Customer:</span>
-            <span className="font-medium">{order.customerAddress?.name || 'N/A'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Phone:</span>
-            <span className="font-medium">{order.customerAddress?.phone || 'N/A'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Address:</span>
-            <span className="font-medium text-right text-xs">{order.customerAddress?.address || 'N/A'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Payment Status:</span>
-            <Badge variant="outline" className="bg-green-100 text-green-800">
-              ✅ {order.paymentStatus.toUpperCase()}
-            </Badge>
-          </div>
-          <div className="flex justify-between">
-            <span>Order Status:</span>
-            <Badge className={`${getOrderStatusColor(order.status)} text-white`}>
-              {order.status.replace('_', ' ').toUpperCase()}
-            </Badge>
-          </div>
-          {order.status === 'out_for_delivery' && (
-            <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-              <p className="text-blue-800 text-xs font-medium">🚚 Live tracking active - Updates every 3 seconds</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
-// Status Management Component with Apply Button
-const StatusManagement = ({ order, onStatusUpdate }: { order: Order; onStatusUpdate: (orderId: string, status: string) => void }) => {
-  const [selectedStatus, setSelectedStatus] = useState(order.status);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const { toast } = useToast();
-
-  const statusOptions = [
-    { value: 'pending', label: 'Pending', color: 'bg-gray-500', disabled: false },
-    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500', disabled: false },
-    { value: 'packing', label: 'Ready for Delivery', color: 'bg-orange-500', disabled: false },
-    { value: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-purple-500', disabled: false },
-    { value: 'delivered', label: 'Delivered', color: 'bg-green-500', disabled: false }
-  ];
-
-  const handleApplyStatus = () => {
-    if (selectedStatus === order.status) {
-      toast({
-        title: "No Change",
-        description: "Status is already set to this value",
-        variant: "destructive"
-      });
-      return;
-    }
-    setShowConfirmation(true);
-  };
-
-  const confirmStatusChange = () => {
-    onStatusUpdate(order.orderId, selectedStatus);
-    setShowConfirmation(false);
-    toast({
-      title: "Status Updated",
-      description: `Order status changed to ${selectedStatus.replace('_', ' ')}`
-    });
-  };
-
-  return (
-    <div>
-      <h4 className="font-semibold mb-3">Order Status Management</h4>
-      
-      <div className="space-y-4">
-        {/* Current Status Display */}
-        <div className="p-3 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground mb-1">Current Status:</p>
-          <Badge className={`${statusOptions.find(s => s.value === order.status)?.color} text-white`}>
-            {order.status.replace('_', ' ').toUpperCase()}
-          </Badge>
-        </div>
-
-        {/* Status Selection */}
-        <div>
-          <p className="text-sm font-medium mb-2">Change Status To:</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {statusOptions.map((status) => (
-              <Button
-                key={status.value}
-                variant={selectedStatus === status.value ? "default" : "outline"}
-                onClick={() => setSelectedStatus(status.value)}
-                className={selectedStatus === status.value ? `${status.color} text-white` : ''}
-                size="sm"
-              >
-                {status.label}
-                {status.value === order.status && " (Current)"}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Apply Button */}
-        <div className="flex justify-center">
-          <Button
-            onClick={handleApplyStatus}
-            disabled={selectedStatus === order.status}
-            className="bg-primary hover:bg-primary/90 px-8"
-            size="lg"
-          >
-            Apply Status Change
-          </Button>
-        </div>
-      </div>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Status Change</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to change the order status from "{order.status.replace('_', ' ')}" to "{selectedStatus.replace('_', ' ')}"?
-              {selectedStatus === 'packing' && (
-                <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200">
-                  <p className="text-orange-800 text-sm font-medium">
-                    ⚠️ This will make the order available for delivery agents
-                  </p>
-                </div>
-              )}
-              {selectedStatus === 'out_for_delivery' && (
-                <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
-                  <p className="text-purple-800 text-sm font-medium">
-                    🚚 This will mark the order as out for delivery
-                  </p>
-                </div>
-              )}
-              {selectedStatus === 'delivered' && (
-                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-                  <p className="text-green-800 text-sm font-medium">
-                    ✅ This will mark the order as completed
-                  </p>
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmStatusChange} className="bg-primary">
-              Confirm Change
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-// Quick Status Changer Component for inline status updates
-const QuickStatusChanger = ({ order, onStatusUpdate }: { order: Order; onStatusUpdate: (orderId: string, status: string) => void }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast();
-
-  const statusOptions = [
-    { value: 'pending', label: 'Pending', color: 'bg-gray-500', icon: <Clock className="w-3 h-3" /> },
-    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500', icon: <CheckCircle className="w-3 h-3" /> },
-    { value: 'packing', label: 'Packing', color: 'bg-orange-500', icon: <Package className="w-3 h-3" /> },
-    { value: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-purple-500', icon: <Truck className="w-3 h-3" /> },
-    { value: 'delivered', label: 'Delivered', color: 'bg-green-500', icon: <CheckCircle className="w-3 h-3" /> }
-  ];
-
-  const handleStatusChange = async (newStatus: string) => {
-    if (newStatus === order.status) {
-      toast({
-        title: "No Change",
-        description: "Status is already set to this value",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await onStatusUpdate(order.orderId, newStatus);
-      setIsOpen(false);
-    } catch (error) {
-      console.error('Failed to update status:', error);
-    }
-  };
-
-  return (
-    <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1"
-      >
-        <RefreshCw className="w-3 h-3" />
-        <span className="hidden sm:inline">Status</span>
-      </Button>
-      
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-white border rounded-lg shadow-lg z-50 min-w-48">
-          <div className="p-2">
-            <p className="text-xs font-medium text-gray-600 mb-2">Change Status:</p>
-            <div className="space-y-1">
-              {statusOptions.map((status) => (
-                <button
-                  key={status.value}
-                  onClick={() => handleStatusChange(status.value)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-50 transition-colors ${
-                    status.value === order.status ? 'bg-blue-50 border border-blue-200' : ''
-                  }`}
-                >
-                  <div className={`w-4 h-4 rounded-full ${status.color} flex items-center justify-center text-white`}>
-                    {status.icon}
-                  </div>
-                  <span className={status.value === order.status ? 'font-medium text-blue-700' : ''}>
-                    {status.label}
-                    {status.value === order.status && ' (Current)'}
-                  </span>
-                </button>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Order ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Items
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {orders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    #{order.id.slice(-8)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
+                    <div className="text-sm text-gray-500">{order.customer_phone}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {order.items.map((item: any, idx: number) => (
+                        <div key={idx}>{item.name} x{item.quantity}</div>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ₹{order.total_amount}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 
+                      order.payment_status === 'failed' ? 'bg-red-100 text-red-800' : 
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {order.payment_status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(order.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={order.status}
+                      onChange={(e) => handleStatusUpdate(order.id, e.target.value as AdminOrder['status'])}
+                      className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {statusOptions.map((status) => (
+                        <option key={status} value={status}>
+                          {status.replace('_', ' ')}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </div>
-          
-          <div className="border-t p-2">
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-full text-xs text-gray-500 hover:text-gray-700 py-1"
-            >
-              Cancel
-            </button>
-          </div>
+            </tbody>
+          </table>
         </div>
-      )}
-      
-      {/* Backdrop to close dropdown */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+
+        {orders.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg">No orders found</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package, CheckCircle } from "lucide-react";
 import { DeliveryDataService } from "@/lib/deliveryDataService";
+import { DeliveryOrderService, DeliveryOrder } from "@/lib/deliveryOrderService";
 import { Link, useNavigate } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
 import DeliveryOTPVerification from "@/components/DeliveryOTPVerification";
@@ -19,6 +20,7 @@ const DeliveryTasks = () => {
   const [deliveryTasks, setDeliveryTasks] = useState([]);
   const [nearbyOrders, setNearbyOrders] = useState<OrderLocation[]>([]);
   const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]);
+  const [deliveryOrders, setDeliveryOrders] = useState<DeliveryOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
@@ -94,6 +96,12 @@ const DeliveryTasks = () => {
       if (!isMounted || !agentId) return;
       
       try {
+        // Load orders with 'out_for_delivery' status
+        const outForDeliveryOrders = await DeliveryOrderService.getDeliveryOrders();
+        if (isMounted) {
+          setDeliveryOrders(outForDeliveryOrders);
+        }
+        
         const cachedTasks = JSON.parse(localStorage.getItem(`deliveryTasks_${agentId}`) || '[]');
         if (cachedTasks.length > 0) {
           setDeliveryTasks(cachedTasks);
@@ -132,6 +140,13 @@ const DeliveryTasks = () => {
       }
     };
     
+    // Subscribe to real-time delivery order updates
+    const subscription = DeliveryOrderService.subscribeToDeliveryOrders((orders) => {
+      if (isMounted) {
+        setDeliveryOrders(orders);
+      }
+    });
+    
     window.addEventListener('deliveryNotificationCreated', handleOrderAccepted);
     window.addEventListener('orderAccepted', handleOrderAccepted);
     window.addEventListener('ordersUpdated', handleOrderAccepted);
@@ -143,6 +158,7 @@ const DeliveryTasks = () => {
       window.removeEventListener('orderAccepted', handleOrderAccepted);
       window.removeEventListener('ordersUpdated', handleOrderAccepted);
       deliveryCoordinationService.unsubscribe('orderAccepted', handleOrderAccepted);
+      subscription.unsubscribe();
     };
   }, [navigate]);
 
@@ -264,6 +280,8 @@ const DeliveryTasks = () => {
               onClick={async () => {
                 if (!agentId) return;
                 console.log('🔄 Refreshing delivery data...');
+                const orders = await DeliveryOrderService.getDeliveryOrders();
+                setDeliveryOrders(orders);
                 const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
                 setDeliveryTasks(tasks);
                 setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
@@ -418,35 +436,35 @@ const DeliveryTasks = () => {
           </Card>
         </div>
 
-        {/* Pending Deliveries Section */}
+        {/* Out for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">My Pending Deliveries</h2>
+            <h2 className="text-xl font-bold text-gray-800">Orders Out for Delivery</h2>
             <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-              {pendingDeliveries.length}
+              {deliveryOrders.length}
             </Badge>
           </div>
 
-          {pendingDeliveries.length === 0 ? (
+          {deliveryOrders.length === 0 ? (
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="p-8 text-center">
                 <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No pending deliveries</h3>
-                <p className="text-gray-500">Accepted orders will appear here</p>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No orders for delivery</h3>
+                <p className="text-gray-500">Orders marked 'Out for Delivery' will appear here</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4">
-              {pendingDeliveries.map((order) => (
-                <Card key={order.orderId} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-orange-50 border-l-4 border-l-orange-500">
+              {deliveryOrders.map((order) => (
+                <Card key={order.id} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-orange-50 border-l-4 border-l-orange-500">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-lg font-bold text-gray-800">Order #{order.orderId}</h3>
-                        <Badge className="bg-orange-500 text-white mt-1">Accepted - Ready to Deliver</Badge>
+                        <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
+                        <Badge className="bg-orange-500 text-white mt-1">Out for Delivery</Badge>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-orange-600">₹{Number(order.total || 0).toFixed(0)}</p>
+                        <p className="text-2xl font-bold text-orange-600">₹{order.total_amount}</p>
                       </div>
                     </div>
                     
@@ -455,9 +473,9 @@ const DeliveryTasks = () => {
                         <MapPin className="w-4 h-4 text-red-500" />
                         <span className="font-semibold text-gray-700">Customer Details</span>
                       </div>
-                      <p className="text-sm font-medium text-gray-800">{order.customerAddress.name}</p>
-                      <p className="text-sm text-gray-600">{order.customerAddress.address}</p>
-                      <p className="text-sm text-gray-600">{order.customerAddress.phone}</p>
+                      <p className="text-sm font-medium text-gray-800">{order.customer_name}</p>
+                      <p className="text-sm text-gray-600">{order.customer_address}</p>
+                      <p className="text-sm text-gray-600">{order.customer_phone}</p>
                     </div>
 
                     <div className="bg-blue-50 p-3 rounded-lg mb-3">
@@ -467,7 +485,7 @@ const DeliveryTasks = () => {
                       </div>
                       {order.items.slice(0, 2).map((item: any, idx: number) => (
                         <p key={idx} className="text-sm text-blue-600">
-                          {item.quantity}x {item.product.name} - ₹{item.product.price}
+                          {item.quantity}x {item.name} - ₹{item.price}
                         </p>
                       ))}
                       {order.items.length > 2 && (
@@ -479,7 +497,16 @@ const DeliveryTasks = () => {
                       <Button 
                         className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
                         onClick={() => {
-                          localStorage.setItem('currentOrder', JSON.stringify(order));
+                          localStorage.setItem('currentOrder', JSON.stringify({
+                            orderId: order.id,
+                            customerAddress: {
+                              name: order.customer_name,
+                              address: order.customer_address,
+                              phone: order.customer_phone
+                            },
+                            total: order.total_amount,
+                            items: order.items
+                          }));
                           navigate('/delivery/tracking');
                         }}
                       >
@@ -488,9 +515,14 @@ const DeliveryTasks = () => {
                       </Button>
                       <Button 
                         className="bg-green-500 hover:bg-green-600 text-white"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setShowOTPVerification(true);
+                        onClick={async () => {
+                          const success = await DeliveryOrderService.markAsDelivered(order.id);
+                          if (success) {
+                            setDeliveryOrders(prev => prev.filter(o => o.id !== order.id));
+                            alert('✅ Order marked as delivered!');
+                          } else {
+                            alert('❌ Failed to update order status');
+                          }
                         }}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
