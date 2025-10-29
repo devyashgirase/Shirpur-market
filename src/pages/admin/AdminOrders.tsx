@@ -33,7 +33,7 @@ const AdminOrders: React.FC = () => {
     setStats(statsData);
   };
 
-  const handleStatusUpdate = async (orderId: string, newStatus: AdminOrder['status']) => {
+  const handleStatusUpdate = async (orderId: string, newStatus: AdminOrder['order_status']) => {
     const success = await AdminOrderService.updateOrderStatusWithNotification(orderId, newStatus);
     if (success) {
       // Orders will update automatically via real-time subscription
@@ -55,7 +55,7 @@ const AdminOrders: React.FC = () => {
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const statusOptions: AdminOrder['status'][] = [
+  const statusOptions: AdminOrder['order_status'][] = [
     'placed', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'
   ];
 
@@ -162,8 +162,8 @@ const AdminOrders: React.FC = () => {
                     ₹{order.total_amount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                      {order.status.replace('_', ' ')}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.order_status)}`}>
+                      {order.order_status.replace('_', ' ')}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -180,8 +180,8 @@ const AdminOrders: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
-                      value={order.status}
-                      onChange={(e) => handleStatusUpdate(order.id, e.target.value as AdminOrder['status'])}
+                      value={order.order_status}
+                      onChange={(e) => handleStatusUpdate(order.id, e.target.value as AdminOrder['order_status'])}
                       className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {statusOptions.map((status) => (

@@ -7,7 +7,7 @@ export interface AdminOrder {
   customer_address: string;
   items: any[];
   total_amount: number;
-  status: 'placed' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  order_status: 'placed' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed';
   payment_id?: string;
   created_at: string;
@@ -32,12 +32,12 @@ export class AdminOrderService {
   }
 
   // Update order status
-  static async updateOrderStatus(orderId: string, status: AdminOrder['status']): Promise<boolean> {
+  static async updateOrderStatus(orderId: string, status: AdminOrder['order_status']): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status,
+          order_status: status,
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
@@ -67,7 +67,7 @@ export class AdminOrderService {
   }
 
   // Update order status and notify customer tracking
-  static async updateOrderStatusWithNotification(orderId: string, status: AdminOrder['status']): Promise<boolean> {
+  static async updateOrderStatusWithNotification(orderId: string, status: AdminOrder['order_status']): Promise<boolean> {
     const success = await this.updateOrderStatus(orderId, status);
     if (success) {
       // Trigger real-time update for customer tracking
@@ -83,18 +83,18 @@ export class AdminOrderService {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('status, total_amount');
+        .select('order_status, total_amount');
 
       if (error) throw error;
 
       const stats = {
         total: data.length,
-        placed: data.filter(o => o.status === 'placed').length,
-        confirmed: data.filter(o => o.status === 'confirmed').length,
-        preparing: data.filter(o => o.status === 'preparing').length,
-        out_for_delivery: data.filter(o => o.status === 'out_for_delivery').length,
-        delivered: data.filter(o => o.status === 'delivered').length,
-        cancelled: data.filter(o => o.status === 'cancelled').length,
+        placed: data.filter(o => o.order_status === 'placed').length,
+        confirmed: data.filter(o => o.order_status === 'confirmed').length,
+        preparing: data.filter(o => o.order_status === 'preparing').length,
+        out_for_delivery: data.filter(o => o.order_status === 'out_for_delivery').length,
+        delivered: data.filter(o => o.order_status === 'delivered').length,
+        cancelled: data.filter(o => o.order_status === 'cancelled').length,
         totalRevenue: data.reduce((sum, o) => sum + (o.total_amount || 0), 0)
       };
 

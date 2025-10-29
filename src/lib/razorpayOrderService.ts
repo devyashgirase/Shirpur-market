@@ -16,19 +16,16 @@ export class RazorpayOrderService {
       customer_name: addressData.name,
       customer_phone: customerPhone,
       customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-      delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
-      items: JSON.stringify(cart.map(item => ({
+      items: cart.map(item => ({
         product_id: parseInt(item.product.id),
         product_name: item.product.name,
         price: item.product.price,
         quantity: item.quantity
-      }))),
-      total: totalAmount,
+      })),
       total_amount: totalAmount,
-      status: 'confirmed',
+      order_status: 'confirmed',
       payment_status: 'paid',
-      payment_id: paymentResponse.razorpay_payment_id,
-      created_at: new Date().toISOString()
+      payment_id: paymentResponse.razorpay_payment_id
     };
 
     await supabaseApi.createOrder(orderData);

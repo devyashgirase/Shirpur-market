@@ -7,7 +7,7 @@ export interface DeliveryOrder {
   customer_address: string;
   items: any[];
   total_amount: number;
-  status: string;
+  order_status: string;
   created_at: string;
 }
 
@@ -18,7 +18,7 @@ export class DeliveryOrderService {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'out_for_delivery')
+        .eq('order_status', 'out_for_delivery')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -35,7 +35,7 @@ export class DeliveryOrderService {
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status: 'delivered',
+          order_status: 'delivered',
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
