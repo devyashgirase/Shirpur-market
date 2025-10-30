@@ -168,17 +168,18 @@ const mockAuth = {
   signOut: () => Promise.resolve({ error: null })
 };
 
-// Initialize client
+// Initialize client - DISABLED to prevent headers error
 let supabaseClient: SupabaseClient | null = null;
 
-if (supabaseUrl && supabaseKey) {
-  try {
-    supabaseClient = new SupabaseClient(supabaseUrl, supabaseKey);
-    console.log('✅ Supabase client initialized');
-  } catch (error) {
-    console.error('❌ Supabase initialization failed:', error);
-  }
-}
+// Temporarily disable Supabase client to fix production error
+// if (supabaseUrl && supabaseKey) {
+//   try {
+//     supabaseClient = new SupabaseClient(supabaseUrl, supabaseKey);
+//     console.log('✅ Supabase client initialized');
+//   } catch (error) {
+//     console.error('❌ Supabase initialization failed:', error);
+//   }
+// }
 
 // Export compatible supabase object
 export const supabase = supabaseClient || {
@@ -797,9 +798,9 @@ if (typeof window !== 'undefined') {
 console.log(`🔗 Database: ${supabaseClient ? 'Supabase Connected' : 'Mock Mode'}`);
 console.log(`📊 Config: URL=${supabaseUrl ? 'Set' : 'Missing'}, Key=${supabaseKey ? 'Set' : 'Missing'}`);
 
-// Test Supabase connection on load
-if (supabaseClient) {
-  supabaseClient.request('delivery_agents?select=count&limit=1')
-    .then(() => console.log('✅ Supabase connection test successful'))
-    .catch(err => console.error('❌ Supabase connection test failed:', err));
-}
+// Test Supabase connection on load - DISABLED
+// if (supabaseClient) {
+//   supabaseClient.request('delivery_agents?select=count&limit=1')
+//     .then(() => console.log('✅ Supabase connection test successful'))
+//     .catch(err => console.error('❌ Supabase connection test failed:', err));
+// }
