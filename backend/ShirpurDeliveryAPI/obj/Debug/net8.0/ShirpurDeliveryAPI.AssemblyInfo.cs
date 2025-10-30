@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ShirpurDeliveryAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+410f9f29caf7825763d329731bcd84983ebe9b89")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e9b6f1248e6e1eae3e6e2e8599f40c4c665afe59")]
 [assembly: System.Reflection.AssemblyProductAttribute("ShirpurDeliveryAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ShirpurDeliveryAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

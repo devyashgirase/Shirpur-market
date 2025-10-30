@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Orders</title>
+</head>
+<body>
+    <h1>Supabase Orders Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testOrderCreation()">Test Order Creation</button>
+    <button onclick="viewOrders()">View Orders</button>
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://ftexuxkdfahbqjddidaf.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY';
+
+        function log(message) {
+            document.getElementById('results').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function testConnection() {
+            document.getElementById('results').innerHTML = '';
+            log('🔍 Testing Supabase connection...');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    log('✅ Supabase connection successful');
+                    
+                    // Test orders table
+                    const ordersResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders?limit=1`, {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    });
+                    
+                    if (ordersResponse.ok) {
+                        log('✅ Orders table accessible');
+                    } else {
+                        const error = await ordersResponse.text();
+                        log('❌ Orders table error: ' + error);
+                    }
+                } else {
+                    const error = await response.text();
+                    log('❌ Connection failed: ' + error);
+                }
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            }
+        }
+
+        async function testOrderCreation() {
+            log('📦 Testing order creation...');
+            
+            const testOrder = {
+                order_id: 'TEST-' + Date.now(),
+                customer_name: 'Test Customer',
+                customer_phone: '9999999999',
+                customer_address: 'Test Address, Shirpur',
+                items: JSON.stringify([
+                    {
+                        product_id: 1,
+                        product_name: 'Test Product',
+                        price: 100,
+                        quantity: 2
+                    }
+                ]),
+                total_amount: 200
+            };
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(testOrder)
+                });
+                
+                if (response.ok) {
+                    const savedOrder = await response.json();
+                    log('✅ Test order created successfully: ' + JSON.stringify(savedOrder));
+                } else {
+                    const error = await response.text();
+                    log('❌ Order creation failed: ' + error);
+                }
+            } catch (error) {
+                log('❌ Order creation error: ' + error.message);
+            }
+        }
+
+        async function viewOrders() {
+            log('📋 Fetching all orders...');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/orders?order=created_at.desc&limit=5`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const orders = await response.json();
+                    log('📦 Found ' + orders.length + ' orders:');
+                    orders.forEach(order => {
+                        log(`- ${order.order_id}: ${order.customer_name} - ₹${order.total_amount} (${order.status})`);
+                    });
+                } else {
+                    const error = await response.text();
+                    log('❌ Failed to fetch orders: ' + error);
+                }
+            } catch (error) {
+                log('❌ Fetch error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
