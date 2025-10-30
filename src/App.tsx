@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { SweetAlertProvider } from "@/components/ui/sweet-alert";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "@/components/ui/animations.css";
 import "@/styles/razorpay-fix.css";
@@ -40,14 +40,14 @@ import DeliveryOutForDelivery from "./pages/delivery/DeliveryOutForDelivery";
 import TrackingDemo from "./pages/TrackingDemo";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// const queryClient = new QueryClient({
+//   defaultOptions: {
+//     queries: {
+//       staleTime: 1000 * 60 * 5, // 5 minutes
+//       refetchOnWindowFocus: false,
+//     },
+//   },
+// });
 
 const App = () => {
   useEffect(() => {
@@ -63,7 +63,7 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    // <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SweetAlertProvider>
           <DeliveryBackground />
@@ -126,7 +126,7 @@ const App = () => {
         </BrowserRouter>
         </SweetAlertProvider>
       </TooltipProvider>
-    </QueryClientProvider>
+    // </QueryClientProvider>
   );
 };
 
