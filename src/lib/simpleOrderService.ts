@@ -52,55 +52,39 @@ class SimpleOrderService {
       
       console.log('📋 Sending to Supabase:', formattedOrderData);
       
-      // Test connection first
-      console.log('🔍 Testing Supabase connection...');
-      const testResponse = await fetch(`${supabaseUrl}/rest/v1/orders?limit=1`, {
-        method: 'GET',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
-        }
+      // Direct Supabase insert using XMLHttpRequest to avoid library conflicts
+      console.log('📤 Inserting order into Supabase...');
+      const response = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${supabaseUrl}/rest/v1/orders`);
+        xhr.setRequestHeader('apikey', supabaseKey);
+        xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Prefer', 'return=representation');
+        
+        xhr.onload = () => {
+          resolve({
+            ok: xhr.status >= 200 && xhr.status < 300,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            text: () => Promise.resolve(xhr.responseText),
+            json: () => Promise.resolve(JSON.parse(xhr.responseText))
+          });
+        };
+        
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(JSON.stringify(formattedOrderData));
       });
       
-      if (!testResponse.ok) {
-        const testError = await testResponse.text();
-        console.error('❌ Supabase connection test failed:', testError);
-        throw new Error(`Supabase connection failed: ${testError}`);
+      if (!response) {
+        throw new Error('No response received from Supabase');
       }
       
-      console.log('✅ Supabase connection test passed');
-      
-      // Direct Supabase insert
-      console.log('📤 Inserting order into Supabase...');
-      const response = await fetch(`${supabaseUrl}/rest/v1/orders`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(formattedOrderData)
-      });
-      
-      console.log('📥 Supabase response status:', response.status, response.statusText);
+      console.log('📥 Supabase response status:', response.status || 'unknown');
       
       if (response.ok) {
         const savedOrder = await response.json();
         console.log('✅ Order successfully saved to Supabase:', savedOrder);
-        
-        // Verify the order was actually saved
-        const verifyResponse = await fetch(`${supabaseUrl}/rest/v1/orders?order_id=eq.${orderData.order_id}`, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`
-          }
-        });
-        
-        if (verifyResponse.ok) {
-          const verifyData = await verifyResponse.json();
-          console.log('✅ Order verification successful:', verifyData.length, 'records found');
-        }
         
         // Trigger events for real-time updates
         window.dispatchEvent(new CustomEvent('orderCreated', { 
@@ -110,25 +94,14 @@ class SimpleOrderService {
         
         return orderData.order_id;
       } else {
-        const errorText = await response.text();
+        const errorText = await response.text().catch(() => 'Could not read error response');
         console.error('❌ Supabase insert failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          headers: response.headers ? Object.fromEntries(response.headers.entries()) : 'No headers'
+          status: response.status || 'unknown',
+          statusText: response.statusText || 'unknown',
+          error: errorText
         });
         
-        // Try to parse error details
-        let errorDetails = errorText;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorDetails = errorJson.message || errorJson.hint || errorJson.details || errorText;
-          console.error('❌ Parsed error details:', errorJson);
-        } catch (e) {
-          console.error('❌ Could not parse error response');
-        }
-        
-        throw new Error(`Supabase insert failed (${response.status}): ${errorDetails}`);
+        throw new Error(`Supabase insert failed: ${errorText}`);
       }
     } catch (error) {
       console.error('❌ Order creation failed:', error);
@@ -153,19 +126,39 @@ class SimpleOrderService {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/orders?customer_phone=eq.${customerPhone}&order=created_at.desc`, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase config missing');
+        return [];
+      }
+      
+      const response = await new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `${supabaseUrl}/rest/v1/orders?customer_phone=eq.${customerPhone}&order=created_at.desc`);
+        xhr.setRequestHeader('apikey', supabaseKey);
+        xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = () => {
+          resolve({
+            ok: xhr.status >= 200 && xhr.status < 300,
+            status: xhr.status,
+            json: () => Promise.resolve(JSON.parse(xhr.responseText))
+          });
+        };
+        
+        xhr.onerror = () => resolve(null);
+        xhr.send();
       });
       
+      if (!response) {
+        return [];
+      }
+      
       if (response.ok) {
-        const orders = await response.json();
+        const orders = await response.json().catch(() => []);
         return orders || [];
       } else {
-        console.error('Failed to fetch orders');
+        console.error('Failed to fetch orders:', response.status);
         return [];
       }
     } catch (error) {
