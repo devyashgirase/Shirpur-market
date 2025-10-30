@@ -115,7 +115,7 @@ class SimpleOrderService {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
-          headers: Object.fromEntries(response.headers.entries())
+          headers: response.headers ? Object.fromEntries(response.headers.entries()) : 'No headers'
         });
         
         // Try to parse error details
