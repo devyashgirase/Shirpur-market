@@ -1,26 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+// Disabled to prevent headers error
+export const supabase = null;
 
 export const createOrderDirect = async (orderData: any) => {
-  if (!supabase) {
-    throw new Error('Supabase not configured');
-  }
-
-  const { data, error } = await supabase
-    .from('orders')
-    .insert([orderData])
-    .select();
-
-  if (error) {
-    console.error('Supabase error:', error);
-    throw error;
-  }
-
-  return data[0];
+  // Store in localStorage instead
+  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+  const newOrder = { id: Date.now(), ...orderData };
+  orders.push(newOrder);
+  localStorage.setItem('orders', JSON.stringify(orders));
+  return newOrder;
 };
