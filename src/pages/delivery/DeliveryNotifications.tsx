@@ -43,7 +43,7 @@ const DeliveryNotifications = () => {
   };
 
   const acceptOrder = async (orderId: string) => {
-    const currentUser = deliveryAuthService.getCurrentUser();
+    const currentUser = await deliveryAuthService.getCurrentAgent();
     if (!currentUser) return;
     
     setProcessingOrders(prev => new Set(prev).add(orderId));
@@ -61,10 +61,48 @@ const DeliveryNotifications = () => {
     });
     
     if (result.success) {
+      // Update order status to out_for_delivery
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.updateOrderStatus(orderId, 'out_for_delivery', currentUser.userId);
+      
+      // Start real-time GPS tracking
+      localStorage.setItem('currentOrder', JSON.stringify({
+        orderId: orderId,
+        agentId: currentUser.userId,
+        agentName: currentUser.name,
+        status: 'out_for_delivery',
+        startTime: new Date().toISOString()
+      }));
+      
+      // Initialize GPS tracking
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            timestamp: new Date().toISOString()
+          };
+          
+          // Store initial location
+          localStorage.setItem(`tracking_${orderId}`, JSON.stringify([location]));
+          
+          // Trigger tracking start event
+          window.dispatchEvent(new CustomEvent('trackingStarted', {
+            detail: { orderId, location, agentId: currentUser.userId }
+          }));
+        });
+      }
+      
       toast({
         title: "Order Accepted!",
-        description: `Order #${orderId.slice(-6)} added to your tasks`,
+        description: `Order #${orderId.slice(-6)} - GPS tracking started`,
       });
+      
+      // Trigger real-time update
+      window.dispatchEvent(new CustomEvent('orderStatusUpdated', {
+        detail: { orderId, status: 'out_for_delivery' }
+      }));
+      
       loadNewOrders(); // Refresh the list
     } else {
       toast({
@@ -78,7 +116,7 @@ const DeliveryNotifications = () => {
   };
 
   const rejectOrder = async (orderId: string) => {
-    const currentUser = deliveryAuthService.getCurrentUser();
+    const currentUser = await deliveryAuthService.getCurrentAgent();
     if (!currentUser) return;
     
     setProcessingOrders(prev => new Set(prev).add(orderId));

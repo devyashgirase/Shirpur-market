@@ -104,23 +104,7 @@ const DeliveryLogin = () => {
             </Button>
           </form>
           
-          <div className="mt-4 space-y-3">
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800 text-center font-medium">
-                <strong>Demo Agent Credentials:</strong>
-              </p>
-              <p className="text-sm text-green-700 text-center font-mono">
-                Agent ID: DA123456
-              </p>
-              <p className="text-sm text-green-700 text-center font-mono">
-                Password: delivery123
-              </p>
-            </div>
-            <div className="text-center text-xs text-gray-600">
-              <p>🚚 Shirpur Delivery System</p>
-              <p>Only registered agents can access</p>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
     </div>

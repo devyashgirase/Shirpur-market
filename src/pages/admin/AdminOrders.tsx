@@ -36,8 +36,31 @@ const AdminOrders: React.FC = () => {
   const handleStatusUpdate = async (orderId: string, newStatus: AdminOrder['order_status']) => {
     const success = await AdminOrderService.updateOrderStatusWithNotification(orderId, newStatus);
     if (success) {
-      // Orders will update automatically via real-time subscription
       console.log('Order status updated successfully');
+      // Manually update the order in state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
+            : order
+        )
+      );
+      
+      // Notify customer in real-time
+      window.dispatchEvent(new CustomEvent('orderStatusChanged', {
+        detail: { 
+          orderId, 
+          newStatus, 
+          customerPhone: orders.find(o => o.id === orderId)?.customer_phone 
+        }
+      }));
+      
+      // Show tracking notification for out_for_delivery
+      if (newStatus === 'out_for_delivery') {
+        window.dispatchEvent(new CustomEvent('enableTracking', {
+          detail: { orderId }
+        }));
+      }
     } else {
       alert('Failed to update order status');
     }
@@ -48,6 +71,7 @@ const AdminOrders: React.FC = () => {
       placed: 'bg-blue-100 text-blue-800',
       confirmed: 'bg-yellow-100 text-yellow-800',
       preparing: 'bg-orange-100 text-orange-800',
+      ready_for_delivery: 'bg-blue-100 text-blue-800',
       out_for_delivery: 'bg-purple-100 text-purple-800',
       delivered: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800'
@@ -56,7 +80,7 @@ const AdminOrders: React.FC = () => {
   };
 
   const statusOptions: AdminOrder['order_status'][] = [
-    'placed', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'
+    'placed', 'confirmed', 'preparing', 'ready_for_delivery', 'out_for_delivery', 'delivered', 'cancelled'
   ];
 
   if (loading) {

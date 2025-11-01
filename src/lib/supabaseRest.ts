@@ -49,9 +49,39 @@ class SupabaseRest {
     
     return response.json();
   }
+  
+  async patch(endpoint: string, data: any) {
+    console.log('🔄 Supabase PATCH to:', `${this.baseUrl}/${endpoint}`);
+    console.log('📤 Update data:', JSON.stringify(data, null, 2));
+    
+    const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+      method: 'PATCH',
+      headers: {
+        ...this.headers,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(data)
+    });
+    
+    console.log('📊 Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Supabase PATCH error:', response.status, errorText);
+      throw new Error(`Supabase error: ${response.status} - ${errorText}`);
+    }
+    
+    // For PATCH with return=minimal, response might be empty
+    const responseText = await response.text();
+    console.log('✅ Supabase PATCH success, response:', responseText);
+    return responseText ? JSON.parse(responseText) : { success: true };
+  }
 }
 
 export const supabaseRest = new SupabaseRest();
+
+// Check if Supabase is configured
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
 // Order service using REST API
 export const orderService = {

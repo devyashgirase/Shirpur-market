@@ -280,16 +280,25 @@ const DeliveryTasks = () => {
               onClick={async () => {
                 if (!agentId) return;
                 console.log('🔄 Refreshing delivery data...');
+                
+                // Force refresh from database
                 const orders = await DeliveryOrderService.getDeliveryOrders();
+                console.log('📦 Refreshed orders:', orders.length);
+                console.log('📊 Ready for delivery:', orders.filter(o => o.order_status === 'ready_for_delivery').length);
+                console.log('🚚 Out for delivery:', orders.filter(o => o.order_status === 'out_for_delivery').length);
+                
                 setDeliveryOrders(orders);
                 const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
                 setDeliveryTasks(tasks);
                 setMetrics(DeliveryDataService.getDeliveryMetrics(tasks));
                 const nearby = deliveryCoordinationService.findNearbyOrders(agentId);
                 setNearbyOrders(nearby);
+                
+                console.log('📝 Sample order from database:', orders[0]);
+                alert(`✅ Refreshed! Found ${orders.length} total orders, ${orders.filter(o => o.order_status === 'ready_for_delivery').length} ready for delivery`);
               }}
             >
-              🔄 Refresh
+              🔄 Refresh Orders
             </Button>
             <Button 
               variant="outline" 
@@ -436,16 +445,104 @@ const DeliveryTasks = () => {
           </Card>
         </div>
 
-        {/* Out for Delivery Orders Section */}
+        {/* Ready for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Orders Out for Delivery</h2>
-            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-              {deliveryOrders.length}
+            <h2 className="text-xl font-bold text-gray-800">📦 Ready for Delivery</h2>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+              {deliveryOrders.filter(order => order.order_status === 'ready_for_delivery').length}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Total: {deliveryOrders.length} orders
             </Badge>
           </div>
 
-          {deliveryOrders.length === 0 ? (
+          {deliveryOrders.filter(order => order.order_status === 'ready_for_delivery').length === 0 ? (
+            <Card className="border-2 border-dashed border-gray-200">
+              <CardContent className="p-8 text-center">
+                <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No orders ready for delivery</h3>
+                <p className="text-gray-500">Orders marked 'Ready for Delivery' by admin will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {deliveryOrders.filter(order => order.order_status === 'ready_for_delivery').map((order) => (
+                <Card key={order.id} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-blue-50 border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
+                        <Badge className="bg-blue-500 text-white mt-1">📦 Ready for Delivery</Badge>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-blue-600">₹{order.total_amount}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded-lg mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4 text-red-500" />
+                        <span className="font-semibold text-gray-700">Customer Details</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-800">{order.customer_name}</p>
+                      <p className="text-sm text-gray-600">{order.customer_address}</p>
+                      <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                    </div>
+
+                    <div className="bg-green-50 p-3 rounded-lg mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Package className="w-4 h-4 text-green-500" />
+                        <span className="font-semibold text-green-700">Order Items</span>
+                      </div>
+                      {order.items && order.items.length > 0 ? order.items.slice(0, 2).map((item: any, idx: number) => (
+                        <p key={idx} className="text-sm text-green-600">
+                          {item.quantity}x {item.product?.name || item.name || item.product_name || 'Unknown Item'} - ₹{item.price || item.product?.price || 0}
+                        </p>
+                      )) : (
+                        <p className="text-sm text-gray-500">No items found</p>
+                      )}
+                      {order.items.length > 2 && (
+                        <p className="text-xs text-green-500">+{order.items.length - 2} more items</p>
+                      )}
+                    </div>
+
+                    <Button 
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md"
+                      onClick={async () => {
+                        // Accept order and change status to out_for_delivery
+                        const success = await handleAcceptDelivery(order.id);
+                        if (success) {
+                          // Update order status to out_for_delivery
+                          const { AdminOrderService } = await import('@/lib/adminOrderService');
+                          await AdminOrderService.updateOrderStatus(order.id, 'out_for_delivery');
+                          
+                          // Refresh orders
+                          const updatedOrders = await DeliveryOrderService.getDeliveryOrders();
+                          setDeliveryOrders(updatedOrders);
+                        }
+                      }}
+                    >
+                      <Truck className="w-4 h-4 mr-2" />
+                      Accept & Start Delivery
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Out for Delivery Orders Section */}
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-bold text-gray-800">🚚 Orders Out for Delivery</h2>
+            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+              {deliveryOrders.filter(order => order.order_status === 'out_for_delivery').length}
+            </Badge>
+          </div>
+
+          {deliveryOrders.filter(order => order.order_status === 'out_for_delivery').length === 0 ? (
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="p-8 text-center">
                 <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -455,7 +552,7 @@ const DeliveryTasks = () => {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {deliveryOrders.map((order) => (
+              {deliveryOrders.filter(order => order.order_status === 'out_for_delivery').map((order) => (
                 <Card key={order.id} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-orange-50 border-l-4 border-l-orange-500">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
@@ -497,7 +594,8 @@ const DeliveryTasks = () => {
                       <Button 
                         className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
                         onClick={() => {
-                          localStorage.setItem('currentOrder', JSON.stringify({
+                          console.log('📝 Raw order from database:', order);
+                          const orderData = {
                             orderId: order.id,
                             customerAddress: {
                               name: order.customer_name,
@@ -506,7 +604,9 @@ const DeliveryTasks = () => {
                             },
                             total: order.total_amount,
                             items: order.items
-                          }));
+                          };
+                          console.log('🔄 Setting current order:', orderData);
+                          localStorage.setItem('currentOrder', JSON.stringify(orderData));
                           navigate('/delivery/tracking');
                         }}
                       >

@@ -93,22 +93,19 @@ class OrderManagementService {
     try {
       console.log('🔍 Fetching orders ready for delivery...');
       
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'ready_for_delivery')
-        .is('delivery_agent_id', null)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('❌ Supabase error fetching orders:', error);
-        throw error;
-      }
+      const { supabaseApi } = await import('./supabase');
+      const allOrders = await supabaseApi.getOrders();
       
-      console.log('📦 Found ready orders:', data?.length || 0);
-      console.log('📋 Orders data:', data);
+      // Filter orders that are ready for delivery
+      const readyOrders = allOrders.filter((order: any) => 
+        (order.status === 'ready_for_delivery' || order.order_status === 'ready_for_delivery') &&
+        !order.delivery_agent_id
+      );
       
-      return { success: true, orders: data || [] };
+      console.log('📦 Found ready orders:', readyOrders.length);
+      console.log('📋 Orders data:', readyOrders);
+      
+      return { success: true, orders: readyOrders };
     } catch (error) {
       console.error('❌ Error fetching ready orders:', error);
       return { success: false, orders: [] };
@@ -118,32 +115,18 @@ class OrderManagementService {
   // Delivery agent accepts order
   async acceptOrder(orderId: string, agentId: string, agentName: string) {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .update({
-          status: 'out_for_delivery',
-          delivery_agent_id: agentId,
-          delivery_agent_name: agentName,
-          accepted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
-        .eq('status', 'ready_for_delivery') // Ensure order is still available
-        .select();
-
-      if (error) throw error;
+      const { supabaseApi } = await import('./supabase');
+      const success = await supabaseApi.updateOrderStatus(orderId, 'out_for_delivery', agentId);
       
-      if (!data || data.length === 0) {
-        return { success: false, error: 'Order no longer available' };
+      if (success) {
+        console.log('✅ Order accepted and status updated to out_for_delivery');
+        return { success: true, order: { id: orderId, status: 'out_for_delivery' } };
+      } else {
+        return { success: false, error: 'Failed to update order status' };
       }
-
-      // Update tracking system
-      await this.updateOrderTracking(orderId, agentId, 'accepted');
-      
-      return { success: true, order: data[0] };
     } catch (error) {
       console.error('Error accepting order:', error);
-      return { success: false, error };
+      return { success: false, error: error.message };
     }
   }
 

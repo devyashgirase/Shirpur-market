@@ -441,9 +441,7 @@ const OTPLogin = () => {
                     <Truck className="w-4 h-4 mr-2" />
                     Delivery Agent Login
                   </Button>
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    Use your DA credentials to login
-                  </p>
+
                 </div>
               </form>
             )}
@@ -626,22 +624,7 @@ const OTPLogin = () => {
             )}
             </div>
 
-            {/* Demo Info */}
-            {step === 'phone' && (
-              <div className="mt-6 space-y-3">
-                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-sm text-orange-800 text-center">
-                    <strong>Demo Mode:</strong> OTP will be displayed in an alert for testing
-                  </p>
-                </div>
-                
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-800 text-center">
-                    <strong>Free SMS:</strong> 1 SMS per day via TextBelt. Unlimited via WhatsApp backup.
-                  </p>
-                </div>
-              </div>
-            )}
+
           </div>
         </div>
       </div>

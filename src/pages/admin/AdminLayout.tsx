@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu, Settings, Brain } from "lucide-react";
@@ -7,6 +7,15 @@ import RealTimeNotifications from "@/components/RealTimeNotifications";
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleBackClick = () => {
+    if (location.pathname === '/admin') {
+      navigate('/');
+    } else {
+      navigate(-1);
+    }
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -17,9 +26,14 @@ const AdminLayout = () => {
         <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-              <Link to="/" className="text-white hover:text-white/80 transition-colors flex-shrink-0">
+              <Button 
+                onClick={handleBackClick}
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:text-white/80 transition-colors flex-shrink-0 p-1"
+              >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Link>
+              </Button>
               <div className="flex items-center gap-1 sm:gap-2 min-w-0">
                 <Settings className="h-4 w-4 sm:h-5 sm:h-5 md:h-6 md:w-6 flex-shrink-0" />
                 <h1 className="text-base sm:text-lg md:text-2xl font-bold truncate">Admin Panel</h1>

@@ -12,18 +12,32 @@ export interface DeliveryOrder {
 }
 
 export class DeliveryOrderService {
-  // Get orders assigned for delivery (status = 'out_for_delivery')
+  // Get orders for delivery (ready_for_delivery and out_for_delivery)
   static async getDeliveryOrders(): Promise<DeliveryOrder[]> {
     try {
-      if (!supabase) return [];
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('order_status', 'out_for_delivery')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      const { supabaseApi } = await import('@/lib/supabase');
+      const allOrders = await supabaseApi.getOrders();
+      
+      // Filter orders that are ready for delivery or out for delivery
+      const deliveryOrders = allOrders.filter((order: any) => 
+        order.order_status === 'ready_for_delivery' ||
+        order.order_status === 'out_for_delivery'
+      );
+      
+      console.log('📦 Total orders found:', allOrders.length);
+      console.log('🚚 Delivery orders found:', deliveryOrders.length);
+      console.log('🚚 Delivery order statuses:', deliveryOrders.map(o => ({ id: o.id, status: o.order_status })));
+      
+      return deliveryOrders.map((order: any) => ({
+        id: order.id || order.order_id,
+        customer_name: order.customer_name,
+        customer_phone: order.customer_phone,
+        customer_address: order.customer_address,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [],
+        total_amount: Number(order.total_amount),
+        order_status: order.order_status,
+        created_at: order.created_at
+      }));
     } catch (error) {
       console.error('Error fetching delivery orders:', error);
       return [];
@@ -33,23 +47,21 @@ export class DeliveryOrderService {
   // Mark order as delivered
   static async markAsDelivered(orderId: string): Promise<boolean> {
     try {
-      if (!supabase) return false;
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          order_status: 'delivered',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
+      const { supabaseApi } = await import('@/lib/supabase');
+      const success = await supabaseApi.updateOrderStatus(orderId, 'delivered');
       
-      // Trigger real-time update
-      window.dispatchEvent(new CustomEvent('orderStatusUpdated', {
-        detail: { orderId, status: 'delivered' }
-      }));
+      if (success) {
+        console.log('✅ Order marked as delivered in database:', orderId);
+        
+        // Trigger real-time update
+        window.dispatchEvent(new CustomEvent('orderStatusUpdated', {
+          detail: { orderId, status: 'delivered' }
+        }));
+        
+        return true;
+      }
       
-      return true;
+      return false;
     } catch (error) {
       console.error('Error marking order as delivered:', error);
       return false;
@@ -58,17 +70,16 @@ export class DeliveryOrderService {
 
   // Subscribe to delivery order updates
   static subscribeToDeliveryOrders(callback: (orders: DeliveryOrder[]) => void) {
-    if (!supabase) return { unsubscribe: () => {} };
-    const subscription = supabase
-      .channel('delivery-orders')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          this.getDeliveryOrders().then(callback);
-        }
-      )
-      .subscribe();
-
-    return subscription;
+    const handleOrderUpdate = () => {
+      this.getDeliveryOrders().then(callback);
+    };
+    
+    window.addEventListener('orderStatusUpdated', handleOrderUpdate);
+    
+    return {
+      unsubscribe: () => {
+        window.removeEventListener('orderStatusUpdated', handleOrderUpdate);
+      }
+    };
   }
 }

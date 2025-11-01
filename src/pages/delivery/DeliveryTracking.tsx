@@ -28,50 +28,52 @@ const DeliveryTracking = () => {
     return R * c;
   };
   
-  // Reverse geocoding to get location name
+  // Simple location display without external API
   const reverseGeocode = async (lat: number, lng: number) => {
-    try {
-      const response = await fetch(
-        `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=YOUR_API_KEY&language=en&pretty=1`
-      );
-      
-      if (!response.ok) {
-        // Fallback to Nominatim (free service)
-        const nominatimResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-        );
-        
-        if (nominatimResponse.ok) {
-          const data = await nominatimResponse.json();
-          const locationName = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-          setAgentLocationName(`📍 ${locationName.split(',').slice(0, 3).join(', ')}`);
-        } else {
-          setAgentLocationName(`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-        }
-      }
-    } catch (error) {
-      console.error('Reverse geocoding failed:', error);
-      setAgentLocationName(`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    }
+    setAgentLocationName(`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
   };
 
   useEffect(() => {
     // Load current order from localStorage
     const order = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+    console.log('📦 Current order loaded:', order);
+    
     if (order.orderId) {
-      setCurrentOrder(order);
+      // Ensure proper structure
+      const orderData = {
+        orderId: order.orderId,
+        customerAddress: {
+          name: order.customerAddress?.name || order.customer_name || 'Customer Name',
+          address: order.customerAddress?.address || order.customer_address || 'Delivery Address',
+          phone: order.customerAddress?.phone || order.customer_phone || 'Phone Number'
+        },
+        total: order.total || order.total_amount || 0,
+        items: order.items || []
+      };
+      
+      console.log('📝 Fixed order data:', orderData);
+      setCurrentOrder(orderData);
+      
+      // Set customer location if available
       if (order.customerAddress?.coordinates) {
         setCustomerLocation({
           lat: order.customerAddress.coordinates.lat,
           lng: order.customerAddress.coordinates.lng
         });
+      } else {
+        // Default customer location (Shirpur area)
+        setCustomerLocation({ lat: 21.3099, lng: 75.1178 });
       }
+      
+      // Set agent location if available
       if (order.deliveryAgent?.location) {
         setAgentLocation({
           lat: order.deliveryAgent.location.lat,
           lng: order.deliveryAgent.location.lng
         });
       }
+    } else {
+      console.log('⚠️ No current order found in localStorage');
     }
 
     // Initialize enhanced tracking
@@ -127,6 +129,30 @@ const DeliveryTracking = () => {
             setAgentLocation(newLocation);
             setRoute(prev => [...prev, [newLocation.lat, newLocation.lng]]);
             reverseGeocode(newLocation.lat, newLocation.lng);
+            
+            // Send real-time location to customers
+            if (currentOrder?.orderId) {
+              const locationUpdate = {
+                ...newLocation,
+                timestamp: new Date().toISOString()
+              };
+              
+              // Store location history
+              const existingTracking = JSON.parse(localStorage.getItem(`tracking_${currentOrder.orderId}`) || '[]');
+              existingTracking.push(locationUpdate);
+              localStorage.setItem(`tracking_${currentOrder.orderId}`, JSON.stringify(existingTracking));
+              
+              // Trigger real-time update for customers
+              window.dispatchEvent(new CustomEvent('trackingStarted', {
+                detail: { 
+                  orderId: currentOrder.orderId, 
+                  location: newLocation,
+                  agentId: 'current_agent',
+                  agentName: 'Delivery Agent',
+                  status: 'out_for_delivery'
+                }
+              }));
+            }
           },
           (error) => {
             console.error('GPS Watch Error:', error);
@@ -159,6 +185,26 @@ const DeliveryTracking = () => {
       deliveryCoordinationService.markAsDelivered(currentOrder.orderId);
       setIsDelivered(true);
       setShowOTPVerification(false);
+      
+      // Stop GPS tracking
+      const trackingInterval = localStorage.getItem('trackingInterval');
+      if (trackingInterval) {
+        clearInterval(parseInt(trackingInterval));
+        localStorage.removeItem('trackingInterval');
+      }
+      
+      // Notify customers of delivery
+      window.dispatchEvent(new CustomEvent('orderStatusUpdated', {
+        detail: { 
+          orderId: currentOrder.orderId, 
+          status: 'delivered'
+        }
+      }));
+      
+      // Clear tracking data
+      localStorage.removeItem(`tracking_${currentOrder.orderId}`);
+      localStorage.removeItem('currentOrder');
+      
       alert('✅ Order delivered successfully with OTP verification!');
     }
   };
@@ -175,6 +221,9 @@ const DeliveryTracking = () => {
             <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-semibold text-gray-600 mb-2">No Active Delivery</h3>
             <p className="text-gray-500">Accept an order to start GPS tracking</p>
+            <div className="mt-4 p-3 bg-yellow-50 rounded text-left">
+              <p className="text-xs text-yellow-700">Debug: {JSON.stringify(currentOrder)}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -190,13 +239,15 @@ const DeliveryTracking = () => {
             <Navigation className="h-8 w-8" />
             <div>
               <h1 className="text-2xl font-bold">GPS Tracking</h1>
-              <p className="text-blue-100">Order #{currentOrder.orderId}</p>
+              <p className="text-blue-100">Order #{currentOrder?.orderId}</p>
             </div>
           </div>
           <Badge className={`${isDelivered ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
             {isDelivered ? 'Delivered' : 'In Transit'}
           </Badge>
         </div>
+        
+
       </div>
 
       <div className="p-4 space-y-4">
@@ -209,65 +260,130 @@ const DeliveryTracking = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <p className="font-semibold">{currentOrder.customerAddress?.name}</p>
-              <p className="text-gray-600">{currentOrder.customerAddress?.address}</p>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-blue-500" />
-                <span className="text-blue-600">{currentOrder.customerAddress?.phone}</span>
+            <div className="space-y-3">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-gray-600">Customer Name</p>
+                    <p className="font-semibold text-lg">{currentOrder?.customerAddress?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Delivery Address</p>
+                    <p className="text-gray-700">{currentOrder?.customerAddress?.address}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Phone Number</p>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-blue-500" />
+                      <span className="text-blue-600 font-medium">{currentOrder?.customerAddress?.phone}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-lg font-bold text-green-600">₹{currentOrder.total}</p>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600">Order Value</p>
+                <p className="text-2xl font-bold text-green-600">₹{currentOrder.total || 0}</p>
+              </div>
+              {currentOrder.items && (
+                <div className="bg-orange-50 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Order Items:</p>
+                  {currentOrder.items.slice(0, 3).map((item: any, idx: number) => (
+                    <p key={idx} className="text-sm text-gray-600">
+                      {item.quantity}x {item.name || item.product?.name || 'Item'}
+                    </p>
+                  ))}
+                  {currentOrder.items.length > 3 && (
+                    <p className="text-xs text-gray-500">+{currentOrder.items.length - 3} more items</p>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Enhanced Tracking Dashboard */}
-        <Card className="bg-gradient-to-r from-blue-50 to-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-6 w-6 text-blue-600" />
-              Enhanced Delivery Tracking
-              <Badge className="bg-green-500 text-white animate-pulse">
-                🔴 LIVE
-              </Badge>
-            </CardTitle>
-            <p className="text-sm text-gray-600 mt-2">
-              AI-powered route optimization with real-time traffic analysis
-            </p>
-          </CardHeader>
-        </Card>
+
         
-        <TrackingDashboard orderId={currentOrder.orderId} userType="delivery" />
-        
-        {/* Quick Actions */}
+        {/* Delivery Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>Delivery Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <Button 
-                variant="outline"
-                onClick={() => window.open(`https://www.google.com/maps/dir/${agentLocation.lat},${agentLocation.lng}/${customerLocation.lat},${customerLocation.lng}`, '_blank')}
-              >
-                <Navigation className="w-4 h-4 mr-2" />
-                Google Maps
-              </Button>
-              <Button 
-                variant="outline"
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3"
+                size="lg"
                 onClick={() => {
-                  const phoneNumber = currentOrder.customerAddress?.phone;
-                  if (phoneNumber) {
-                    window.location.href = `tel:${phoneNumber}`;
-                  } else {
-                    alert('Customer phone number not available');
+                  // Open live Google Maps with real-time navigation
+                  const mapsUrl = `https://www.google.com/maps/dir/${agentLocation.lat},${agentLocation.lng}/${customerLocation.lat},${customerLocation.lng}/@${agentLocation.lat},${agentLocation.lng},15z/data=!3m1!4b1!4m2!4m1!3e0`;
+                  window.open(mapsUrl, '_blank');
+                  
+                  // Start continuous GPS tracking
+                  if (navigator.geolocation) {
+                    const trackingInterval = setInterval(() => {
+                      navigator.geolocation.getCurrentPosition((position) => {
+                        const newLocation = {
+                          lat: position.coords.latitude,
+                          lng: position.coords.longitude
+                        };
+                        
+                        // Update real-time location for customers
+                        window.dispatchEvent(new CustomEvent('trackingStarted', {
+                          detail: { 
+                            orderId: currentOrder.orderId, 
+                            location: newLocation,
+                            agentId: 'current_agent',
+                            agentName: 'Delivery Agent',
+                            status: 'out_for_delivery'
+                          }
+                        }));
+                      });
+                    }, 10000); // Update every 10 seconds
+                    
+                    // Store interval ID to clear later
+                    localStorage.setItem('trackingInterval', trackingInterval.toString());
                   }
+                  
+                  alert('🚀 Live delivery started! Google Maps opened with navigation.');
                 }}
-                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
               >
-                <Phone className="w-4 h-4 mr-2" />
-                Call Customer
+                <Navigation className="w-5 h-5 mr-2" />
+                🚀 Start Delivery (Live Maps)
               </Button>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const phoneNumber = currentOrder.customerAddress?.phone;
+                    if (phoneNumber) {
+                      window.location.href = `tel:${phoneNumber}`;
+                    } else {
+                      alert('Customer phone number not available');
+                    }
+                  }}
+                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Call Customer
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const message = `Hi! I'm your delivery agent for order #${currentOrder.orderId}. I'm on my way to deliver your order. ETA: 15-20 minutes.`;
+                    const phoneNumber = currentOrder.customerAddress?.phone?.replace(/^\+?91/, '91');
+                    if (phoneNumber) {
+                      window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+                    } else {
+                      alert('Customer phone number not available');
+                    }
+                  }}
+                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                >
+                  📱 WhatsApp
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

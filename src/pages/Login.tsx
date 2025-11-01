@@ -196,6 +196,18 @@ const Login = () => {
             </Card>
           </div>
         </div>
+        
+        {/* Company Branding */}
+        <div className="mt-8 text-center bg-white/50 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
+          <p className="text-sm text-gray-600 mb-3 font-medium">Powered by</p>
+          <div className="flex items-center justify-center space-x-3 mb-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+              <span className="text-sm font-bold text-white">Y</span>
+            </div>
+            <span className="text-lg font-bold text-gray-800">Yash Technology</span>
+          </div>
+          <p className="text-sm text-gray-600 font-medium">Innovative Solutions for Modern Business</p>
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ export interface AdminOrder {
   customer_address: string;
   items: any[];
   total_amount: number;
-  order_status: 'placed' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  order_status: 'placed' | 'confirmed' | 'preparing' | 'ready_for_delivery' | 'out_for_delivery' | 'delivered' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed';
   payment_id?: string;
   created_at: string;
@@ -18,55 +18,64 @@ export class AdminOrderService {
   // Get all orders for admin
   static async getAllOrders(): Promise<AdminOrder[]> {
     try {
-      if (!supabase) return [];
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      const { supabaseApi } = await import('@/lib/supabase');
+      const orders = await supabaseApi.getOrders();
+      
+      console.log('📦 Loading orders from database:', orders.length);
+      return orders.map((order: any) => ({
+        id: order.id || order.order_id,
+        customer_name: order.customer_name,
+        customer_phone: order.customer_phone,
+        customer_address: order.customer_address,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+        total_amount: Number(order.total_amount),
+        order_status: order.order_status || 'confirmed',
+        payment_status: order.payment_status || 'paid',
+        payment_id: order.payment_id,
+        created_at: order.created_at,
+        updated_at: order.updated_at || order.created_at
+      }));
     } catch (error) {
       console.error('Error fetching admin orders:', error);
       return [];
     }
   }
 
-  // Update order status
+  // Update order status using supabaseApi
   static async updateOrderStatus(orderId: string, status: AdminOrder['order_status']): Promise<boolean> {
     try {
-      if (!supabase) return false;
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          order_status: status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-      return true;
+      console.log('🔄 Updating order:', orderId, 'to status:', status);
+      
+      const { supabaseApi } = await import('@/lib/supabase');
+      const success = await supabaseApi.updateOrderStatus(orderId, status);
+      
+      if (success) {
+        console.log('✅ Order status updated in database:', orderId, status);
+        return true;
+      } else {
+        console.warn('⚠️ Failed to update order in database');
+        return false;
+      }
     } catch (error) {
-      console.error('Error updating order status:', error);
+      console.error('❌ Error updating order status:', error);
       return false;
     }
   }
 
   // Subscribe to real-time order updates
   static subscribeToOrderUpdates(callback: (orders: AdminOrder[]) => void) {
-    if (!supabase) return { unsubscribe: () => {} };
-    const subscription = supabase
-      .channel('admin-orders')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          // Refetch all orders when any change occurs
-          this.getAllOrders().then(callback);
-        }
-      )
-      .subscribe();
-
-    return subscription;
+    // Listen for custom events
+    const handleOrderUpdate = () => {
+      this.getAllOrders().then(callback);
+    };
+    
+    window.addEventListener('orderStatusUpdated', handleOrderUpdate);
+    
+    return {
+      unsubscribe: () => {
+        window.removeEventListener('orderStatusUpdated', handleOrderUpdate);
+      }
+    };
   }
 
   // Update order status and notify customer tracking

@@ -30,11 +30,43 @@ const CustomerOrders = () => {
       }
     };
     
+    // Listen for real-time status updates from admin
+    const handleStatusUpdate = (event: any) => {
+      const { orderId, newStatus } = event.detail;
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.order_id === orderId 
+            ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
+            : order
+        )
+      );
+      
+      // Show notification
+      toast({
+        title: "Order Status Updated!",
+        description: `Your order is now ${newStatus.replace('_', ' ')}`
+      });
+    };
+    
+    // Listen for tracking enablement
+    const handleTrackingEnabled = (event: any) => {
+      const { orderId } = event.detail;
+      toast({
+        title: "🚚 Out for Delivery!",
+        description: "Your order is on the way. Click 'Track Live' to see real-time location."
+      });
+    };
+    
+    window.addEventListener('orderStatusChanged', handleStatusUpdate);
+    window.addEventListener('enableTracking', handleTrackingEnabled);
+    
     const cleanup = initializeOrders();
     return () => {
       cleanup.then(fn => fn && fn());
+      window.removeEventListener('orderStatusChanged', handleStatusUpdate);
+      window.removeEventListener('enableTracking', handleTrackingEnabled);
     };
-  }, []);
+  }, [toast]);
 
   const loadCustomerOrders = async () => {
     try {

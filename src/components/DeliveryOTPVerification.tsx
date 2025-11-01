@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Shield, CheckCircle, AlertCircle, Phone } from "lucide-react";
+import { Shield, CheckCircle, AlertCircle, Phone, Clock } from "lucide-react";
+import { OTPService } from "@/lib/otpService";
 
 interface DeliveryOTPVerificationProps {
   orderId: string;
@@ -23,44 +24,23 @@ const DeliveryOTPVerification = ({
   const [otp, setOtp] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [otpDetails, setOtpDetails] = useState<any>(null);
+  
+  useEffect(() => {
+    // Load OTP details for this order
+    const loadOTPDetails = async () => {
+      const details = await OTPService.getOTPDetails(orderId);
+      setOtpDetails(details);
+      console.log('📱 OTP Details loaded:', details);
+    };
+    loadOTPDetails();
+  }, [orderId]);
 
-  // Generate and store OTP
-  const generateOTP = () => {
-    const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-    localStorage.setItem(`delivery_otp_${orderId}`, generatedOTP);
-    return generatedOTP;
-  };
 
-  const sendOTP = async () => {
-    try {
-      const generatedOTP = generateOTP();
-      
-      // Simulate SMS sending (in real app, integrate with SMS service)
-      console.log(`📱 Sending OTP ${generatedOTP} to ${customerPhone}`);
-      
-      // Store OTP with timestamp
-      localStorage.setItem(`delivery_otp_${orderId}`, JSON.stringify({
-        otp: generatedOTP,
-        timestamp: Date.now(),
-        phone: customerPhone
-      }));
-      
-      setOtpSent(true);
-      setError("");
-      
-      // Show success message
-      alert(`📱 OTP sent to customer ${customerName} at ${customerPhone}\n\nFor demo: OTP is ${generatedOTP}`);
-      
-    } catch (error) {
-      console.error("Failed to send OTP:", error);
-      setError("Failed to send OTP. Please try again.");
-    }
-  };
 
   const verifyOTP = async () => {
-    if (!otp || otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
+    if (!otp || otp.length !== 4) {
+      setError("Please enter a valid 4-digit OTP");
       return;
     }
 
@@ -68,61 +48,18 @@ const DeliveryOTPVerification = ({
     setError("");
 
     try {
-      // Get stored OTP
-      const storedOTPData = localStorage.getItem(`delivery_otp_${orderId}`);
+      const result = await OTPService.verifyDeliveryOTP(orderId, otp);
       
-      if (!storedOTPData) {
-        setError("OTP not found. Please request a new OTP.");
-        setIsVerifying(false);
-        return;
-      }
-
-      const otpData = JSON.parse(storedOTPData);
-      const currentTime = Date.now();
-      const otpAge = currentTime - otpData.timestamp;
-      
-      // Check if OTP is expired (5 minutes)
-      if (otpAge > 5 * 60 * 1000) {
-        setError("OTP has expired. Please request a new OTP.");
-        localStorage.removeItem(`delivery_otp_${orderId}`);
-        setOtpSent(false);
-        setIsVerifying(false);
-        return;
-      }
-
-      // Verify OTP
-      if (otp === otpData.otp) {
-        // OTP verified successfully
-        localStorage.removeItem(`delivery_otp_${orderId}`);
-        
-        // Mark order as delivered
-        const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-        const updatedOrders = allOrders.map((order: any) => {
-          if (order.orderId === orderId) {
-            return {
-              ...order,
-              status: 'delivered',
-              deliveredAt: new Date().toISOString(),
-              otpVerified: true
-            };
-          }
-          return order;
-        });
-        
-        localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
-        
-        // Trigger success callback
+      if (result.success) {
         onVerificationSuccess();
-        
       } else {
-        setError("Invalid OTP. Please check and try again.");
+        setError(result.error || "Invalid OTP. Please try again.");
       }
     } catch (error) {
-      console.error("OTP verification failed:", error);
       setError("Verification failed. Please try again.");
+    } finally {
+      setIsVerifying(false);
     }
-    
-    setIsVerifying(false);
   };
 
   return (
@@ -149,36 +86,27 @@ const DeliveryOTPVerification = ({
           <p className="text-sm text-gray-600">{customerPhone}</p>
         </div>
 
-        {!otpSent ? (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="h-4 w-4 text-blue-500" />
-                <span className="font-semibold text-blue-700">Verification Process</span>
-              </div>
-              <p className="text-sm text-blue-600">
-                An OTP will be sent to the customer's phone. Ask the customer to share the OTP to confirm delivery.
-              </p>
-            </div>
-            
-            <Button 
-              onClick={sendOTP}
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              Send OTP to Customer
-            </Button>
-          </div>
-        ) : (
+        {otpDetails ? (
           <div className="space-y-4">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="font-semibold text-green-700">OTP Sent Successfully</span>
+                <span className="font-semibold text-green-700">OTP Already Sent</span>
               </div>
               <p className="text-sm text-green-600">
-                OTP has been sent to {customerPhone}. Ask the customer to share the 6-digit code.
+                OTP was sent to {customerPhone} when order went out for delivery.
               </p>
+              <div className="mt-2 p-2 bg-white rounded border">
+                <div className="flex items-center gap-2 text-xs">
+                  <Clock className="w-3 h-3 text-gray-500" />
+                  <span className="text-gray-600">
+                    Sent: {new Date(otpDetails.created_at).toLocaleTimeString()}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Expires: {new Date(otpDetails.expires_at).toLocaleTimeString()}
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -187,15 +115,15 @@ const DeliveryOTPVerification = ({
               </label>
               <Input
                 type="text"
-                placeholder="Enter 6-digit OTP"
+                placeholder="Enter 4-digit OTP"
                 value={otp}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 4);
                   setOtp(value);
                   setError("");
                 }}
                 className="text-center text-lg tracking-widest"
-                maxLength={6}
+                maxLength={4}
               />
             </div>
 
@@ -208,27 +136,23 @@ const DeliveryOTPVerification = ({
               </div>
             )}
 
-            <div className="flex gap-2">
-              <Button
-                onClick={verifyOTP}
-                disabled={isVerifying || otp.length !== 6}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-              >
-                {isVerifying ? "Verifying..." : "Verify & Complete Delivery"}
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setOtpSent(false);
-                  setOtp("");
-                  setError("");
-                }}
-                variant="outline"
-                className="px-4"
-              >
-                Resend OTP
-              </Button>
+            <Button
+              onClick={verifyOTP}
+              disabled={isVerifying || otp.length !== 4}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+            >
+              {isVerifying ? "Verifying..." : "Verify & Complete Delivery"}
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-4 w-4 text-yellow-500" />
+              <span className="font-semibold text-yellow-700">No OTP Found</span>
             </div>
+            <p className="text-sm text-yellow-600">
+              OTP should have been sent when order status changed to 'out for delivery'.
+            </p>
           </div>
         )}
 

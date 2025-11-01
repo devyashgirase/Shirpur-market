@@ -50,7 +50,10 @@ export const supabaseApi = {
   
   async getOrders() {
     try {
-      return await supabaseRest.get('orders', 'order=created_at.desc');
+      const orders = await supabaseRest.get('orders', 'order=created_at.desc');
+      console.log('📦 Fetched orders from database:', orders.length, 'orders');
+      console.log('📊 Order statuses:', orders.map(o => ({ id: o.id, status: o.order_status })));
+      return orders;
     } catch (error) {
       console.warn('Using mock orders:', error);
       return JSON.parse(localStorage.getItem('orders') || '[]');
@@ -66,7 +69,7 @@ export const supabaseApi = {
         customer_address: order.customer_address,
         items: order.items,
         total_amount: order.total_amount,
-
+        order_status: 'confirmed',
         payment_status: 'paid'
       });
     } catch (error) {
@@ -76,6 +79,38 @@ export const supabaseApi = {
       orders.push(newOrder);
       localStorage.setItem('orders', JSON.stringify(orders));
       return newOrder;
+    }
+  },
+  
+  async updateOrderStatus(orderId: string, status: string, deliveryAgentId?: string) {
+    try {
+      const updateData: any = {
+        order_status: status,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (deliveryAgentId) {
+        updateData.delivery_agent_id = deliveryAgentId;
+      }
+      
+      console.log('🔄 Updating order status in database:', { orderId, status, updateData });
+      const result = await supabaseRest.patch(`orders?id=eq.${orderId}`, updateData);
+      console.log('✅ Order status updated successfully:', result);
+      
+      // If status is out_for_delivery, send OTP to customer
+      if (status === 'out_for_delivery') {
+        const orders = await this.getOrders();
+        const order = orders.find((o: any) => o.id === orderId);
+        if (order) {
+          const { OTPService } = await import('./otpService');
+          await OTPService.sendDeliveryOTP(orderId, order.customer_phone, order.customer_name);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Supabase update failed:', error);
+      return false;
     }
   },
   
@@ -196,6 +231,56 @@ export const supabaseApi = {
       return [];
     } catch (error) {
       throw error;
+    }
+  },
+  
+  async getOrdersByDeliveryAgent(agentId: string) {
+    try {
+      const orders = await this.getOrders();
+      return orders.filter((order: any) => order.delivery_agent_id === agentId);
+    } catch (error) {
+      console.error('Error getting orders by delivery agent:', error);
+      return [];
+    }
+  },
+  
+  async createDeliveryOTP(otpData: any) {
+    try {
+      return await supabaseRest.post('delivery_otps', otpData);
+    } catch (error) {
+      console.warn('Supabase OTP creation failed, using localStorage:', error);
+      const otps = JSON.parse(localStorage.getItem('delivery_otps') || '[]');
+      const newOTP = { id: Date.now(), ...otpData };
+      otps.push(newOTP);
+      localStorage.setItem('delivery_otps', JSON.stringify(otps));
+      return newOTP;
+    }
+  },
+  
+  async getDeliveryOTP(orderId: string) {
+    try {
+      const otps = await supabaseRest.get('delivery_otps', `order_id=eq.${orderId}&order=created_at.desc&limit=1`);
+      return otps[0] || null;
+    } catch (error) {
+      console.warn('Supabase OTP fetch failed, using localStorage:', error);
+      const otps = JSON.parse(localStorage.getItem('delivery_otps') || '[]');
+      return otps.find((otp: any) => otp.order_id === orderId) || null;
+    }
+  },
+  
+  async updateDeliveryOTP(orderId: string, updateData: any) {
+    try {
+      return await supabaseRest.patch(`delivery_otps?order_id=eq.${orderId}`, updateData);
+    } catch (error) {
+      console.warn('Supabase OTP update failed, using localStorage:', error);
+      const otps = JSON.parse(localStorage.getItem('delivery_otps') || '[]');
+      const otpIndex = otps.findIndex((otp: any) => otp.order_id === orderId);
+      if (otpIndex >= 0) {
+        otps[otpIndex] = { ...otps[otpIndex], ...updateData };
+        localStorage.setItem('delivery_otps', JSON.stringify(otps));
+        return otps[otpIndex];
+      }
+      return null;
     }
   }
 };
