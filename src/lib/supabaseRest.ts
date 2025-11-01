@@ -17,6 +17,9 @@ class SupabaseRest {
   }
 
   async post(table: string, data: any) {
+    console.log('🔍 Supabase POST to:', `${this.baseUrl}/${table}`);
+    console.log('📤 Data being sent:', JSON.stringify(data, null, 2));
+    
     const response = await fetch(`${this.baseUrl}/${table}`, {
       method: 'POST',
       headers: this.headers,
@@ -24,10 +27,14 @@ class SupabaseRest {
     });
     
     if (!response.ok) {
-      throw new Error(`Supabase error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Supabase error details:', errorText);
+      throw new Error(`Supabase error: ${response.status} - ${errorText}`);
     }
     
-    return response.json();
+    const result = await response.json();
+    console.log('✅ Supabase response:', result);
+    return result;
   }
 
   async get(table: string, query = '') {
@@ -49,27 +56,47 @@ export const supabaseRest = new SupabaseRest();
 // Order service using REST API
 export const orderService = {
   async createOrder(orderData: any) {
+    console.log('📦 Creating order with data:', orderData);
+    
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      console.warn('⚠️ Supabase credentials missing, using localStorage');
+      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+      const newOrder = { id: Date.now(), ...orderData, created_at: new Date().toISOString() };
+      orders.push(newOrder);
+      localStorage.setItem('orders', JSON.stringify(orders));
+      return newOrder;
+    }
+    
     try {
-      const result = await supabaseRest.post('orders', {
-        order_id: orderData.order_id,
+      const uniqueOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const cleanData = {
+        order_id: uniqueOrderId,
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
         customer_address: orderData.customer_address,
-        items: orderData.items,
-        total_amount: orderData.total_amount,
-        status: 'confirmed',
-        payment_status: 'paid'
-      });
+        items: JSON.stringify(orderData.items),
+        total_amount: Number(orderData.total_amount),
+        payment_status: orderData.payment_status || 'paid'
+      };
+      
+      console.log('📦 Sending to Supabase:', cleanData);
+      console.log('🌐 Supabase URL:', SUPABASE_URL);
+      console.log('🔑 Using API Key:', SUPABASE_KEY ? 'Key exists' : 'No key');
+      
+      const result = await supabaseRest.post('orders', cleanData);
       
       console.log('✅ Order saved to Supabase:', result);
-      return result[0];
+      console.log('🎯 Order ID created:', result[0]?.order_id || result?.order_id);
+      return result[0] || result;
     } catch (error) {
       console.error('❌ Supabase save failed:', error);
       // Fallback to localStorage
       const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-      const newOrder = { id: Date.now(), ...orderData };
+      const newOrder = { id: Date.now(), ...orderData, created_at: new Date().toISOString() };
       orders.push(newOrder);
       localStorage.setItem('orders', JSON.stringify(orders));
+      console.log('💾 Saved to localStorage instead');
       return newOrder;
     }
   },

@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,7 +12,16 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 
 const CustomerLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [cartItemCount, setCartItemCount] = useState(0);
+  
+  const handleBackClick = () => {
+    if (location.pathname === '/customer') {
+      navigate('/');
+    } else {
+      navigate(-1);
+    }
+  };
 
   useEffect(() => {
     const updateCartCount = async () => {
@@ -41,9 +50,14 @@ const CustomerLayout = () => {
         <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-              <Link to="/" className="text-primary-foreground hover:text-primary-foreground/80 flex-shrink-0">
+              <Button 
+                onClick={handleBackClick}
+                variant="ghost" 
+                size="sm" 
+                className="text-primary-foreground hover:text-primary-foreground/80 flex-shrink-0 p-1"
+              >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Link>
+              </Button>
               <div className="flex flex-col min-w-0 flex-1">
                 <h1 className="text-base sm:text-lg md:text-2xl font-bold truncate">🛒 Shirpur Delivery</h1>
                 <CustomerLocation />

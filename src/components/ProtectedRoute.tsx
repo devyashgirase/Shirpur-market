@@ -32,19 +32,19 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       const session = authService.getCurrentSession();
       
       if (!session || !authService.isLoggedIn()) {
-        navigate('/');
+        navigate('/', { replace: true });
         setIsLoading(false);
         return;
       }
 
       if (!allowedRoles.includes(session.role)) {
-        navigate('/');
+        navigate('/', { replace: true });
         setIsLoading(false);
         return;
       }
 
       if (!session.isFirstLoginComplete) {
-        navigate('/');
+        navigate('/', { replace: true });
         setIsLoading(false);
         return;
       }

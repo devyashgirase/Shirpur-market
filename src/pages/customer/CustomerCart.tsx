@@ -177,7 +177,9 @@ const CustomerCart = () => {
         payment_id: paymentResponse.razorpay_payment_id
       };
 
-      await createOrderInSupabase(orderData);
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.createOrder(orderData);
+      console.log('✅ Order saved via Supabase REST API');
       
       // Clear cart
       await cartService.clearCart();

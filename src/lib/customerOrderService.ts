@@ -29,17 +29,19 @@ class CustomerOrderService {
   }
 
   async getMyOrders(): Promise<CustomerOrder[]> {
-    if (!this.currentUserPhone || !supabase) return [];
+    if (!this.currentUserPhone) return [];
     
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('customer_phone', this.currentUserPhone)
-        .order('created_at', { ascending: false });
+      const { supabaseApi } = await import('@/lib/supabase');
+      const allOrders = await supabaseApi.getOrders();
       
-      if (error) throw error;
-      return data || [];
+      // Filter orders for current user
+      const userOrders = allOrders.filter((order: any) => 
+        order.customer_phone === this.currentUserPhone
+      );
+      
+      console.log('📦 Found orders for user:', userOrders.length);
+      return userOrders;
     } catch (error) {
       console.error('Failed to fetch customer orders:', error);
       return [];

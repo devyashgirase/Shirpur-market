@@ -1,39 +1,104 @@
-/* Razorpay Modal Focus Fix */
+/* Razorpay Modal Focus and Click Fix */
 .razorpay-container {
-  z-index: 999999 !important;
+  z-index: 2147483647 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
 }
 
 .razorpay-backdrop {
-  z-index: 999998 !important;
+  z-index: 2147483646 !important;
   backdrop-filter: blur(2px) !important;
+  pointer-events: auto !important;
 }
 
-/* Ensure Razorpay modal appears above all other modals */
+/* Ensure Razorpay modal appears above all other elements */
 iframe[src*="razorpay"] {
-  z-index: 999999 !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
 }
 
-/* Hide other modals when Razorpay is open */
+/* Fix for Razorpay iframe interaction */
+.razorpay-checkout-frame {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+}
+
+/* Hide other modals and overlays when Razorpay is open */
 body.razorpay-checkout-frame {
-  overflow: hidden;
+  overflow: hidden !important;
 }
 
 body.razorpay-checkout-frame [data-radix-dialog-overlay] {
   display: none !important;
 }
 
+body.razorpay-checkout-frame .fixed {
+  z-index: 1 !important;
+}
+
+/* Only disable when Razorpay is actually open */
+body.razorpay-checkout-frame > *:not(.razorpay-container):not(.razorpay-backdrop) {
+  pointer-events: none !important;
+}
+
 /* UPI and payment method focus improvements */
 .payment-method-selected {
   box-shadow: 0 0 0 2px #3B82F6 !important;
   border-color: #3B82F6 !important;
+  pointer-events: auto !important;
+}
+
+/* Force enable interactions on Razorpay elements */
+.razorpay-container input[type="text"],
+.razorpay-container input[type="tel"],
+.razorpay-container input[type="email"],
+.razorpay-container button,
+.razorpay-container a {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: auto !important;
 }
 
 /* Mobile responsive fixes for payment */
 @media (max-width: 768px) {
   .razorpay-container {
-    width: 100% !important;
-    height: 100% !important;
+    width: 100vw !important;
+    height: 100vh !important;
     top: 0 !important;
     left: 0 !important;
+    position: fixed !important;
+    z-index: 2147483647 !important;
+  }
+  
+  .razorpay-checkout-frame {
+    touch-action: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 }
+
+/* Additional fixes for click issues */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.razorpay-container * {
+  pointer-events: auto !important;
+  -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+}
+
+/* Ensure buttons are clickable */
+.razorpay-container button,
+.razorpay-container input,
+.razorpay-container select {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+
+/* Fix for overlay conflicts */
+.razorpay-overlay {
+  z-index: 2147483646 !important;
+  pointer-events: auto !important;
+}
+

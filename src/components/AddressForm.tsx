@@ -202,41 +202,41 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center text-base md:text-lg">
-            <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-            Delivery Address
+          <DialogTitle className="flex items-center text-lg font-bold text-center">
+            <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+            🏠 Delivery Address
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Personal Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <div>
-              <Label htmlFor="name" className="text-sm">Full Name *</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+          <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+            <h3 className="font-semibold text-blue-800 flex items-center">
+              <User className="w-4 h-4 mr-2" />
+              Personal Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="name" className="text-sm font-medium">Full Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Your full name"
-                  className="pl-9 md:pl-10 text-sm md:text-base"
+                  placeholder="Enter your full name"
+                  className="mt-1"
                   required
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="phone" className="text-sm">Phone Number *</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+              <div>
+                <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="10-digit mobile number"
-                  className="pl-9 md:pl-10 text-sm md:text-base"
+                  className="mt-1"
                   maxLength={10}
                   required
                 />
@@ -244,118 +244,133 @@ const AddressForm = ({ isOpen, onClose, onSubmit }: AddressFormProps) => {
             </div>
           </div>
 
-          {/* Address */}
-          <div>
-            <Label htmlFor="address" className="text-sm">Complete Address *</Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              placeholder="House/Flat No., Building, Street, Area"
-              rows={3}
-              className="text-sm md:text-base"
-              required
-            />
-          </div>
-
-          {/* City & State */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          {/* Address Details */}
+          <div className="bg-green-50 p-4 rounded-lg space-y-3">
+            <h3 className="font-semibold text-green-800 flex items-center">
+              <MapPin className="w-4 h-4 mr-2" />
+              Address Details
+            </h3>
+            
             <div>
-              <Label htmlFor="city" className="text-sm">City</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                placeholder="Your city"
-                className="text-sm md:text-base"
-              />
-            </div>
-            <div>
-              <Label htmlFor="state" className="text-sm">State</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                placeholder="Your state"
-                className="text-sm md:text-base"
-              />
-            </div>
-          </div>
-
-          {/* Landmark & Pincode */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <div>
-              <Label htmlFor="landmark" className="text-sm">Landmark (Optional)</Label>
-              <Input
-                id="landmark"
-                value={formData.landmark}
-                onChange={(e) => setFormData(prev => ({ ...prev, landmark: e.target.value }))}
-                placeholder="Near famous place"
-                className="text-sm md:text-base"
-              />
-            </div>
-            <div>
-              <Label htmlFor="pincode" className="text-sm">Pincode *</Label>
-              <Input
-                id="pincode"
-                value={formData.pincode}
-                onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
-                placeholder="6-digit pincode"
-                maxLength={6}
-                className="text-sm md:text-base"
+              <Label htmlFor="address" className="text-sm font-medium">Complete Address *</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="House/Flat No., Building Name, Street, Area"
+                rows={2}
+                className="mt-1"
                 required
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="city" className="text-sm font-medium">City</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="City"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="pincode" className="text-sm font-medium">Pincode *</Label>
+                <Input
+                  id="pincode"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
+                  placeholder="6-digit"
+                  maxLength={6}
+                  className="mt-1"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="state" className="text-sm font-medium">State</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                  placeholder="State"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="landmark" className="text-sm font-medium">Landmark</Label>
+                <Input
+                  id="landmark"
+                  value={formData.landmark}
+                  onChange={(e) => setFormData(prev => ({ ...prev, landmark: e.target.value }))}
+                  placeholder="Near..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Location Buttons */}
-          <div className="border-t pt-3 md:pt-4 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+          {/* Location Services */}
+          <div className="bg-orange-50 p-4 rounded-lg space-y-3">
+            <h3 className="font-semibold text-orange-800 flex items-center">
+              <Navigation className="w-4 h-4 mr-2" />
+              📍 Get Location
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleGetCurrentLocation}
                 disabled={isGettingLocation}
-                className="text-sm"
-                size="sm"
+                className="bg-blue-500 text-white hover:bg-blue-600 border-0"
               >
                 {isGettingLocation ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                 ) : (
-                  <Navigation className="w-3 h-3 mr-1" />
+                  <Navigation className="w-4 h-4 mr-2" />
                 )}
-                GPS Location
+                Use GPS
               </Button>
               
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowLocationPicker(true)}
-                className="text-sm"
-                size="sm"
+                className="bg-green-500 text-white hover:bg-green-600 border-0"
               >
-                <Map className="w-3 h-3 mr-1" />
+                <Map className="w-4 h-4 mr-2" />
                 Pick on Map
               </Button>
             </div>
             
-            {/* Location Status */}
             {formData.coordinates && (
-              <div className="bg-green-50 p-2 rounded text-xs text-center">
-                <p className="text-green-700 font-medium">
-                  ✓ Location: {formData.coordinates.lat.toFixed(4)}, {formData.coordinates.lng.toFixed(4)}
+              <div className="bg-green-100 p-3 rounded-lg text-center">
+                <p className="text-green-800 font-medium text-sm">
+                  ✅ Location Captured Successfully!
                 </p>
               </div>
             )}
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 pt-3 md:pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 text-sm md:text-base" size="sm">
+          <div className="flex gap-3 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1 border-2 border-gray-300 hover:bg-gray-50"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-gradient-primary text-sm md:text-base" size="sm">
-              Save & Continue
+            <Button 
+              type="submit" 
+              className="flex-1 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-bold"
+            >
+              💾 Save Address
             </Button>
           </div>
         </form>

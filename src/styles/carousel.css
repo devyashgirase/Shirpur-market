@@ -1,55 +1,96 @@
-/* Enhanced Carousel Animations */
+/* Enhanced Full-Screen Carousel Animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(2deg); }
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.6); }
+  0%, 100% { box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), 0 0 60px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 60px rgba(255, 255, 255, 0.8), 0 0 120px rgba(255, 215, 0, 0.6); }
 }
 
 @keyframes slideInLeft {
-  0% { transform: translateX(-100px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+  0% { transform: translateX(-150px) scale(0.8); opacity: 0; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
 }
 
 @keyframes slideInRight {
-  0% { transform: translateX(100px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+  0% { transform: translateX(150px) scale(0.8); opacity: 0; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
 }
 
 @keyframes fadeInUp {
-  0% { transform: translateY(30px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% { transform: translateY(50px) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
+@keyframes zoomIn {
+  0% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Full-Screen Carousel Styles */
 .carousel-banner {
-  animation: fadeInUp 0.8s ease-out;
+  animation: zoomIn 1s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.carousel-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 3s infinite;
+  z-index: 1;
 }
 
 .carousel-title {
-  animation: slideInLeft 1s ease-out 0.2s both;
+  animation: slideInLeft 1.2s ease-out 0.3s both;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
 }
 
 .carousel-description {
-  animation: slideInLeft 1s ease-out 0.4s both;
+  animation: slideInLeft 1.2s ease-out 0.5s both;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
 }
 
 .carousel-price {
-  animation: slideInRight 1s ease-out 0.6s both;
+  animation: slideInRight 1.2s ease-out 0.7s both;
 }
 
 .carousel-buttons {
-  animation: fadeInUp 1s ease-out 0.8s both;
+  animation: fadeInUp 1.2s ease-out 0.9s both;
+}
+
+.carousel-badge {
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .floating-element {
-  animation: float 3s ease-in-out infinite;
+  animation: float 4s ease-in-out infinite;
 }
 
 .glow-effect {
-  animation: glow 2s ease-in-out infinite alternate;
+  animation: glow 3s ease-in-out infinite alternate;
+}
+
+.price-main {
+  animation: pulse 2s ease-in-out infinite;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
 }
 
 /* Hide decorative elements on mobile for better performance */
@@ -66,12 +107,13 @@
   }
 }
 
-/* Mobile Carousel Layout */
+/* Full-Screen Mobile Layout */
 @media (max-width: 640px) {
   .carousel-banner {
-    height: 250px !important;
-    min-height: 250px !important;
-    max-height: 250px !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
   }
   
   .carousel-content {
@@ -156,25 +198,84 @@
   }
 }
 
+/* Responsive Full-Screen Heights */
 @media (min-width: 641px) and (max-width: 768px) {
   .carousel-banner {
-    min-height: 350px;
-    max-height: 400px;
+    min-height: 80vh;
+    max-height: 80vh;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .carousel-banner {
-    min-height: 450px;
-    max-height: 500px;
+    min-height: 85vh;
+    max-height: 85vh;
   }
 }
 
 @media (min-width: 1025px) {
   .carousel-banner {
-    min-height: 500px;
-    max-height: 600px;
+    min-height: 90vh;
+    max-height: 90vh;
   }
+}
+
+/* Enhanced Details Section */
+.carousel-details {
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 1rem;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.carousel-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.carousel-feature {
+  background: rgba(255,255,255,0.1);
+  padding: 0.75rem;
+  border-radius: 12px;
+  text-align: center;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+}
+
+.carousel-feature:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+}
+
+.carousel-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(5px);
+}
+
+.carousel-stat {
+  text-align: center;
+}
+
+.carousel-stat-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.carousel-stat-label {
+  font-size: 0.8rem;
+  opacity: 0.9;
 }
 
 /* Gradient Text Effect */
@@ -228,5 +329,155 @@
   .carousel-badge {
     font-size: 0.75rem !important;
     padding: 0.25rem 0.75rem !important;
+  }
+}
+
+/* Enhanced Interactive Elements */
+.carousel-nav-btn:hover {
+  background: rgba(255,255,255,0.6) !important;
+  transform: scale(1.15) !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+}
+
+.carousel-dot:hover {
+  background: rgba(255,255,255,0.8) !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 4px 15px rgba(255,215,0,0.6) !important;
+}
+
+/* Full-Screen Overlay Effects */
+.carousel-banner:hover .floating-element {
+  animation-duration: 2s;
+}
+
+.carousel-banner:hover .glow-effect {
+  animation-duration: 1.5s;
+}
+
+/* Enhanced Mobile Experience */
+@media (max-width: 640px) {
+  .carousel-features {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+  }
+  
+  .carousel-feature {
+    padding: 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .carousel-stats {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .carousel-stat {
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+  }
+  
+  .carousel-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .carousel-buttons .btn-primary,
+  .carousel-buttons .btn-secondary {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  .carousel-nav-btn {
+    width: 3rem !important;
+    height: 3rem !important;
+  }
+  
+  .carousel-dot {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablet Enhancements */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .carousel-features {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .carousel-buttons {
+    flex-direction: row;
+    gap: 1rem;
+  }
+  
+  .carousel-buttons .btn-primary {
+    flex: 2;
+  }
+  
+  .carousel-buttons .btn-secondary {
+    flex: 1;
+  }
+}
+
+/* Desktop Enhancements */
+@media (min-width: 1025px) {
+  .carousel-content {
+    padding: 3rem 4rem !important;
+  }
+  
+  .carousel-details {
+    padding: 3rem;
+    margin: 2rem;
+  }
+  
+  .carousel-features {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  .carousel-buttons {
+    gap: 2rem;
+  }
+}
+
+/* Performance Optimizations */
+.carousel-banner * {
+  will-change: transform, opacity;
+}
+
+.carousel-banner img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Accessibility Improvements */
+.carousel-nav-btn:focus,
+.carousel-dot:focus {
+  outline: 2px solid #ffd700;
+  outline-offset: 2px;
+}
+
+/* Loading States */
+.carousel-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Touch Gestures */
+.carousel-banner {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .carousel-banner img {
+    image-rendering: -webkit-optimize-contrast;
   }
 }

@@ -1,4 +1,3 @@
-// Disabled to prevent headers error
 export const supabase = null;
 
 export const createOrderDirect = async (orderData: any) => {
