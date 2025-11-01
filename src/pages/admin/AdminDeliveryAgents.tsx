@@ -70,15 +70,95 @@ const AdminDeliveryAgents = () => {
     }
   };
 
+  const validateForm = () => {
+    // Name validation
+    if (!formData.name.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter agent's full name",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    if (formData.name.trim().length < 2) {
+      toast({
+        title: "Invalid Name",
+        description: "Name must be at least 2 characters long",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Phone validation
+    if (!formData.phone.trim()) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter phone number",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
+      toast({
+        title: "Invalid Phone",
+        description: "Please enter a valid 10-digit Indian mobile number",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Email validation (if provided)
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+    
+    // Vehicle type validation
+    if (!formData.vehicleType.trim()) {
+      toast({
+        title: "Vehicle Type Required",
+        description: "Please enter vehicle type",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // License number validation
+    if (!formData.licenseNumber.trim()) {
+      toast({
+        title: "License Required",
+        description: "Please enter license number",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    if (formData.licenseNumber.trim().length < 5) {
+      toast({
+        title: "Invalid License",
+        description: "License number must be at least 5 characters",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleAddAgent = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.phone || !formData.vehicleType || !formData.licenseNumber) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
+    if (!validateForm()) {
       return;
     }
     
@@ -188,35 +268,55 @@ const AdminDeliveryAgents = () => {
                   </div>
                 </div>
                 
-                <Input
-                  placeholder="Full Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="Phone Number"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="Email (optional)"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-                <Input
-                  placeholder="Vehicle Type (e.g., Bike, Car)"
-                  value={formData.vehicleType}
-                  onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="License Number"
-                  value={formData.licenseNumber}
-                  onChange={(e) => setFormData({...formData, licenseNumber: e.target.value})}
-                  required
-                />
+                <div className="space-y-1">
+                  <Input
+                    placeholder="Full Name *"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">Minimum 2 characters</p>
+                </div>
+                <div className="space-y-1">
+                  <Input
+                    placeholder="Phone Number *"
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setFormData({...formData, phone: cleaned});
+                    }}
+                    maxLength={10}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">10-digit Indian mobile number</p>
+                </div>
+                <div className="space-y-1">
+                  <Input
+                    placeholder="Email (optional)"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  />
+                  <p className="text-xs text-gray-500">Valid email address</p>
+                </div>
+                <div className="space-y-1">
+                  <Input
+                    placeholder="Vehicle Type *"
+                    value={formData.vehicleType}
+                    onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">e.g., Bike, Car, Scooter</p>
+                </div>
+                <div className="space-y-1">
+                  <Input
+                    placeholder="License Number *"
+                    value={formData.licenseNumber}
+                    onChange={(e) => setFormData({...formData, licenseNumber: e.target.value.toUpperCase()})}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">Minimum 5 characters, driving license number</p>
+                </div>
                 <Button type="submit" className="w-full">Register Agent</Button>
               </form>
             </DialogContent>

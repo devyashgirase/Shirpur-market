@@ -37,7 +37,8 @@ export class CustomerDataService {
       const filteredProducts = products
         .filter(product => {
           const isActive = product.isActive !== undefined ? product.isActive : product.is_active;
-          return isActive === true || isActive === 1;
+          console.log(`Product ${product.name}: isActive=${isActive}`);
+          return isActive === true || isActive === 1 || isActive === '1';
         })
         .map(product => ({
           id: product.id,

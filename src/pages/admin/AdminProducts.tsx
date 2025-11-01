@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Upload, X } from "lucide-react";
+import { Package, Plus, Upload, X, Search } from "lucide-react";
 import { AdminDataService } from "@/lib/adminDataService";
 import { apiService } from "@/lib/apiService";
 import { unifiedDB } from "@/lib/database";
@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 const AdminProducts = () => {
   const { toast } = useToast();
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -39,9 +41,11 @@ const AdminProducts = () => {
       // Load from unified database (auto-switches between MySQL/Supabase)
       const dbProducts = await unifiedDB.getProducts();
       setProducts(dbProducts || []);
+      setFilteredProducts(dbProducts || []);
     } catch (error) {
       console.error('❌ Failed to load products:', error);
       setProducts([]);
+      setFilteredProducts([]);
     } finally {
       setLoading(false);
     }
@@ -155,6 +159,12 @@ const AdminProducts = () => {
         : product
     );
     setProducts(updatedProducts);
+    setFilteredProducts(updatedProducts.filter(product => 
+      !searchQuery.trim() || 
+      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    ));
     
     toast({
       title: "Stock Updated",
@@ -170,24 +180,26 @@ const AdminProducts = () => {
       console.log('🔄 Updating product status in database:', productId, '→', newStatus);
       
       // Update in unified database
-      const dbUpdated = await unifiedDB.updateProduct(parseInt(productId), { isActive: newStatus });
-      if (!dbUpdated) {
-        toast({
-          title: "Database Error",
-          description: "Failed to update product status",
-          variant: "destructive"
-        });
-        return;
-      }
+      await unifiedDB.updateProduct(parseInt(productId), { isActive: newStatus });
       
+      // Update local state immediately
       const updatedProducts = products.map(p => 
         p.id === productId ? { ...p, isActive: newStatus } : p
       );
       setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts.filter(product => 
+        !searchQuery.trim() || 
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      ));
+      
+      // Trigger customer catalog refresh
+      window.dispatchEvent(new CustomEvent('productsUpdated', { detail: updatedProducts }));
       
       toast({
-        title: "Database Updated",
-        description: `Product ${newStatus ? 'enabled' : 'disabled'} in database successfully.`,
+        title: "Product Updated",
+        description: `${product.name} ${newStatus ? 'enabled' : 'disabled'} successfully.`,
       });
     } catch (error) {
       console.error('❌ Failed to update product status:', error);
@@ -217,7 +229,31 @@ const AdminProducts = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
         <h1 className="text-xl md:text-3xl font-bold">Product Management</h1>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="flex gap-3 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                const query = e.target.value;
+                if (!query.trim()) {
+                  setFilteredProducts(products);
+                } else {
+                  const filtered = products.filter(product => 
+                    product.name?.toLowerCase().includes(query.toLowerCase()) ||
+                    product.category?.toLowerCase().includes(query.toLowerCase()) ||
+                    product.description?.toLowerCase().includes(query.toLowerCase())
+                  );
+                  setFilteredProducts(filtered);
+                }
+              }}
+              className="pl-10 w-64"
+            />
+          </div>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary">
               <Plus className="w-4 h-4 mr-2" />
@@ -368,11 +404,33 @@ const AdminProducts = () => {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
+      
+      {searchQuery && (
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Found {filteredProducts.length} product(s) for "{searchQuery}"
+            {filteredProducts.length !== products.length && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilteredProducts(products);
+                }}
+                className="ml-2 p-0 h-auto"
+              >
+                Clear search
+              </Button>
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {products.map((product) => (
+        {filteredProducts.map((product) => (
           <Card key={product.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="p-3 md:p-4">
               <div className="flex items-center justify-between">
@@ -433,6 +491,20 @@ const AdminProducts = () => {
         ))}
       </div>
 
+      {filteredProducts.length === 0 && !loading && searchQuery && (
+        <div className="text-center py-12">
+          <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
+          <p className="text-muted-foreground mb-4">No products match "{searchQuery}"</p>
+          <Button onClick={() => {
+            setSearchQuery('');
+            setFilteredProducts(products);
+          }} variant="outline">
+            Clear Search
+          </Button>
+        </div>
+      )}
+      
       {products.length === 0 && !loading && (
         <div className="text-center py-12">
           <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

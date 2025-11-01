@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -162,33 +162,202 @@ const OTPLogin = () => {
         
         const welcome = welcomeMessages[user.role];
         
-        // Show animated welcome popup
+        // Show animated welcome popup with real-time effects
         setTimeout(() => {
           const popup = document.createElement('div');
-          popup.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fadeIn';
+          popup.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fadeIn';
           popup.innerHTML = `
-            <div class="bg-gradient-to-br from-white to-gray-50 rounded-3xl p-8 max-w-sm mx-4 text-center shadow-2xl transform animate-slideUp">
-              <div class="text-7xl mb-4 animate-bounce">${welcome.icon}</div>
-              <h2 class="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent mb-3">${welcome.title}</h2>
-              <div class="text-gray-700 mb-6 space-y-1">
-                ${welcome.message.split('\n').map(line => `<p class="${line.includes('Hello') || line.includes('Welcome') || line.includes('Hey') ? 'font-semibold text-lg' : 'text-sm'}">${line}</p>`).join('')}
+            <div class="bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-3xl p-8 max-w-sm mx-4 text-center shadow-2xl transform animate-slideUp border-4 border-gradient-to-r from-blue-400 to-purple-400">
+              <!-- Floating particles -->
+              <div class="absolute inset-0 overflow-hidden rounded-3xl">
+                <div class="particle particle-1"></div>
+                <div class="particle particle-2"></div>
+                <div class="particle particle-3"></div>
+                <div class="particle particle-4"></div>
+                <div class="particle particle-5"></div>
               </div>
-              <button class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
-                Continue 🚀
-              </button>
+              
+              <!-- Animated cartoon with glow effect -->
+              <div class="relative z-10">
+                <div class="mb-4 glow-effect flex justify-center" id="cartoon-container"></div>
+                <div class="w-20 h-1 bg-gradient-to-r from-orange-400 to-red-400 mx-auto mb-4 rounded-full animate-pulse"></div>
+                
+                <h2 class="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-purple-500 bg-clip-text text-transparent mb-3 animate-text-glow">
+                  Welcome to Shirpur Delivery!
+                </h2>
+                
+                <div class="text-gray-700 mb-6 space-y-2 animate-fadeInUp">
+                  ${welcome.message.split('\n').map((line, index) => `<p class="${line.includes('Hello') || line.includes('Welcome') || line.includes('Hey') ? 'font-semibold text-lg animate-pulse' : 'text-sm'} animate-slideInLeft" style="animation-delay: ${index * 0.2}s">${line}</p>`).join('')}
+                </div>
+                
+                <!-- Progress bar animation -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+                  <div class="bg-gradient-to-r from-orange-400 to-red-400 h-2 rounded-full animate-progress"></div>
+                </div>
+                
+                <button class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg animate-button-glow">
+                  Continue 🚀
+                </button>
+              </div>
             </div>
           `;
           
-          // Add CSS animations
+          // Add advanced CSS animations
           const style = document.createElement('style');
           style.textContent = `
-            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes slideUp { from { transform: translateY(50px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-            .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-            .animate-slideUp { animation: slideUp 0.4s ease-out; }
+            @keyframes fadeIn { 
+              from { opacity: 0; backdrop-filter: blur(0px); } 
+              to { opacity: 1; backdrop-filter: blur(5px); } 
+            }
+            @keyframes slideUp { 
+              from { transform: translateY(100px) scale(0.8) rotateX(20deg); opacity: 0; } 
+              to { transform: translateY(0) scale(1) rotateX(0deg); opacity: 1; } 
+            }
+            @keyframes fadeInUp {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes slideInLeft {
+              from { transform: translateX(-30px); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes bounce-slow {
+              0%, 20%, 50%, 80%, 100% { transform: translateY(0) scale(1); }
+              40% { transform: translateY(-10px) scale(1.1); }
+              60% { transform: translateY(-5px) scale(1.05); }
+            }
+            @keyframes progress {
+              from { width: 0%; }
+              to { width: 100%; }
+            }
+            @keyframes text-glow {
+              0%, 100% { text-shadow: 0 0 5px rgba(249, 115, 22, 0.5); }
+              50% { text-shadow: 0 0 20px rgba(249, 115, 22, 0.8), 0 0 30px rgba(239, 68, 68, 0.6); }
+            }
+            @keyframes button-glow {
+              0%, 100% { box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3); }
+              50% { box-shadow: 0 8px 25px rgba(249, 115, 22, 0.6), 0 0 30px rgba(239, 68, 68, 0.4); }
+            }
+            @keyframes float {
+              0%, 100% { transform: translateY(0px) rotate(0deg); }
+              33% { transform: translateY(-10px) rotate(120deg); }
+              66% { transform: translateY(5px) rotate(240deg); }
+            }
+            
+            .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+            .animate-slideUp { animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+            .animate-fadeInUp { animation: fadeInUp 0.8s ease-out 0.3s both; }
+            .animate-slideInLeft { animation: slideInLeft 0.6s ease-out both; }
+            .animate-bounce-slow { animation: bounce-slow 2s infinite; }
+            .animate-progress { animation: progress 3s ease-out; }
+            .animate-text-glow { animation: text-glow 2s ease-in-out infinite; }
+            .animate-button-glow { animation: button-glow 2s ease-in-out infinite; }
+            
+            .glow-effect {
+              filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.5));
+            }
+            
+            .particle {
+              position: absolute;
+              width: 6px;
+              height: 6px;
+              background: linear-gradient(45deg, #f97316, #ef4444);
+              border-radius: 50%;
+              animation: float 3s ease-in-out infinite;
+            }
+            .particle-1 { top: 20%; left: 20%; animation-delay: 0s; }
+            .particle-2 { top: 30%; right: 20%; animation-delay: 0.5s; }
+            .particle-3 { bottom: 30%; left: 30%; animation-delay: 1s; }
+            .particle-4 { bottom: 20%; right: 30%; animation-delay: 1.5s; }
+            .particle-5 { top: 50%; left: 10%; animation-delay: 2s; }
           `;
           document.head.appendChild(style);
           document.body.appendChild(popup);
+          
+          // Add role-specific cartoon with new warm welcome design
+          const cartoonContainer = popup.querySelector('#cartoon-container');
+          if (cartoonContainer) {
+            let cartoonSVG = '';
+            if (user.role === 'customer') {
+              cartoonSVG = `<svg width="120" height="120" viewBox="0 0 120 120" class="animate-bounce-slow">
+                <!-- Professional proportional customer -->
+                <g>
+                  <!-- Head -->
+                  <circle cx="60" cy="30" r="15" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5"/>
+                  
+                  <!-- Hair -->
+                  <path d="M47 20 Q60 12 73 20 Q70 16 60 16 Q50 16 47 20" fill="#8B4513"/>
+                  
+                  <!-- Eyes -->
+                  <circle cx="55" cy="28" r="1.5" fill="#000"/>
+                  <circle cx="65" cy="28" r="1.5" fill="#000"/>
+                  
+                  <!-- Smile -->
+                  <path d="M53 34 Q60 38 67 34" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                  
+                  <!-- Body -->
+                  <rect x="50" y="43" width="20" height="30" rx="10" fill="#3B82F6"/>
+                  
+                  <!-- Arms -->
+                  <circle cx="42" cy="50" r="4" fill="#FBBF24"/>
+                  <circle cx="78" cy="50" r="4" fill="#FBBF24"/>
+                  
+                  <!-- Shopping bags -->
+                  <rect x="30" y="55" width="10" height="12" rx="2" fill="#EF4444"/>
+                  <rect x="80" y="55" width="10" height="12" rx="2" fill="#10B981"/>
+                  <path d="M32 55 Q35 52 38 55" stroke="#EF4444" stroke-width="1.5" fill="none"/>
+                  <path d="M82 55 Q85 52 88 55" stroke="#10B981" stroke-width="1.5" fill="none"/>
+                  
+                  <!-- Legs -->
+                  <rect x="54" y="73" width="5" height="18" rx="2.5" fill="#1F2937"/>
+                  <rect x="61" y="73" width="5" height="18" rx="2.5" fill="#1F2937"/>
+                  
+                  <!-- Shoes -->
+                  <ellipse cx="56.5" cy="93" rx="6" ry="3" fill="#000"/>
+                  <ellipse cx="63.5" cy="93" rx="6" ry="3" fill="#000"/>
+                </g>
+              </svg>`;
+            } else if (user.role === 'delivery') {
+              cartoonSVG = `<svg width="120" height="120" viewBox="0 0 120 120" class="animate-bounce-slow">
+                <circle cx="60" cy="35" r="18" fill="#FBBF24" stroke="#F59E0B" stroke-width="2"/>
+                <path d="M42 25 Q60 10 78 25 Q78 30 60 28 Q42 30 42 25" fill="#EF4444"/>
+                <rect x="55" y="15" width="10" height="8" rx="2" fill="#FFF"/>
+                <circle cx="54" cy="32" r="2" fill="#000"/>
+                <circle cx="66" cy="32" r="2" fill="#000"/>
+                <path d="M52 38 Q60 44 68 38" stroke="#000" stroke-width="2" fill="none"/>
+                <rect x="48" y="50" width="24" height="35" rx="12" fill="#1F2937"/>
+                <rect x="52" y="54" width="16" height="8" fill="#FBBF24"/>
+                <circle cx="40" cy="60" r="6" fill="#FBBF24"/>
+                <circle cx="80" cy="60" r="6" fill="#FBBF24"/>
+                <rect x="82" y="58" width="15" height="12" rx="2" fill="#8B4513"/>
+                <rect x="52" y="85" width="6" height="20" fill="#1F2937"/>
+                <rect x="62" y="85" width="6" height="20" fill="#1F2937"/>
+                <ellipse cx="55" cy="108" rx="8" ry="4" fill="#000"/>
+                <ellipse cx="65" cy="108" rx="8" ry="4" fill="#000"/>
+              </svg>`;
+            } else if (user.role === 'admin') {
+              cartoonSVG = `<svg width="120" height="120" viewBox="0 0 120 120" class="animate-bounce-slow">
+                <circle cx="60" cy="35" r="18" fill="#FBBF24" stroke="#F59E0B" stroke-width="2"/>
+                <path d="M45 25 Q60 12 75 25 Q75 22 60 20 Q45 22 45 25" fill="#4B5563"/>
+                <circle cx="54" cy="32" r="6" fill="none" stroke="#000" stroke-width="2"/>
+                <circle cx="66" cy="32" r="6" fill="none" stroke="#000" stroke-width="2"/>
+                <circle cx="54" cy="32" r="2" fill="#000"/>
+                <circle cx="66" cy="32" r="2" fill="#000"/>
+                <path d="M52 38 Q60 44 68 38" stroke="#000" stroke-width="2" fill="none"/>
+                <rect x="48" y="50" width="24" height="35" rx="12" fill="#1F2937"/>
+                <polygon points="60,50 65,55 60,75 55,55" fill="#EF4444"/>
+                <rect x="52" y="50" width="16" height="25" fill="#FFF"/>
+                <circle cx="40" cy="60" r="6" fill="#FBBF24"/>
+                <circle cx="80" cy="60" r="6" fill="#FBBF24"/>
+                <rect x="82" y="55" width="12" height="18" rx="2" fill="#8B4513"/>
+                <rect x="52" y="85" width="6" height="20" fill="#1F2937"/>
+                <rect x="62" y="85" width="6" height="20" fill="#1F2937"/>
+                <ellipse cx="55" cy="108" rx="8" ry="4" fill="#000"/>
+                <ellipse cx="65" cy="108" rx="8" ry="4" fill="#000"/>
+              </svg>`;
+            }
+            cartoonContainer.innerHTML = cartoonSVG;
+          }
           
           // Handle button click
           popup.querySelector('button').onclick = () => {
@@ -205,12 +374,12 @@ const OTPLogin = () => {
             }, 200);
           };
           
-          // Auto redirect after 4 seconds
+          // Auto redirect after 5 seconds to enjoy animations
           setTimeout(() => {
             if (document.body.contains(popup)) {
               popup.querySelector('button').click();
             }
-          }, 4000);
+          }, 5000);
         }, 1000);
       }
     } else {
@@ -266,45 +435,224 @@ const OTPLogin = () => {
       
       const welcome = welcomeMessages[role];
       
+      // Show animated welcome popup with cartoon (same as existing user flow)
       setTimeout(() => {
-        if (window.Swal) {
-          window.Swal.fire({
-            title: welcome.title,
-            text: welcome.message,
-            icon: 'success',
-            iconHtml: welcome.icon,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: '#fff',
-            confirmButtonColor: '#4F46E5',
-            confirmButtonText: 'Get Started! 🚀',
-            showClass: {
-              popup: 'animate__animated animate__bounceIn'
-            },
-            timer: 5000,
-            timerProgressBar: true
-          }).then(() => {
-            const routes = {
-              customer: '/customer',
-              admin: '/admin',
-              delivery: '/delivery'
-            };
-            navigate(routes[role]);
-          });
-        } else {
-          toast({
-            title: welcome.title,
-            description: welcome.message.replace(/\n/g, ' '),
-          });
+        const popup = document.createElement('div');
+        popup.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fadeIn';
+        popup.innerHTML = `
+          <div class="bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-3xl p-8 max-w-sm mx-4 text-center shadow-2xl transform animate-slideUp border-4 border-gradient-to-r from-blue-400 to-purple-400">
+            <!-- Floating particles -->
+            <div class="absolute inset-0 overflow-hidden rounded-3xl">
+              <div class="particle particle-1"></div>
+              <div class="particle particle-2"></div>
+              <div class="particle particle-3"></div>
+              <div class="particle particle-4"></div>
+              <div class="particle particle-5"></div>
+            </div>
+            
+            <!-- Animated cartoon with glow effect -->
+            <div class="relative z-10">
+              <div class="mb-4 glow-effect flex justify-center" id="cartoon-container-setup"></div>
+              <div class="w-20 h-1 bg-gradient-to-r from-orange-400 to-red-400 mx-auto mb-4 rounded-full animate-pulse"></div>
+              
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-purple-500 bg-clip-text text-transparent mb-3 animate-text-glow">
+                Welcome to Shirpur Delivery!
+              </h2>
+              
+              <div class="text-gray-700 mb-6 space-y-2 animate-fadeInUp">
+                ${welcome.message.split('\n').map((line, index) => `<p class="${line.includes('Hi') || line.includes('Welcome') ? 'font-semibold text-lg animate-pulse' : 'text-sm'} animate-slideInLeft" style="animation-delay: ${index * 0.2}s">${line}</p>`).join('')}
+              </div>
+              
+              <!-- Progress bar animation -->
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+                <div class="bg-gradient-to-r from-orange-400 to-red-400 h-2 rounded-full animate-progress"></div>
+              </div>
+              
+              <button class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg animate-button-glow">
+                Get Started 🚀
+              </button>
+            </div>
+          </div>
+        `;
+        
+        // Add advanced CSS animations (reuse existing styles)
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes fadeIn { 
+            from { opacity: 0; backdrop-filter: blur(0px); } 
+            to { opacity: 1; backdrop-filter: blur(5px); } 
+          }
+          @keyframes slideUp { 
+            from { transform: translateY(100px) scale(0.8) rotateX(20deg); opacity: 0; } 
+            to { transform: translateY(0) scale(1) rotateX(0deg); opacity: 1; } 
+          }
+          @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          @keyframes slideInLeft {
+            from { transform: translateX(-30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+          }
+          @keyframes bounce-slow {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) scale(1); }
+            40% { transform: translateY(-10px) scale(1.1); }
+            60% { transform: translateY(-5px) scale(1.05); }
+          }
+          @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+          }
+          @keyframes text-glow {
+            0%, 100% { text-shadow: 0 0 5px rgba(249, 115, 22, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(249, 115, 22, 0.8), 0 0 30px rgba(239, 68, 68, 0.6); }
+          }
+          @keyframes button-glow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3); }
+            50% { box-shadow: 0 8px 25px rgba(249, 115, 22, 0.6), 0 0 30px rgba(239, 68, 68, 0.4); }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-10px) rotate(120deg); }
+            66% { transform: translateY(5px) rotate(240deg); }
+          }
           
+          .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+          .animate-slideUp { animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+          .animate-fadeInUp { animation: fadeInUp 0.8s ease-out 0.3s both; }
+          .animate-slideInLeft { animation: slideInLeft 0.6s ease-out both; }
+          .animate-bounce-slow { animation: bounce-slow 2s infinite; }
+          .animate-progress { animation: progress 3s ease-out; }
+          .animate-text-glow { animation: text-glow 2s ease-in-out infinite; }
+          .animate-button-glow { animation: button-glow 2s ease-in-out infinite; }
+          
+          .glow-effect {
+            filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.5));
+          }
+          
+          .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(45deg, #f97316, #ef4444);
+            border-radius: 50%;
+            animation: float 3s ease-in-out infinite;
+          }
+          .particle-1 { top: 20%; left: 20%; animation-delay: 0s; }
+          .particle-2 { top: 30%; right: 20%; animation-delay: 0.5s; }
+          .particle-3 { bottom: 30%; left: 30%; animation-delay: 1s; }
+          .particle-4 { bottom: 20%; right: 30%; animation-delay: 1.5s; }
+          .particle-5 { top: 50%; left: 10%; animation-delay: 2s; }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(popup);
+        
+        // Add role-specific cartoon with new warm welcome design
+        const cartoonContainer = popup.querySelector('#cartoon-container-setup');
+        if (cartoonContainer) {
+          let cartoonSVG = '';
+          if (role === 'customer') {
+            cartoonSVG = `<svg width="120" height="120" viewBox="0 0 120 120" class="animate-bounce-slow">
+              <!-- Professional proportional customer -->
+              <g>
+                <!-- Head -->
+                <circle cx="60" cy="30" r="15" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5"/>
+                
+                <!-- Hair -->
+                <path d="M47 20 Q60 12 73 20 Q70 16 60 16 Q50 16 47 20" fill="#8B4513"/>
+                
+                <!-- Eyes -->
+                <circle cx="55" cy="28" r="1.5" fill="#000"/>
+                <circle cx="65" cy="28" r="1.5" fill="#000"/>
+                
+                <!-- Smile -->
+                <path d="M53 34 Q60 38 67 34" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                
+                <!-- Body -->
+                <rect x="50" y="43" width="20" height="30" rx="10" fill="#3B82F6"/>
+                
+                <!-- Arms -->
+                <circle cx="42" cy="50" r="4" fill="#FBBF24"/>
+                <circle cx="78" cy="50" r="4" fill="#FBBF24"/>
+                
+                <!-- Shopping bags -->
+                <rect x="30" y="55" width="10" height="12" rx="2" fill="#EF4444"/>
+                <rect x="80" y="55" width="10" height="12" rx="2" fill="#10B981"/>
+                <path d="M32 55 Q35 52 38 55" stroke="#EF4444" stroke-width="1.5" fill="none"/>
+                <path d="M82 55 Q85 52 88 55" stroke="#10B981" stroke-width="1.5" fill="none"/>
+                
+                <!-- Legs -->
+                <rect x="54" y="73" width="5" height="18" rx="2.5" fill="#1F2937"/>
+                <rect x="61" y="73" width="5" height="18" rx="2.5" fill="#1F2937"/>
+                
+                <!-- Shoes -->
+                <ellipse cx="56.5" cy="93" rx="6" ry="3" fill="#000"/>
+                <ellipse cx="63.5" cy="93" rx="6" ry="3" fill="#000"/>
+              </g>
+            </svg>`;
+          } else if (role === 'delivery') {
+            cartoonSVG = `<svg width="120" height="120" viewBox="0 0 120 120" class="animate-bounce-slow">
+              <circle cx="60" cy="35" r="18" fill="#FBBF24" stroke="#F59E0B" stroke-width="2"/>
+              <path d="M42 25 Q60 10 78 25 Q78 30 60 28 Q42 30 42 25" fill="#EF4444"/>
+              <rect x="55" y="15" width="10" height="8" rx="2" fill="#FFF"/>
+              <circle cx="54" cy="32" r="2" fill="#000"/>
+              <circle cx="66" cy="32" r="2" fill="#000"/>
+              <path d="M52 38 Q60 44 68 38" stroke="#000" stroke-width="2" fill="none"/>
+              <rect x="48" y="50" width="24" height="35" rx="12" fill="#1F2937"/>
+              <rect x="52" y="54" width="16" height="8" fill="#FBBF24"/>
+              <circle cx="40" cy="60" r="6" fill="#FBBF24"/>
+              <circle cx="80" cy="60" r="6" fill="#FBBF24"/>
+              <rect x="82" y="58" width="15" height="12" rx="2" fill="#8B4513"/>
+              <rect x="52" y="85" width="6" height="20" fill="#1F2937"/>
+              <rect x="62" y="85" width="6" height="20" fill="#1F2937"/>
+              <ellipse cx="55" cy="108" rx="8" ry="4" fill="#000"/>
+              <ellipse cx="65" cy="108" rx="8" ry="4" fill="#000"/>
+            </svg>`;
+          } else if (role === 'admin') {
+            cartoonSVG = `<svg width="120" height="120" viewBox="0 0 120 120" class="animate-bounce-slow">
+              <circle cx="60" cy="35" r="18" fill="#FBBF24" stroke="#F59E0B" stroke-width="2"/>
+              <path d="M45 25 Q60 12 75 25 Q75 22 60 20 Q45 22 45 25" fill="#4B5563"/>
+              <circle cx="54" cy="32" r="6" fill="none" stroke="#000" stroke-width="2"/>
+              <circle cx="66" cy="32" r="6" fill="none" stroke="#000" stroke-width="2"/>
+              <circle cx="54" cy="32" r="2" fill="#000"/>
+              <circle cx="66" cy="32" r="2" fill="#000"/>
+              <path d="M52 38 Q60 44 68 38" stroke="#000" stroke-width="2" fill="none"/>
+              <rect x="48" y="50" width="24" height="35" rx="12" fill="#1F2937"/>
+              <polygon points="60,50 65,55 60,75 55,55" fill="#EF4444"/>
+              <rect x="52" y="50" width="16" height="25" fill="#FFF"/>
+              <circle cx="40" cy="60" r="6" fill="#FBBF24"/>
+              <circle cx="80" cy="60" r="6" fill="#FBBF24"/>
+              <rect x="82" y="55" width="12" height="18" rx="2" fill="#8B4513"/>
+              <rect x="52" y="85" width="6" height="20" fill="#1F2937"/>
+              <rect x="62" y="85" width="6" height="20" fill="#1F2937"/>
+              <ellipse cx="55" cy="108" rx="8" ry="4" fill="#000"/>
+              <ellipse cx="65" cy="108" rx="8" ry="4" fill="#000"/>
+            </svg>`;
+          }
+          cartoonContainer.innerHTML = cartoonSVG;
+        }
+        
+        // Handle button click
+        popup.querySelector('button').onclick = () => {
+          popup.style.animation = 'fadeIn 0.2s ease-out reverse';
           setTimeout(() => {
+            popup.remove();
+            style.remove();
             const routes = {
               customer: '/customer',
               admin: '/admin',
               delivery: '/delivery'
             };
             navigate(routes[role]);
-          }, 2000);
-        }
+          }, 200);
+        };
+        
+        // Auto redirect after 5 seconds
+        setTimeout(() => {
+          if (document.body.contains(popup)) {
+            popup.querySelector('button').click();
+          }
+        }, 5000);
       }, 500);
     } else {
       toast({

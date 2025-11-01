@@ -48,6 +48,65 @@ export const supabaseApi = {
     }
   },
   
+  async createProduct(product: any) {
+    try {
+      const result = await supabaseRest.post('products', {
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+        stock_quantity: product.stockQuantity || product.stock_quantity,
+        image_url: product.imageUrl || product.image_url,
+        is_active: product.isActive !== undefined ? product.isActive : true,
+        sku: product.sku || `SKU${Date.now()}`,
+        unit: product.unit || 'kg'
+      });
+      return result[0];
+    } catch (error) {
+      console.warn('Supabase failed, using localStorage:', error);
+      const productWithId = { id: Date.now(), ...product, isActive: true };
+      const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
+      existingProducts.push(productWithId);
+      localStorage.setItem('products', JSON.stringify(existingProducts));
+      return productWithId;
+    }
+  },
+  
+  async updateProduct(id: number, product: any) {
+    try {
+      const result = await supabaseRest.patch(`products?id=eq.${id}`, {
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+        stock_quantity: product.stockQuantity || product.stock_quantity,
+        image_url: product.imageUrl || product.image_url,
+        is_active: product.isActive,
+        updated_at: new Date().toISOString()
+      });
+      return result[0];
+    } catch (error) {
+      console.warn('Supabase failed, using localStorage:', error);
+      const products = JSON.parse(localStorage.getItem('products') || '[]');
+      const index = products.findIndex((p: any) => p.id === id);
+      if (index >= 0) {
+        products[index] = { ...products[index], ...product };
+        localStorage.setItem('products', JSON.stringify(products));
+        return products[index];
+      }
+      return null;
+    }
+  },
+  
+  async getCategories() {
+    try {
+      return await supabaseRest.get('categories');
+    } catch (error) {
+      console.warn('Using mock categories:', error);
+      return mockData.categories;
+    }
+  },
+  
   async getOrders() {
     try {
       const orders = await supabaseRest.get('orders', 'order=created_at.desc');

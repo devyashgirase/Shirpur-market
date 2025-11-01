@@ -116,10 +116,19 @@ const CustomerCatalog = () => {
     };
     
     realTimeDataService.subscribe('products', handleProductUpdate);
+    
+    // Listen for admin product updates
+    const handleAdminProductUpdate = (event: CustomEvent) => {
+      console.log('Products updated from admin:', event.detail);
+      handleProductUpdate(event.detail);
+    };
+    
+    window.addEventListener('productsUpdated', handleAdminProductUpdate as EventListener);
     loadCustomerProducts();
     
     return () => {
       realTimeDataService.unsubscribe('products', handleProductUpdate);
+      window.removeEventListener('productsUpdated', handleAdminProductUpdate as EventListener);
     };
   }, []);
 
@@ -179,31 +188,55 @@ const CustomerCatalog = () => {
     }
   };
 
-  // Get carousel items from localStorage or use featured products as fallback
-  const getCarouselItems = () => {
+  // State for carousel items
+  const [carouselItems, setCarouselItems] = useState<any[]>([]);
+  
+  // Load carousel items from admin
+  const loadCarouselItems = () => {
     const saved = localStorage.getItem('carouselItems');
     if (saved) {
-      const carouselItems = JSON.parse(saved).filter((item: any) => item.isActive);
-      if (carouselItems.length > 0) {
-        return carouselItems.map((item: any) => ({
-          id: item.productId.toString(),
-          name: item.title,
-          description: item.description,
-          price: item.price,
-          image_url: item.imageUrl,
-          category_id: 'featured',
-          stock_qty: 100,
-          is_active: true,
-          sku: `SKU${item.productId}`,
-          unit: 'kg',
-          is_age_restricted: false
-        }));
-      }
+      const items = JSON.parse(saved)
+        .filter((item: any) => item.isActive)
+        .sort((a: any, b: any) => a.order - b.order);
+      
+      const formattedItems = items.map((item: any) => ({
+        id: item.productId.toString(),
+        name: item.title,
+        description: item.description,
+        price: item.price,
+        image_url: item.imageUrl,
+        category_id: 'featured',
+        stock_qty: 100,
+        is_active: true,
+        sku: `SKU${item.productId}`,
+        unit: 'kg',
+        is_age_restricted: false
+      }));
+      
+      setCarouselItems(formattedItems);
+    } else {
+      // Use featured products as fallback
+      setCarouselItems(products.slice(0, 5));
     }
-    return products.slice(0, 5);
   };
   
-  const featuredProducts = getCarouselItems();
+  // Listen for carousel updates from admin
+  useEffect(() => {
+    loadCarouselItems();
+    
+    const handleCarouselUpdate = (event: CustomEvent) => {
+      console.log('Carousel updated from admin:', event.detail);
+      loadCarouselItems();
+    };
+    
+    window.addEventListener('carouselUpdated', handleCarouselUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('carouselUpdated', handleCarouselUpdate as EventListener);
+    };
+  }, [products]);
+  
+  const featuredProducts = carouselItems.length > 0 ? carouselItems : products.slice(0, 5);
   const [popularProducts, setPopularProducts] = useState<Product[]>([]);
 
   useEffect(() => {

@@ -35,42 +35,84 @@ const AdminCarousel = () => {
     loadProducts();
   }, []);
 
-  const loadCarouselItems = () => {
-    const saved = localStorage.getItem('carouselItems');
-    if (saved) {
-      setCarouselItems(JSON.parse(saved));
-    } else {
-      // Default carousel items
-      const defaultItems: CarouselItem[] = [
-        {
-          id: 1,
-          productId: 1,
-          productName: "Fresh Tomatoes",
-          title: "Fresh Tomatoes",
-          description: "Farm fresh red tomatoes",
-          imageUrl: "/api/placeholder/800/400",
-          price: 40,
-          isActive: true,
-          order: 1
-        }
-      ];
-      setCarouselItems(defaultItems);
-      localStorage.setItem('carouselItems', JSON.stringify(defaultItems));
+  const loadCarouselItems = async () => {
+    try {
+      const saved = localStorage.getItem('carouselItems');
+      if (saved) {
+        const items = JSON.parse(saved);
+        // Sort by order
+        items.sort((a: CarouselItem, b: CarouselItem) => a.order - b.order);
+        setCarouselItems(items);
+      } else {
+        // Default carousel items
+        const defaultItems: CarouselItem[] = [
+          {
+            id: 1,
+            productId: 1,
+            productName: "Fresh Tomatoes",
+            title: "🍅 Fresh Farm Tomatoes",
+            description: "Premium quality red tomatoes straight from the farm",
+            imageUrl: "https://images.unsplash.com/photo-1546470427-e5d491d7e4b8?w=800&h=400&fit=crop",
+            price: 40,
+            isActive: true,
+            order: 1
+          }
+        ];
+        setCarouselItems(defaultItems);
+        localStorage.setItem('carouselItems', JSON.stringify(defaultItems));
+      }
+    } catch (error) {
+      console.error('Error loading carousel items:', error);
+      toast({ title: "Error loading carousel items", variant: "destructive" });
     }
   };
 
-  const loadProducts = () => {
-    const mockProducts = [
-      { id: 1, name: 'Fresh Tomatoes', price: 40, imageUrl: '/api/placeholder/300/200' },
-      { id: 2, name: 'Basmati Rice', price: 120, imageUrl: '/api/placeholder/300/200' },
-      { id: 3, name: 'Organic Milk', price: 60, imageUrl: '/api/placeholder/300/200' }
-    ];
-    setProducts(mockProducts);
+  const loadProducts = async () => {
+    try {
+      // Load from product master (same source as customer catalog)
+      const savedProducts = localStorage.getItem('products');
+      if (savedProducts) {
+        const allProducts = JSON.parse(savedProducts);
+        // Filter active products only
+        const activeProducts = allProducts.filter((p: any) => p.is_active || p.isActive);
+        setProducts(activeProducts);
+      } else {
+        // Try to load from Supabase or other sources
+        const { CustomerDataService } = await import('@/lib/customerDataService');
+        const customerProducts = await CustomerDataService.getAvailableProducts();
+        
+        const formattedProducts = customerProducts.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          imageUrl: p.image_url || p.imageUrl,
+          category: p.category || p.category_id,
+          description: p.description,
+          stock_quantity: p.stock_quantity || p.stockQuantity,
+          is_active: p.is_active || p.isActive
+        })).filter((p: any) => p.is_active);
+        
+        setProducts(formattedProducts);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast({ title: "Error loading products from master", variant: "destructive" });
+      setProducts([]);
+    }
   };
 
-  const saveCarouselItems = (items: CarouselItem[]) => {
-    localStorage.setItem('carouselItems', JSON.stringify(items));
-    setCarouselItems(items);
+  const saveCarouselItems = async (items: CarouselItem[]) => {
+    try {
+      // Save to localStorage for now (can be extended to Supabase)
+      localStorage.setItem('carouselItems', JSON.stringify(items));
+      setCarouselItems(items);
+      
+      // Trigger event for customer carousel to update
+      window.dispatchEvent(new CustomEvent('carouselUpdated', { detail: items }));
+    } catch (error) {
+      console.error('Error saving carousel items:', error);
+      toast({ title: "Error saving carousel items", variant: "destructive" });
+    }
   };
 
   const handleSave = (item: Omit<CarouselItem, 'id'>) => {
@@ -220,15 +262,17 @@ const CarouselForm = ({
   });
 
   const handleProductChange = (productId: string) => {
-    const product = products.find(p => p.id === parseInt(productId));
+    const product = products.find(p => p.id == productId);
     if (product) {
       setFormData({
         ...formData,
         productId: product.id,
         productName: product.name,
         title: product.name,
+        description: product.description || `Fresh ${product.name} - Premium Quality`,
         price: product.price,
-        imageUrl: product.imageUrl
+        // Don't auto-fill product image for banner - keep existing or empty for manual upload
+        imageUrl: formData.imageUrl || ''
       });
     }
   };
@@ -247,11 +291,21 @@ const CarouselForm = ({
             <SelectValue placeholder="Choose a product" />
           </SelectTrigger>
           <SelectContent>
-            {products.map(product => (
+            {products.length > 0 ? products.map(product => (
               <SelectItem key={product.id} value={product.id.toString()}>
-                {product.name} - ₹{product.price}
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex flex-col">
+                    <span className="font-medium">{product.name}</span>
+                    <span className="text-xs text-gray-500">{product.category} • Stock: {product.stock_quantity || 0}</span>
+                  </div>
+                  <span className="text-green-600 font-semibold">₹{product.price}</span>
+                </div>
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-products" disabled>
+                No products available
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -278,17 +332,30 @@ const CarouselForm = ({
         <Label>Banner Image</Label>
         <ImageDropzone 
           currentImage={formData.imageUrl}
-          onImageUpload={(imageUrl) => setFormData({...formData, imageUrl})}
+          onImageUpload={(imageUrl) => {
+            // Preserve all existing form data when uploading image
+            setFormData(prevData => ({
+              ...prevData,
+              imageUrl: imageUrl
+            }));
+          }}
           className="mt-2"
         />
         <div className="mt-2">
-          <Label className="text-sm text-gray-600">Or enter image URL:</Label>
+          <Label className="text-sm text-gray-600">Or enter banner image URL (1200x400 recommended):</Label>
           <Input 
             value={formData.imageUrl}
-            onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-            placeholder="https://example.com/image.jpg"
+            onChange={(e) => {
+              // Preserve all existing form data when entering URL
+              setFormData(prevData => ({
+                ...prevData,
+                imageUrl: e.target.value
+              }));
+            }}
+            placeholder="https://example.com/banner-image.jpg"
             className="mt-1"
           />
+          <p className="text-xs text-gray-500 mt-1">Use wide banner images (1200x400px) for best results</p>
         </div>
       </div>
 
