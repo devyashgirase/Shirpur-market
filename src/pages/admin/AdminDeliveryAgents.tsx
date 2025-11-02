@@ -34,71 +34,19 @@ const AdminDeliveryAgents = () => {
   const loadAgents = async () => {
     try {
       console.log('🔍 Loading agents for admin panel...');
-      const agentList = await deliveryAuthService.getAllAgents();
-      console.log('📦 Loaded agents:', agentList);
-      console.log('📊 Agent count:', agentList.length);
       
-      // Add demo agents if database has less than 3 agents
-      if (agentList.length < 3) {
-        console.log('⚠️ Less than 3 agents found, adding demo agents...');
-        const demoAgents = [
-          {
-            id: 1,
-            userId: 'DA415944',
-            name: 'Rahul Sharma',
-            phone: '9876543210',
-            email: 'rahul@delivery.com',
-            vehicleType: 'Motorcycle',
-            licenseNumber: 'MH789012',
-            isActive: true,
-            isApproved: true,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 2,
-            userId: 'DA123456',
-            name: 'Demo Agent',
-            phone: '9876543211',
-            email: 'demo@delivery.com',
-            vehicleType: 'Bike',
-            licenseNumber: 'MH123456',
-            isActive: true,
-            isApproved: true,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 3,
-            userId: 'DA617627',
-            name: 'Production Agent',
-            phone: '9876543212',
-            email: 'agent@delivery.com',
-            vehicleType: 'Bike',
-            licenseNumber: 'MH345678',
-            isActive: true,
-            isApproved: true,
-            createdAt: new Date().toISOString()
-          }
-        ];
-        
-        // Merge database agents with demo agents (avoid duplicates)
-        const mergedAgents = [...agentList];
-        demoAgents.forEach(demo => {
-          if (!mergedAgents.find(existing => existing.userId === demo.userId)) {
-            mergedAgents.push(demo);
-          }
-        });
-        
-        setAgents(mergedAgents);
-        console.log('✅ Total agents after merge:', mergedAgents.length);
-      } else {
-        setAgents(agentList);
-      }
-    } catch (error) {
-      console.error('Failed to load agents:', error);
-      // Show demo agents on error
+      // Force fresh data from database
+      const agentList = await deliveryAuthService.getAllAgents();
+      console.log('📦 Fresh agents from database:', agentList);
+      console.log('📊 Database agent count:', agentList.length);
+      
+      // Always show all agents from database first
+      const allAgents = [...agentList];
+      
+      // Add demo agents only if they don't exist in database
       const demoAgents = [
         {
-          id: 1,
+          id: 1001,
           userId: 'DA415944',
           name: 'Rahul Sharma',
           phone: '9876543210',
@@ -110,7 +58,7 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         },
         {
-          id: 2,
+          id: 1002,
           userId: 'DA123456',
           name: 'Demo Agent',
           phone: '9876543211',
@@ -122,7 +70,7 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         },
         {
-          id: 3,
+          id: 1003,
           userId: 'DA617627',
           name: 'Production Agent',
           phone: '9876543212',
@@ -134,7 +82,64 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         }
       ];
-      setAgents(demoAgents);
+      
+      // Add demo agents that don't exist in database
+      demoAgents.forEach(demo => {
+        if (!allAgents.find(existing => existing.userId === demo.userId)) {
+          allAgents.push(demo);
+        }
+      });
+      
+      console.log('✅ Final agents list:', allAgents.length, 'agents');
+      console.log('📋 Agent details:', allAgents.map(a => ({ id: a.id, userId: a.userId, name: a.name })));
+      
+      setAgents(allAgents);
+      
+    } catch (error) {
+      console.error('❌ Failed to load agents:', error);
+      
+      // Fallback to demo agents only on complete failure
+      const fallbackAgents = [
+        {
+          id: 1001,
+          userId: 'DA415944',
+          name: 'Rahul Sharma',
+          phone: '9876543210',
+          email: 'rahul@delivery.com',
+          vehicleType: 'Motorcycle',
+          licenseNumber: 'MH789012',
+          isActive: true,
+          isApproved: true,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 1002,
+          userId: 'DA123456',
+          name: 'Demo Agent',
+          phone: '9876543211',
+          email: 'demo@delivery.com',
+          vehicleType: 'Bike',
+          licenseNumber: 'MH123456',
+          isActive: true,
+          isApproved: true,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 1003,
+          userId: 'DA617627',
+          name: 'Production Agent',
+          phone: '9876543212',
+          email: 'agent@delivery.com',
+          vehicleType: 'Bike',
+          licenseNumber: 'MH345678',
+          isActive: true,
+          isApproved: true,
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      setAgents(fallbackAgents);
+      console.log('⚠️ Using fallback demo agents');
     } finally {
       setLoading(false);
     }
@@ -250,13 +255,16 @@ const AdminDeliveryAgents = () => {
     }
     
     try {
+      console.log('🔄 Starting agent registration...');
       const agent = await deliveryAuthService.registerAgent(formData);
+      console.log('✅ Agent registered:', agent);
       
       toast({
         title: "Agent Registered Successfully",
         description: `Credentials sent to ${formData.phone}. User ID: ${agent.user_id || agent.userId}`,
       });
       
+      // Reset form
       setShowAddForm(false);
       setFormData({
         name: '',
@@ -268,7 +276,12 @@ const AdminDeliveryAgents = () => {
       });
       setPhotoPreview(null);
       
+      // Force reload agents from database
+      console.log('🔄 Reloading agents list...');
+      setLoading(true);
       await loadAgents();
+      setLoading(false);
+      console.log('✅ Agents list reloaded');
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -277,6 +290,7 @@ const AdminDeliveryAgents = () => {
         description: error.message || "Failed to register delivery agent. Please try again.",
         variant: "destructive"
       });
+      setLoading(false);
     }
   };
 
@@ -287,12 +301,15 @@ const AdminDeliveryAgents = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Delivery Agents</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Delivery Agents</h1>
+          <p className="text-gray-600 mt-1">Manage delivery agent registrations and credentials</p>
+        </div>
         <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-500 hover:bg-blue-600">
+              <Button className="bg-blue-500 hover:bg-blue-600" disabled={loading}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Agent
+                {loading ? 'Loading...' : 'Add Agent'}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
@@ -408,59 +425,70 @@ const AdminDeliveryAgents = () => {
           </Dialog>
       </div>
 
-      <div className="grid gap-4">
-        {agents.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Delivery Agents</h3>
-              <p className="text-gray-600">Register delivery agents to start managing deliveries</p>
-            </CardContent>
-          </Card>
-        ) : (
-          agents.map((agent) => (
-            <Card key={agent.id}>
-              <CardContent className="p-6">
-                <div className="flex gap-4">
-                  {agent.profilePhoto ? (
-                    <img 
-                      src={agent.profilePhoto} 
-                      alt={agent.name}
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{agent.name}</h3>
-                      <Badge variant={agent.isActive ? "default" : "destructive"}>
-                        {agent.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-600">User ID: <span className="font-medium">{agent.userId}</span></p>
-                        <p className="text-gray-600">Phone: <span className="font-medium">{agent.phone}</span></p>
-                        <p className="text-gray-600">Status: <span className="font-medium">{agent.isActive ? 'Active' : 'Inactive'}</span></p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Vehicle: <span className="font-medium">{agent.vehicleType}</span></p>
-                        <p className="text-gray-600">License: <span className="font-medium">{agent.licenseNumber}</span></p>
-                        <p className="text-gray-600">Registered: <span className="font-medium">{new Date(agent.createdAt).toLocaleDateString()}</span></p>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2">
-                      Credentials sent via SMS
-                    </div>
-                  </div>
-                </div>
+      <div className="space-y-4">
+        <div className="bg-blue-50 p-3 rounded-lg">
+          <p className="text-sm text-blue-700">📊 Total Agents: <span className="font-bold">{agents.length}</span></p>
+        </div>
+        
+        <div className="grid gap-4">
+          {agents.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Delivery Agents</h3>
+                <p className="text-gray-600">Register delivery agents to start managing deliveries</p>
               </CardContent>
             </Card>
-          ))
-        )}
+          ) : (
+            agents.map((agent) => (
+              <Card key={`${agent.id}-${agent.userId}`} className="border-l-4 border-l-blue-500">
+                <CardContent className="p-6">
+                  <div className="flex gap-4">
+                    {agent.profilePhoto ? (
+                      <img 
+                        src={agent.profilePhoto} 
+                        alt={agent.name}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                        <User className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold">{agent.name}</h3>
+                        <Badge variant={agent.isActive ? "default" : "destructive"}>
+                          {agent.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        {agent.id > 1000 && (
+                          <Badge variant="outline" className="text-xs">
+                            Demo
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600">User ID: <span className="font-medium">{agent.userId}</span></p>
+                          <p className="text-gray-600">Phone: <span className="font-medium">{agent.phone}</span></p>
+                          <p className="text-gray-600">Status: <span className="font-medium">{agent.isActive ? 'Active' : 'Inactive'}</span></p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Vehicle: <span className="font-medium">{agent.vehicleType}</span></p>
+                          <p className="text-gray-600">License: <span className="font-medium">{agent.licenseNumber}</span></p>
+                          <p className="text-gray-600">Registered: <span className="font-medium">{new Date(agent.createdAt).toLocaleDateString()}</span></p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {agent.id > 1000 ? 'Demo Agent' : 'Credentials sent via SMS'}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
