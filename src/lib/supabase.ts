@@ -175,12 +175,25 @@ export const supabaseApi = {
   
   async getDeliveryAgents() {
     try {
+      console.log('🔍 Fetching delivery agents from database...');
       const agents = await supabaseRest.get('delivery_agents');
-      console.log('🔍 Raw agents from database:', agents);
-      console.log('🔍 Raw database agents:', agents);
-      return agents.map((agent: any) => {
-        console.log('🔍 Processing agent:', agent);
-        return {
+      console.log('📦 Raw database response:', agents);
+      console.log('📊 Total agents found:', agents.length);
+      
+      if (agents.length === 0) {
+        console.log('⚠️ No agents found in database');
+        return [];
+      }
+      
+      // Log each raw agent
+      agents.forEach((agent: any, index: number) => {
+        console.log(`🔍 Raw Agent ${index + 1}:`, agent);
+      });
+      
+      const normalizedAgents = agents.map((agent: any, index: number) => {
+        console.log(`🔄 Processing agent ${index + 1}:`, agent);
+        
+        const normalized = {
           id: agent.id,
           userid: agent.userid,
           user_id: agent.userid,
@@ -203,37 +216,102 @@ export const supabaseApi = {
           isApproved: agent.isapproved,
           createdat: agent.createdat,
           created_at: agent.createdat,
-          createdAt: agent.createdat
+          createdAt: agent.createdat || new Date().toISOString()
         };
+        
+        console.log(`✅ Normalized Agent ${index + 1}:`, {
+          id: normalized.id,
+          userId: normalized.userId,
+          name: normalized.name,
+          phone: normalized.phone,
+          vehicleType: normalized.vehicleType
+        });
+        
+        return normalized;
       });
+      
+      console.log('✅ Final normalized agents:', normalizedAgents.length);
+      console.log('📋 All normalized agents:', normalizedAgents.map(a => ({ id: a.id, name: a.name, userId: a.userId })));
+      
+      return normalizedAgents;
+      
     } catch (error) {
-      console.warn('Using localStorage agents:', error);
-      return JSON.parse(localStorage.getItem('delivery_agents_backup') || '[]');
+      console.error('❌ Database fetch failed:', error);
+      console.log('📦 Using localStorage backup...');
+      const backupAgents = JSON.parse(localStorage.getItem('delivery_agents_backup') || '[]');
+      console.log('📦 Found', backupAgents.length, 'backup agents');
+      return backupAgents;
     }
   },
   
   async createDeliveryAgent(agent: any) {
     try {
       console.log('📝 Creating delivery agent with data:', agent);
-      const result = await supabaseRest.post('delivery_agents', {
+      
+      const agentData = {
         userid: agent.user_id || agent.userId,
         password: agent.password,
         name: agent.name,
         phone: agent.phone,
-        email: agent.email,
+        email: agent.email || null,
         vehicletype: agent.vehicle_type || agent.vehicleType,
         licensenumber: agent.license_number || agent.licenseNumber,
         isactive: agent.active !== undefined ? agent.active : true,
-        isapproved: agent.approved !== undefined ? agent.approved : true
-      });
-      console.log('✅ Agent created successfully:', result[0]);
-      return result[0];
+        isapproved: agent.approved !== undefined ? agent.approved : true,
+        createdat: new Date().toISOString()
+      };
+      
+      console.log('📤 Sending agent data to database:', agentData);
+      
+      const result = await supabaseRest.post('delivery_agents', agentData);
+      console.log('✅ Agent created successfully in database:', result);
+      console.log('📊 Created agent details:', result[0] || result);
+      
+      // Return normalized agent data
+      const createdAgent = result[0] || result;
+      const normalizedAgent = {
+        id: createdAgent.id,
+        userId: createdAgent.userid,
+        user_id: createdAgent.userid,
+        password: createdAgent.password,
+        name: createdAgent.name,
+        phone: createdAgent.phone,
+        email: createdAgent.email,
+        vehicleType: createdAgent.vehicletype,
+        licenseNumber: createdAgent.licensenumber,
+        isActive: createdAgent.isactive,
+        isApproved: createdAgent.isapproved,
+        createdAt: createdAgent.createdat
+      };
+      
+      console.log('✅ Returning normalized agent:', normalizedAgent);
+      return normalizedAgent;
+      
     } catch (error) {
-      console.warn('Supabase failed, using localStorage:', error);
-      const agentWithId = { id: Date.now(), ...agent };
+      console.error('❌ Database creation failed:', error);
+      console.warn('📦 Falling back to localStorage storage');
+      
+      // Fallback to localStorage with proper structure
+      const agentWithId = {
+        id: Date.now(),
+        userId: agent.user_id || agent.userId,
+        user_id: agent.user_id || agent.userId,
+        password: agent.password,
+        name: agent.name,
+        phone: agent.phone,
+        email: agent.email,
+        vehicleType: agent.vehicle_type || agent.vehicleType,
+        licenseNumber: agent.license_number || agent.licenseNumber,
+        isActive: agent.active !== undefined ? agent.active : true,
+        isApproved: agent.approved !== undefined ? agent.approved : true,
+        createdAt: new Date().toISOString()
+      };
+      
       const existingAgents = JSON.parse(localStorage.getItem('delivery_agents_backup') || '[]');
       existingAgents.push(agentWithId);
       localStorage.setItem('delivery_agents_backup', JSON.stringify(existingAgents));
+      
+      console.log('📦 Agent saved to localStorage:', agentWithId);
       return agentWithId;
     }
   },

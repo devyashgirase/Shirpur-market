@@ -35,18 +35,31 @@ const AdminDeliveryAgents = () => {
     try {
       console.log('🔍 Loading agents for admin panel...');
       
+      // Clear existing agents first
+      setAgents([]);
+      
       // Force fresh data from database
-      const agentList = await deliveryAuthService.getAllAgents();
-      console.log('📦 Fresh agents from database:', agentList);
-      console.log('📊 Database agent count:', agentList.length);
+      const dbAgents = await deliveryAuthService.getAllAgents();
+      console.log('📦 Database agents:', dbAgents);
+      console.log('📊 Database count:', dbAgents.length);
       
-      // Always show all agents from database first
-      const allAgents = [...agentList];
+      // Log each database agent
+      dbAgents.forEach((agent, index) => {
+        console.log(`🔍 DB Agent ${index + 1}:`, {
+          id: agent.id,
+          userId: agent.userId || agent.user_id || agent.userid,
+          name: agent.name,
+          phone: agent.phone
+        });
+      });
       
-      // Add demo agents only if they don't exist in database
+      // Start with database agents
+      const allAgents = [...dbAgents];
+      
+      // Add demo agents only if they don't exist
       const demoAgents = [
         {
-          id: 1001,
+          id: 'demo-1',
           userId: 'DA415944',
           name: 'Rahul Sharma',
           phone: '9876543210',
@@ -58,7 +71,7 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         },
         {
-          id: 1002,
+          id: 'demo-2',
           userId: 'DA123456',
           name: 'Demo Agent',
           phone: '9876543211',
@@ -70,7 +83,7 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         },
         {
-          id: 1003,
+          id: 'demo-3',
           userId: 'DA617627',
           name: 'Production Agent',
           phone: '9876543212',
@@ -85,23 +98,36 @@ const AdminDeliveryAgents = () => {
       
       // Add demo agents that don't exist in database
       demoAgents.forEach(demo => {
-        if (!allAgents.find(existing => existing.userId === demo.userId)) {
+        const exists = allAgents.find(existing => 
+          (existing.userId || existing.user_id || existing.userid) === demo.userId
+        );
+        if (!exists) {
           allAgents.push(demo);
+          console.log('➕ Added demo agent:', demo.name);
+        } else {
+          console.log('⚠️ Demo agent already exists in DB:', demo.name);
         }
       });
       
       console.log('✅ Final agents list:', allAgents.length, 'agents');
-      console.log('📋 Agent details:', allAgents.map(a => ({ id: a.id, userId: a.userId, name: a.name })));
+      allAgents.forEach((agent, index) => {
+        console.log(`📋 Final Agent ${index + 1}:`, {
+          id: agent.id,
+          userId: agent.userId || agent.user_id || agent.userid,
+          name: agent.name,
+          source: typeof agent.id === 'string' ? 'demo' : 'database'
+        });
+      });
       
       setAgents(allAgents);
       
     } catch (error) {
       console.error('❌ Failed to load agents:', error);
       
-      // Fallback to demo agents only on complete failure
+      // Fallback to demo agents only
       const fallbackAgents = [
         {
-          id: 1001,
+          id: 'demo-1',
           userId: 'DA415944',
           name: 'Rahul Sharma',
           phone: '9876543210',
@@ -113,7 +139,7 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         },
         {
-          id: 1002,
+          id: 'demo-2',
           userId: 'DA123456',
           name: 'Demo Agent',
           phone: '9876543211',
@@ -125,7 +151,7 @@ const AdminDeliveryAgents = () => {
           createdAt: new Date().toISOString()
         },
         {
-          id: 1003,
+          id: 'demo-3',
           userId: 'DA617627',
           name: 'Production Agent',
           phone: '9876543212',
@@ -139,7 +165,7 @@ const AdminDeliveryAgents = () => {
       ];
       
       setAgents(fallbackAgents);
-      console.log('⚠️ Using fallback demo agents');
+      console.log('⚠️ Using fallback demo agents:', fallbackAgents.length);
     } finally {
       setLoading(false);
     }
@@ -305,7 +331,25 @@ const AdminDeliveryAgents = () => {
           <h1 className="text-3xl font-bold">Delivery Agents</h1>
           <p className="text-gray-600 mt-1">Manage delivery agent registrations and credentials</p>
         </div>
-        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              console.log('🔍 Debug: Checking database...');
+              try {
+                const dbAgents = await deliveryAuthService.getAllAgents();
+                console.log('🔍 Debug: Database agents:', dbAgents);
+                alert(`Database has ${dbAgents.length} agents. Check console for details.`);
+              } catch (error) {
+                console.error('🔍 Debug error:', error);
+                alert('Error checking database. Check console.');
+              }
+            }}
+          >
+            🔍 Debug DB
+          </Button>
+          
+          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
             <DialogTrigger asChild>
               <Button className="bg-blue-500 hover:bg-blue-600" disabled={loading}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -423,6 +467,7 @@ const AdminDeliveryAgents = () => {
               </form>
             </DialogContent>
           </Dialog>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -461,7 +506,7 @@ const AdminDeliveryAgents = () => {
                         <Badge variant={agent.isActive ? "default" : "destructive"}>
                           {agent.isActive ? "Active" : "Inactive"}
                         </Badge>
-                        {agent.id > 1000 && (
+                        {typeof agent.id === 'string' && (
                           <Badge variant="outline" className="text-xs">
                             Demo
                           </Badge>
@@ -480,7 +525,7 @@ const AdminDeliveryAgents = () => {
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 mt-2">
-                        {agent.id > 1000 ? 'Demo Agent' : 'Credentials sent via SMS'}
+                        {typeof agent.id === 'string' ? 'Demo Agent' : 'Credentials sent via SMS'}
                       </div>
                     </div>
                   </div>

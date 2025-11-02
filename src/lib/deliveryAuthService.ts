@@ -110,6 +110,7 @@ class DeliveryAuthService {
       // Send SMS with credentials
       await this.sendCredentialsSMS(agentData.phone, agentData.name, userId, password);
       
+      console.log('✅ Agent registration completed successfully');
       return agent;
     } catch (error) {
       console.error('Failed to register agent:', error);
@@ -415,7 +416,18 @@ class DeliveryAuthService {
 
   // Admin gets all agents from Supabase
   async getAllAgents(): Promise<DeliveryAgent[]> {
-    return await supabaseApi.getDeliveryAgents();
+    try {
+      console.log('🔍 Fetching all agents from database...');
+      const agents = await supabaseApi.getDeliveryAgents();
+      console.log('📦 Retrieved agents from database:', agents.length);
+      return agents;
+    } catch (error) {
+      console.error('❌ Failed to get agents from database:', error);
+      console.log('📦 Trying localStorage fallback...');
+      const backupAgents = JSON.parse(localStorage.getItem('delivery_agents_backup') || '[]');
+      console.log('📦 Found backup agents:', backupAgents.length);
+      return backupAgents;
+    }
   }
 }
 
