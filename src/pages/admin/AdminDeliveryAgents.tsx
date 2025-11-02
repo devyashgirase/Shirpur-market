@@ -43,13 +43,16 @@ const AdminDeliveryAgents = () => {
       console.log('📦 Database agents:', dbAgents);
       console.log('📊 Database count:', dbAgents.length);
       
-      // Log each database agent
+      // Log each database agent with full structure
       dbAgents.forEach((agent, index) => {
-        console.log(`🔍 DB Agent ${index + 1}:`, {
+        console.log(`🔍 DB Agent ${index + 1} FULL:`, agent);
+        console.log(`🔍 DB Agent ${index + 1} SUMMARY:`, {
           id: agent.id,
           userId: agent.userId || agent.user_id || agent.userid,
           name: agent.name,
-          phone: agent.phone
+          phone: agent.phone,
+          vehicleType: agent.vehicleType || agent.vehicle_type || agent.vehicletype,
+          isActive: agent.isActive || agent.active || agent.isactive
         });
       });
       
@@ -339,14 +342,23 @@ const AdminDeliveryAgents = () => {
               try {
                 const dbAgents = await deliveryAuthService.getAllAgents();
                 console.log('🔍 Debug: Database agents:', dbAgents);
-                alert(`Database has ${dbAgents.length} agents. Check console for details.`);
+                console.log('🔍 Debug: Current displayed agents:', agents);
+                
+                const dbDetails = dbAgents.map(a => `${a.name} (${a.userId || a.user_id || a.userid})`).join(', ');
+                const displayDetails = agents.map(a => `${a.name} (${a.userId || a.user_id || a.userid})`).join(', ');
+                
+                alert(`Database: ${dbAgents.length} agents [${dbDetails}]\n\nDisplayed: ${agents.length} agents [${displayDetails}]`);
+                
+                // Force reload
+                console.log('🔄 Force reloading agents...');
+                await loadAgents();
               } catch (error) {
                 console.error('🔍 Debug error:', error);
                 alert('Error checking database. Check console.');
               }
             }}
           >
-            🔍 Debug DB
+            🔍 Debug & Reload
           </Button>
           
           <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
@@ -485,8 +497,8 @@ const AdminDeliveryAgents = () => {
               </CardContent>
             </Card>
           ) : (
-            agents.map((agent) => (
-              <Card key={`${agent.id}-${agent.userId}`} className="border-l-4 border-l-blue-500">
+            agents.map((agent, index) => (
+              <Card key={`agent-${index}-${agent.id}-${agent.userId || agent.user_id || agent.userid}`} className="border-l-4 border-l-blue-500">
                 <CardContent className="p-6">
                   <div className="flex gap-4">
                     {agent.profilePhoto ? (
@@ -502,7 +514,7 @@ const AdminDeliveryAgents = () => {
                     )}
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{agent.name}</h3>
+                        <h3 className="text-lg font-semibold">{agent.name || 'Unknown Name'}</h3>
                         <Badge variant={agent.isActive ? "default" : "destructive"}>
                           {agent.isActive ? "Active" : "Inactive"}
                         </Badge>
@@ -514,13 +526,13 @@ const AdminDeliveryAgents = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-600">User ID: <span className="font-medium">{agent.userId}</span></p>
+                          <p className="text-gray-600">User ID: <span className="font-medium">{agent.userId || agent.user_id || agent.userid || 'N/A'}</span></p>
                           <p className="text-gray-600">Phone: <span className="font-medium">{agent.phone}</span></p>
                           <p className="text-gray-600">Status: <span className="font-medium">{agent.isActive ? 'Active' : 'Inactive'}</span></p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Vehicle: <span className="font-medium">{agent.vehicleType}</span></p>
-                          <p className="text-gray-600">License: <span className="font-medium">{agent.licenseNumber}</span></p>
+                          <p className="text-gray-600">Vehicle: <span className="font-medium">{agent.vehicleType || agent.vehicle_type || agent.vehicletype || 'N/A'}</span></p>
+                          <p className="text-gray-600">License: <span className="font-medium">{agent.licenseNumber || agent.license_number || agent.licensenumber || 'N/A'}</span></p>
                           <p className="text-gray-600">Registered: <span className="font-medium">{new Date(agent.createdAt).toLocaleDateString()}</span></p>
                         </div>
                       </div>
