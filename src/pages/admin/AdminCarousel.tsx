@@ -40,30 +40,16 @@ const AdminCarousel = () => {
       const saved = localStorage.getItem('carouselItems');
       if (saved) {
         const items = JSON.parse(saved);
-        // Sort by order
         items.sort((a: CarouselItem, b: CarouselItem) => a.order - b.order);
         setCarouselItems(items);
+        console.log('✅ Admin: Carousel loaded from localStorage:', items.length, 'items');
       } else {
-        // Default carousel items
-        const defaultItems: CarouselItem[] = [
-          {
-            id: 1,
-            productId: 1,
-            productName: "Fresh Tomatoes",
-            title: "🍅 Fresh Farm Tomatoes",
-            description: "Premium quality red tomatoes straight from the farm",
-            imageUrl: "https://images.unsplash.com/photo-1546470427-e5d491d7e4b8?w=800&h=400&fit=crop",
-            price: 40,
-            isActive: true,
-            order: 1
-          }
-        ];
-        setCarouselItems(defaultItems);
-        localStorage.setItem('carouselItems', JSON.stringify(defaultItems));
+        setCarouselItems([]);
+        console.log('🆕 Admin: No carousel items found');
       }
     } catch (error) {
       console.error('Error loading carousel items:', error);
-      toast({ title: "Error loading carousel items", variant: "destructive" });
+      setCarouselItems([]);
     }
   };
 
@@ -103,12 +89,15 @@ const AdminCarousel = () => {
 
   const saveCarouselItems = async (items: CarouselItem[]) => {
     try {
-      // Save to localStorage for now (can be extended to Supabase)
+      // Save to localStorage as primary storage
       localStorage.setItem('carouselItems', JSON.stringify(items));
       setCarouselItems(items);
       
       // Trigger event for customer carousel to update
       window.dispatchEvent(new CustomEvent('carouselUpdated', { detail: items }));
+      
+      console.log('✅ Carousel saved to localStorage:', items.length, 'items');
+      toast({ title: "Carousel updated successfully", description: "Changes will be visible to customers" });
     } catch (error) {
       console.error('Error saving carousel items:', error);
       toast({ title: "Error saving carousel items", variant: "destructive" });
@@ -142,6 +131,12 @@ const AdminCarousel = () => {
       i.id === id ? { ...i, isActive: !i.isActive } : i
     );
     saveCarouselItems(updated);
+    
+    const item = updated.find(i => i.id === id);
+    toast({ 
+      title: item?.isActive ? "Carousel item activated" : "Carousel item deactivated",
+      description: item?.isActive ? "Now visible to customers" : "Hidden from customers"
+    });
   };
 
   return (
@@ -177,9 +172,11 @@ const AdminCarousel = () => {
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Order: {item.order}</span>
-                <Switch 
+                <input 
+                  type="checkbox"
                   checked={item.isActive}
-                  onCheckedChange={() => toggleActive(item.id)}
+                  onChange={() => toggleActive(item.id)}
+                  className="w-4 h-4"
                 />
               </div>
               <div className="flex gap-2">
@@ -257,9 +254,23 @@ const CarouselForm = ({
     description: item?.description || '',
     imageUrl: item?.imageUrl || '',
     price: item?.price || 0,
-    isActive: item?.isActive ?? true,
+    isActive: item?.isActive ?? false,
     order: item?.order || 1
   });
+
+  // Reset form when item changes
+  useEffect(() => {
+    setFormData({
+      productId: item?.productId || 0,
+      productName: item?.productName || '',
+      title: item?.title || '',
+      description: item?.description || '',
+      imageUrl: item?.imageUrl || '',
+      price: item?.price || 0,
+      isActive: item?.isActive ?? false,
+      order: item?.order || 1
+    });
+  }, [item]);
 
   const handleProductChange = (productId: string) => {
     const product = products.find(p => p.id == productId);
@@ -382,11 +393,20 @@ const CarouselForm = ({
       </div>
 
       <div className="flex items-center space-x-2">
-        <Switch 
+        <input 
+          type="checkbox"
           checked={formData.isActive}
-          onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
+          onChange={(e) => {
+            console.log('Checkbox toggled:', e.target.checked);
+            setFormData(prev => ({...prev, isActive: e.target.checked}));
+          }}
+          id="active-checkbox"
+          className="w-4 h-4"
         />
-        <Label>Active</Label>
+        <Label htmlFor="active-checkbox" className="cursor-pointer">Active (Only active items will be visible to customers)</Label>
+        <Badge variant={formData.isActive ? "default" : "secondary"}>
+          {formData.isActive ? "✅ Will show to customers" : "❌ Hidden from customers"}
+        </Badge>
       </div>
 
       <div className="flex gap-2 pt-4">

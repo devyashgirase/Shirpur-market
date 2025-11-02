@@ -191,32 +191,40 @@ const CustomerCatalog = () => {
   // State for carousel items
   const [carouselItems, setCarouselItems] = useState<any[]>([]);
   
-  // Load carousel items from admin
-  const loadCarouselItems = () => {
-    const saved = localStorage.getItem('carouselItems');
-    if (saved) {
-      const items = JSON.parse(saved)
-        .filter((item: any) => item.isActive)
-        .sort((a: any, b: any) => a.order - b.order);
-      
-      const formattedItems = items.map((item: any) => ({
-        id: item.productId.toString(),
-        name: item.title,
-        description: item.description,
-        price: item.price,
-        image_url: item.imageUrl,
-        category_id: 'featured',
-        stock_qty: 100,
-        is_active: true,
-        sku: `SKU${item.productId}`,
-        unit: 'kg',
-        is_age_restricted: false
-      }));
-      
-      setCarouselItems(formattedItems);
-    } else {
-      // Use featured products as fallback
-      setCarouselItems(products.slice(0, 5));
+  // Load carousel items from localStorage
+  const loadCarouselItems = async () => {
+    try {
+      const saved = localStorage.getItem('carouselItems');
+      if (saved) {
+        const allItems = JSON.parse(saved);
+        
+        // Filter only active items
+        const activeItems = allItems
+          .filter((item: any) => item.isActive === true)
+          .sort((a: any, b: any) => a.order - b.order);
+        
+        const formattedItems = activeItems.map((item: any) => ({
+          id: item.productId.toString(),
+          name: item.title,
+          description: item.description,
+          price: item.price,
+          image_url: item.imageUrl,
+          category_id: 'featured',
+          stock_qty: 100,
+          is_active: true,
+          sku: `SKU${item.productId}`,
+          unit: 'kg',
+          is_age_restricted: false
+        }));
+        
+        setCarouselItems(formattedItems);
+        console.log('✅ Customer carousel loaded - Active items only:', formattedItems.length);
+      } else {
+        setCarouselItems([]);
+      }
+    } catch (error) {
+      console.error('Error loading carousel items:', error);
+      setCarouselItems([]);
     }
   };
   
@@ -236,7 +244,7 @@ const CustomerCatalog = () => {
     };
   }, [products]);
   
-  const featuredProducts = carouselItems.length > 0 ? carouselItems : products.slice(0, 5);
+  const featuredProducts = carouselItems.length > 0 ? carouselItems : [];
   const [popularProducts, setPopularProducts] = useState<Product[]>([]);
 
   useEffect(() => {
