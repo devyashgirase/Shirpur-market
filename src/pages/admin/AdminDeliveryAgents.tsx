@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, User, Upload, X } from 'lucide-react';
 import { deliveryAuthService, type DeliveryAgent } from '@/lib/deliveryAuthService';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +18,6 @@ const AdminDeliveryAgents = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: '',
     vehicleType: '',
     licenseNumber: '',
     profilePhoto: null as File | null,
@@ -110,18 +110,7 @@ const AdminDeliveryAgents = () => {
       return false;
     }
     
-    // Email validation (if provided)
-    if (formData.email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        toast({
-          title: "Invalid Email",
-          description: "Please enter a valid email address",
-          variant: "destructive"
-        });
-        return false;
-      }
-    }
+
     
     // Vehicle type validation
     if (!formData.vehicleType.trim()) {
@@ -167,14 +156,13 @@ const AdminDeliveryAgents = () => {
       
       toast({
         title: "Agent Registered Successfully",
-        description: `Credentials sent to ${formData.phone}. User ID: ${agent.userId}`,
+        description: `Credentials sent to ${formData.phone}. User ID: ${agent.user_id || agent.userId}`,
       });
       
       setShowAddForm(false);
       setFormData({
         name: '',
         phone: '',
-        email: '',
         vehicleType: '',
         licenseNumber: '',
         profilePhoto: null,
@@ -290,23 +278,22 @@ const AdminDeliveryAgents = () => {
                   />
                   <p className="text-xs text-gray-500">10-digit Indian mobile number</p>
                 </div>
+
                 <div className="space-y-1">
-                  <Input
-                    placeholder="Email (optional)"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                  <p className="text-xs text-gray-500">Valid email address</p>
-                </div>
-                <div className="space-y-1">
-                  <Input
-                    placeholder="Vehicle Type *"
-                    value={formData.vehicleType}
-                    onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
-                    required
-                  />
-                  <p className="text-xs text-gray-500">e.g., Bike, Car, Scooter</p>
+                  <Select value={formData.vehicleType} onValueChange={(value) => setFormData({...formData, vehicleType: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Vehicle Type *" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bike">🏍️ Bike/Motorcycle</SelectItem>
+                      <SelectItem value="scooter">🛵 Scooter</SelectItem>
+                      <SelectItem value="bicycle">🚲 Bicycle</SelectItem>
+                      <SelectItem value="car">🚗 Car</SelectItem>
+                      <SelectItem value="auto">🚕 Auto Rickshaw</SelectItem>
+                      <SelectItem value="van">🚐 Van</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">Choose delivery vehicle type</p>
                 </div>
                 <div className="space-y-1">
                   <Input
@@ -359,9 +346,7 @@ const AdminDeliveryAgents = () => {
                       <div>
                         <p className="text-gray-600">User ID: <span className="font-medium">{agent.userId}</span></p>
                         <p className="text-gray-600">Phone: <span className="font-medium">{agent.phone}</span></p>
-                        {agent.email && (
-                          <p className="text-gray-600">Email: <span className="font-medium">{agent.email}</span></p>
-                        )}
+                        <p className="text-gray-600">Status: <span className="font-medium">{agent.isActive ? 'Active' : 'Inactive'}</span></p>
                       </div>
                       <div>
                         <p className="text-gray-600">Vehicle: <span className="font-medium">{agent.vehicleType}</span></p>

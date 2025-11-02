@@ -176,16 +176,36 @@ export const supabaseApi = {
   async getDeliveryAgents() {
     try {
       const agents = await supabaseRest.get('delivery_agents');
-      return agents.map((agent: any) => ({
-        id: agent.id,
-        userId: agent.userid,
-        name: agent.name,
-        phone: agent.phone,
-        email: agent.email,
-        vehicleType: agent.vehicletype,
-        licenseNumber: agent.licensenumber,
-        isActive: agent.isactive
-      }));
+      console.log('🔍 Raw agents from database:', agents);
+      console.log('🔍 Raw database agents:', agents);
+      return agents.map((agent: any) => {
+        console.log('🔍 Processing agent:', agent);
+        return {
+          id: agent.id,
+          userid: agent.userid,
+          user_id: agent.userid,
+          userId: agent.userid,
+          password: agent.password,
+          name: agent.name,
+          phone: agent.phone,
+          email: agent.email,
+          vehicletype: agent.vehicletype,
+          vehicle_type: agent.vehicletype,
+          vehicleType: agent.vehicletype,
+          licensenumber: agent.licensenumber,
+          license_number: agent.licensenumber,
+          licenseNumber: agent.licensenumber,
+          isactive: agent.isactive,
+          active: agent.isactive,
+          isActive: agent.isactive,
+          isapproved: agent.isapproved,
+          approved: agent.isapproved,
+          isApproved: agent.isapproved,
+          createdat: agent.createdat,
+          created_at: agent.createdat,
+          createdAt: agent.createdat
+        };
+      });
     } catch (error) {
       console.warn('Using localStorage agents:', error);
       return JSON.parse(localStorage.getItem('delivery_agents_backup') || '[]');
@@ -194,17 +214,19 @@ export const supabaseApi = {
   
   async createDeliveryAgent(agent: any) {
     try {
+      console.log('📝 Creating delivery agent with data:', agent);
       const result = await supabaseRest.post('delivery_agents', {
-        userid: agent.userId,
+        userid: agent.user_id || agent.userId,
         password: agent.password,
         name: agent.name,
         phone: agent.phone,
         email: agent.email,
-        vehicletype: agent.vehicleType,
-        licensenumber: agent.licenseNumber,
-        isactive: true,
-        isapproved: true
+        vehicletype: agent.vehicle_type || agent.vehicleType,
+        licensenumber: agent.license_number || agent.licenseNumber,
+        isactive: agent.active !== undefined ? agent.active : true,
+        isapproved: agent.approved !== undefined ? agent.approved : true
       });
+      console.log('✅ Agent created successfully:', result[0]);
       return result[0];
     } catch (error) {
       console.warn('Supabase failed, using localStorage:', error);
@@ -290,6 +312,51 @@ export const supabaseApi = {
       return [];
     } catch (error) {
       throw error;
+    }
+  },
+  
+  async createDeliverySession(sessionData: any) {
+    try {
+      return await supabaseRest.post('delivery_sessions', sessionData);
+    } catch (error) {
+      console.warn('Session creation failed:', error);
+      // Store in localStorage as fallback
+      localStorage.setItem('delivery_session', JSON.stringify(sessionData));
+      return sessionData;
+    }
+  },
+  
+  async getActiveDeliverySession() {
+    try {
+      const sessions = await supabaseRest.get('delivery_sessions', 'is_active=eq.true&order=login_time.desc&limit=1');
+      return sessions[0] || null;
+    } catch (error) {
+      console.warn('Session fetch failed:', error);
+      // Try localStorage fallback
+      const stored = localStorage.getItem('delivery_session');
+      return stored ? JSON.parse(stored) : null;
+    }
+  },
+  
+  async endDeliverySession() {
+    try {
+      await supabaseRest.patch('delivery_sessions?is_active=eq.true', {
+        is_active: false,
+        logout_time: new Date().toISOString()
+      });
+    } catch (error) {
+      console.warn('Session end failed:', error);
+    }
+    // Always clear localStorage
+    localStorage.removeItem('delivery_session');
+  },
+  
+  async updateDeliveryAgent(agentId: number, updateData: any) {
+    try {
+      return await supabaseRest.patch(`delivery_agents?id=eq.${agentId}`, updateData);
+    } catch (error) {
+      console.warn('Agent update failed:', error);
+      return null;
     }
   },
   

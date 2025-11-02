@@ -19,6 +19,7 @@ const DeliveryLogin = () => {
     setLoading(true);
 
     try {
+      console.log('🔐 Attempting login with:', { userId, password });
       const success = await deliveryAuthService.login(userId, password);
       
       if (success) {
@@ -28,13 +29,15 @@ const DeliveryLogin = () => {
         });
         navigate('/delivery');
       } else {
+        console.log('❌ Login failed for:', { userId, password });
         toast({
           title: "Login Failed",
-          description: "Invalid credentials. Please check your User ID and password.",
+          description: `Invalid credentials. User ID: ${userId}. Please check your credentials from WhatsApp.`,
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       toast({
         title: "Error",
         description: "Login failed. Please try again.",
@@ -104,6 +107,24 @@ const DeliveryLogin = () => {
             </Button>
           </form>
           
+          {/* Demo Credentials */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs font-semibold text-blue-800 mb-2">📝 Demo Credentials (for testing):</p>
+            <div className="text-xs text-blue-700 space-y-1">
+              <p><strong>User ID:</strong> DA123456</p>
+              <p><strong>Password:</strong> delivery123</p>
+            </div>
+            <button 
+              type="button"
+              onClick={() => {
+                setUserId('DA123456');
+                setPassword('delivery123');
+              }}
+              className="mt-2 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+            >
+              Use Demo Credentials
+            </button>
+          </div>
 
         </CardContent>
       </Card>

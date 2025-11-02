@@ -480,14 +480,31 @@ const DeliveryTasks = () => {
                       </div>
                     </div>
                     
-                    <div className="bg-white p-3 rounded-lg mb-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MapPin className="w-4 h-4 text-red-500" />
-                        <span className="font-semibold text-gray-700">Customer Details</span>
+                    <div className="bg-white p-4 rounded-lg mb-3 border border-gray-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin className="w-5 h-5 text-red-500" />
+                        <span className="font-bold text-gray-800">📋 Customer Details</span>
                       </div>
-                      <p className="text-sm font-medium text-gray-800">{order.customer_name}</p>
-                      <p className="text-sm text-gray-600">{order.customer_address}</p>
-                      <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">NAME</span>
+                          <span className="font-semibold text-gray-800">{order.customer_name}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">ADDRESS</span>
+                          <span className="text-sm text-gray-700 flex-1">{order.customer_address}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">PHONE</span>
+                          <a href={`tel:${order.customer_phone}`} className="text-sm font-medium text-blue-600 hover:underline">
+                            📞 {order.customer_phone}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">ORDER ID</span>
+                          <span className="text-sm font-mono text-gray-700">#{order.id}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="bg-green-50 p-3 rounded-lg mb-3">
@@ -565,14 +582,34 @@ const DeliveryTasks = () => {
                       </div>
                     </div>
                     
-                    <div className="bg-white p-3 rounded-lg mb-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MapPin className="w-4 h-4 text-red-500" />
-                        <span className="font-semibold text-gray-700">Customer Details</span>
+                    <div className="bg-white p-4 rounded-lg mb-3 border border-gray-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin className="w-5 h-5 text-red-500" />
+                        <span className="font-bold text-gray-800">📋 Delivery Details</span>
                       </div>
-                      <p className="text-sm font-medium text-gray-800">{order.customer_name}</p>
-                      <p className="text-sm text-gray-600">{order.customer_address}</p>
-                      <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">CUSTOMER</span>
+                          <span className="font-semibold text-gray-800">{order.customer_name}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">DELIVER TO</span>
+                          <span className="text-sm text-gray-700 flex-1">{order.customer_address}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">CONTACT</span>
+                          <a href={`tel:${order.customer_phone}`} className="text-sm font-medium text-blue-600 hover:underline">
+                            📞 {order.customer_phone}
+                          </a>
+                          <a href={`https://wa.me/91${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-green-600 hover:underline">
+                            📱 WhatsApp
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">ORDER</span>
+                          <span className="text-sm font-mono text-gray-700">#{order.id}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="bg-blue-50 p-3 rounded-lg mb-3">
