@@ -112,7 +112,13 @@ export const supabaseApi = {
       const orders = await supabaseRest.get('orders', 'order=created_at.desc');
       console.log('📦 Fetched orders from database:', orders.length, 'orders');
       console.log('📊 Order statuses:', orders.map(o => ({ id: o.id, status: o.order_status })));
-      return orders;
+      
+      // Ensure proper customer address mapping
+      return orders.map((order: any) => ({
+        ...order,
+        customer_address: order.customer_address || order.delivery_address,
+        delivery_address: order.delivery_address || order.customer_address
+      }));
     } catch (error) {
       console.warn('Using mock orders:', error);
       return JSON.parse(localStorage.getItem('orders') || '[]');
@@ -126,6 +132,7 @@ export const supabaseApi = {
         customer_name: order.customer_name,
         customer_phone: order.customer_phone,
         customer_address: order.customer_address,
+        delivery_address: order.delivery_address || order.customer_address,
         items: order.items,
         total_amount: order.total_amount,
         order_status: 'confirmed',
@@ -133,7 +140,12 @@ export const supabaseApi = {
       });
     } catch (error) {
       console.warn('Supabase failed, using localStorage:', error);
-      const newOrder = { id: Date.now(), order_id: `ORD${Date.now()}`, ...order };
+      const newOrder = { 
+        id: Date.now(), 
+        order_id: `ORD${Date.now()}`, 
+        ...order,
+        delivery_address: order.delivery_address || order.customer_address
+      };
       const orders = JSON.parse(localStorage.getItem('orders') || '[]');
       orders.push(newOrder);
       localStorage.setItem('orders', JSON.stringify(orders));
@@ -485,6 +497,37 @@ export const supabaseApi = {
         return otps[otpIndex];
       }
       return null;
+    }
+  },
+
+  async saveDeliveryCompletion(completion: any) {
+    try {
+      return await supabaseRest.post('delivery_completions', completion);
+    } catch (error) {
+      console.warn('Supabase completion save failed:', error);
+      return false;
+    }
+  },
+
+  async getDeliveryCompletions(agentId: string) {
+    try {
+      return await supabaseRest.get('delivery_completions', `agent_id=eq.${agentId}&order=completed_at.desc`);
+    } catch (error) {
+      console.warn('Supabase completions fetch failed:', error);
+      return [];
+    }
+  },
+
+  async updateAgentLocation(agentId: string, lat: number, lng: number) {
+    try {
+      return await supabaseRest.patch(`delivery_agents?userid=eq.${agentId}`, {
+        current_lat: lat,
+        current_lng: lng,
+        last_location_update: new Date().toISOString()
+      });
+    } catch (error) {
+      console.warn('Agent location update failed:', error);
+      return false;
     }
   }
 };

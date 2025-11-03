@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package, CheckCircle } from "lucide-react";
+import { MapPin, DollarSign, Clock, Navigation, Truck, Star, TrendingUp, Package, CheckCircle, Phone, MessageCircle, Headphones } from "lucide-react";
 import { DeliveryDataService } from "@/lib/deliveryDataService";
 import { DeliveryOrderService, DeliveryOrder } from "@/lib/deliveryOrderService";
 import { Link, useNavigate } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
 import DeliveryOTPVerification from "@/components/DeliveryOTPVerification";
+import { useTranslation } from "@/lib/i18n";
 
 import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
@@ -25,14 +26,60 @@ const DeliveryTasks = () => {
   const [agentId, setAgentId] = useState<string | null>(null);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showEarningsModal, setShowEarningsModal] = useState(false);
+  const [currentLocationName, setCurrentLocationName] = useState('Getting location...');
+  const { t } = useTranslation();
+
+  // Function to get address from coordinates
+  const getAddressFromCoordinates = async (lat: number, lng: number) => {
+    try {
+      // Try free Nominatim API first
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await response.json();
+      if (data.display_name) {
+        const parts = data.display_name.split(',');
+        // Return first 3 parts for cleaner address
+        return parts.slice(0, 3).join(', ');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    }
+    
+    // Fallback to area names based on coordinates (for Shirpur area)
+    if (lat >= 21.3 && lat <= 21.4 && lng >= 74.8 && lng <= 74.9) {
+      return 'Shirpur, Dhule, Maharashtra';
+    }
+    
+    return `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  };
   const [metrics, setMetrics] = useState({
     activeTasks: 0,
     availableOrders: 0,
     todaysEarnings: 0,
-    completionRate: 95
+    completionRate: 95,
+    completedOrders: 0
   });
 
+  // Calculate completed orders dynamically from Supabase
+  const getCompletedOrdersToday = async () => {
+    if (!agentId) return 0;
+    const completions = await supabaseApi.getDeliveryCompletions(agentId);
+    const today = new Date().toDateString();
+    return completions.filter((completion: any) => 
+      new Date(completion.completed_at).toDateString() === today
+    ).length;
+  };
+
+  // Update completed orders count
+  const updateCompletedOrders = async () => {
+    const completedCount = await getCompletedOrdersToday();
+    setMetrics(prev => ({ ...prev, completedOrders: completedCount }));
+  };
+
   useEffect(() => {
+    // Initialize completed orders count
+    updateCompletedOrders();
+    
     // Check authentication
     const checkAuth = async () => {
       const currentAgent = await deliveryAuthService.getCurrentAgent();
@@ -69,6 +116,12 @@ const DeliveryTasks = () => {
                 ...location,
                 timestamp: new Date().toISOString()
               }));
+              
+              // Get and store location name
+              getAddressFromCoordinates(location.lat, location.lng).then(address => {
+                setCurrentLocationName(address);
+                localStorage.setItem('agentLocationName', address);
+              });
             }
           },
           (error) => {
@@ -76,6 +129,8 @@ const DeliveryTasks = () => {
             if (isMounted) {
               // Fallback to Shirpur coordinates only if GPS fails
               deliveryCoordinationService.setAgentLocation(agentId, 21.3486, 74.8811);
+              setCurrentLocationName('Shirpur, Dhule, Maharashtra');
+              localStorage.setItem('agentLocationName', 'Shirpur, Dhule, Maharashtra');
             }
           },
           {
@@ -269,11 +324,44 @@ const DeliveryTasks = () => {
           <div className="flex items-center gap-3">
             <Truck className="h-8 w-8" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">My Delivery Tasks</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">{t('delivery.tasks')}</h1>
               <p className="text-blue-100 mt-1">Manage your deliveries and track earnings</p>
             </div>
           </div>
           <div className="flex gap-2">
+            {/* Delivery Support Button */}
+            <Button 
+              variant="outline" 
+              className="bg-green-500/20 text-white border-green-300/30 hover:bg-green-500/30"
+              onClick={() => {
+                const supportOptions = [
+                  { label: '📞 Call Admin', action: () => window.open('tel:7276035433') },
+                  { label: '💬 WhatsApp Support', action: () => window.open('https://wa.me/917276035433?text=Hello, I need delivery support') },
+                  { label: '📧 Email Support', action: () => window.open('mailto:support@yashtech.com?subject=Delivery Support Request') },
+                  { label: '🌐 Help Center', action: () => alert('📚 Help: Contact admin for any delivery issues, payment problems, or technical support.') }
+                ];
+                
+                let choice = prompt(
+                  '🎧 Delivery Support Options:\n\n' +
+                  '1. 📞 Call Admin (7276035433)\n' +
+                  '2. 💬 WhatsApp Support\n' +
+                  '3. 📧 Email Support\n' +
+                  '4. 📚 Help Center\n\n' +
+                  'Enter option number (1-4):'
+                );
+                
+                // Validate single digit 1-4 only
+                if (choice && /^[1-4]$/.test(choice.trim())) {
+                  supportOptions[parseInt(choice) - 1].action();
+                } else if (choice !== null) {
+                  alert('⚠️ Please enter only one number (1-4)');
+                }
+              }}
+            >
+              <Headphones className="w-4 h-4 mr-2" />
+              Support
+            </Button>
+            
             <Button 
               variant="outline" 
               className="bg-white/20 text-white border-white/30 hover:bg-white/30"
@@ -298,8 +386,9 @@ const DeliveryTasks = () => {
                 alert(`✅ Refreshed! Found ${orders.length} total orders, ${orders.filter(o => o.order_status === 'ready_for_delivery').length} ready for delivery`);
               }}
             >
-              🔄 Refresh Orders
+              🔄 Refresh
             </Button>
+            
             <Button 
               variant="outline" 
               className="bg-red-500/20 text-white border-red-300/30 hover:bg-red-500/30"
@@ -317,10 +406,7 @@ const DeliveryTasks = () => {
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
         <PersonalizedWelcome />
         
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-4">Performance Dashboard</h2>
-          <DeliveryPerformance />
-        </div>
+
         
         <Card className="mb-6">
           <CardHeader>
@@ -330,15 +416,37 @@ const DeliveryTasks = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex justify-between">
                 <span className="text-sm">Avg Delivery Time</span>
-                <span className="font-semibold">28 min</span>
+                <span className="font-semibold">{(() => {
+                  const avgTime = localStorage.getItem('avgDeliveryTime');
+                  return avgTime ? `${avgTime} min` : 'N/A';
+                })()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Customer Rating</span>
-                <span className="font-semibold">4.8 ⭐</span>
+                <span className="font-semibold">{(() => {
+                  const rating = localStorage.getItem('customerRating');
+                  return rating ? `${rating} ⭐` : 'N/A';
+                })()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Weekly Earnings</span>
-                <span className="font-semibold text-green-600">₹4,250</span>
+<span className="font-semibold text-green-600">{(() => {
+                  const [weeklyEarnings, setWeeklyEarnings] = useState(0);
+                  useEffect(() => {
+                    const loadWeeklyEarnings = async () => {
+                      if (!agentId) return;
+                      const completions = await supabaseApi.getDeliveryCompletions(agentId);
+                      const weekStart = new Date();
+                      weekStart.setDate(weekStart.getDate() - 7);
+                      const weeklyTotal = completions
+                        .filter((c: any) => new Date(c.completed_at) >= weekStart)
+                        .reduce((sum: number, c: any) => sum + (c.earnings || 0), 0);
+                      setWeeklyEarnings(weeklyTotal);
+                    };
+                    loadWeeklyEarnings();
+                  }, [agentId]);
+                  return `₹${weeklyEarnings}`;
+                })()}</span>
               </div>
             </div>
           </CardContent>
@@ -354,21 +462,24 @@ const DeliveryTasks = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="bg-blue-50 p-3 rounded">
-                <p className="font-semibold text-blue-800">Agent GPS</p>
+                <p className="font-semibold text-blue-800">Current Location</p>
                 <p className="text-blue-600">
-                  {(() => {
-                    const realLocation = JSON.parse(localStorage.getItem('agentRealLocation') || 'null');
-                    if (realLocation) {
-                      return `📍 ${realLocation.lat.toFixed(4)}, ${realLocation.lng.toFixed(4)}`;
-                    }
-                    return deliveryTasks[0]?.agentLocation ? 
-                      `${deliveryTasks[0].agentLocation.lat.toFixed(4)}, ${deliveryTasks[0].agentLocation.lng.toFixed(4)}` : 
-                      'Getting location...';
-                  })()
-                  }
+                  📍 {localStorage.getItem('agentLocationName') || currentLocationName}
                 </p>
                 <p className="text-xs text-blue-500 mt-1">
-                  {deliveryTasks[0]?.debugInfo?.lastUpdate || 'No updates'}
+                  {(() => {
+                    const realLocation = localStorage.getItem('agentRealLocation');
+                    if (realLocation && realLocation !== 'null') {
+                      try {
+                        const location = JSON.parse(realLocation);
+                        return location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'Location updated';
+                      } catch (error) {
+                        return 'Location updated';
+                      }
+                    }
+                    return 'Getting location...';
+                  })()
+                  }
                 </p>
               </div>
               
@@ -408,7 +519,10 @@ const DeliveryTasks = () => {
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card 
+            className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => setShowEarningsModal(true)}
+          >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -444,6 +558,98 @@ const DeliveryTasks = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Daily Incentive Tracker */}
+        <Card className="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  🎯 Daily Incentive Tracker
+                </h3>
+                <p className="text-sm text-gray-600">Complete 10 orders to earn ₹250 bonus!</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-orange-600">₹{Math.min((metrics.completedOrders || 0) * 25, 250)}</p>
+                <p className="text-xs text-gray-500">Earned Today</p>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="w-full h-12 bg-gray-200 rounded-full relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-full h-1 border-t-2 border-dashed border-gray-400"></div>
+                </div>
+                
+                <div 
+                  className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${Math.min(((metrics.completedOrders || 0) / 10) * 100, 100)}%` }}
+                ></div>
+                
+                <div 
+                  className="absolute top-1/2 transform -translate-y-1/2 transition-all duration-1000 ease-out"
+                  style={{ left: `${Math.min(((metrics.completedOrders || 0) / 10) * 100, 95)}%` }}
+                >
+                  <div className="bg-white rounded-full p-2 shadow-lg border-2 border-green-500">
+                    <span className="text-lg">🏍️</span>
+                  </div>
+                </div>
+                
+                {[2, 5, 8, 10].map((milestone) => (
+                  <div
+                    key={milestone}
+                    className="absolute top-0 bottom-0 w-0.5 bg-gray-400"
+                    style={{ left: `${(milestone / 10) * 100}%` }}
+                  >
+                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
+                      <span className="text-xs font-medium text-gray-600">{milestone}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex justify-between mt-3">
+                <div className="text-sm">
+                  <span className="font-bold text-green-600">{metrics.completedOrders || 0}</span>
+                  <span className="text-gray-500"> / 10 orders</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-orange-600">₹{250 - Math.min((metrics.completedOrders || 0) * 25, 250)}</span>
+                  <span className="text-gray-500"> remaining</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {[
+                { orders: 2, reward: 50, icon: '🥉' },
+                { orders: 5, reward: 125, icon: '🥈' },
+                { orders: 8, reward: 200, icon: '🥇' },
+                { orders: 10, reward: 250, icon: '🏆' }
+              ].map((milestone) => (
+                <div 
+                  key={milestone.orders}
+                  className={`p-3 rounded-lg text-center transition-all duration-300 ${
+                    (metrics.completedOrders || 0) >= milestone.orders 
+                      ? 'bg-green-100 border-2 border-green-400 text-green-800' 
+                      : 'bg-gray-100 border-2 border-gray-300 text-gray-500'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{milestone.icon}</div>
+                  <div className="text-xs font-bold">{milestone.orders} Orders</div>
+                  <div className="text-xs">₹{milestone.reward}</div>
+                </div>
+              ))}
+            </div>
+            
+            {(metrics.completedOrders || 0) >= 10 && (
+              <div className="mt-4 p-3 bg-green-100 border-2 border-green-400 rounded-lg text-center">
+                <p className="text-green-800 font-bold">🎉 Congratulations! Daily target achieved!</p>
+                <p className="text-sm text-green-600">You've earned the full ₹250 incentive bonus!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Ready for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
@@ -636,13 +842,18 @@ const DeliveryTasks = () => {
                             orderId: order.id,
                             customerAddress: {
                               name: order.customer_name,
-                              address: order.customer_address,
+                              address: order.delivery_address || order.customer_address,
                               phone: order.customer_phone
                             },
+                            customer_name: order.customer_name,
+                            customer_address: order.delivery_address || order.customer_address,
+                            delivery_address: order.delivery_address || order.customer_address,
+                            customer_phone: order.customer_phone,
                             total: order.total_amount,
+                            total_amount: order.total_amount,
                             items: order.items
                           };
-                          console.log('🔄 Setting current order:', orderData);
+                          console.log('🔄 Setting current order with real address:', orderData);
                           localStorage.setItem('currentOrder', JSON.stringify(orderData));
                           navigate('/delivery/tracking');
                         }}
@@ -655,8 +866,21 @@ const DeliveryTasks = () => {
                         onClick={async () => {
                           const success = await DeliveryOrderService.markAsDelivered(order.id);
                           if (success) {
+                            // Save completion to Supabase
+                            await supabaseApi.saveDeliveryCompletion({
+                              order_id: order.id,
+                              agent_id: agentId,
+                              completed_at: new Date().toISOString(),
+                              earnings: 25
+                            });
+                            
+                            // Update metrics
+                            updateCompletedOrders();
+                            
                             setDeliveryOrders(prev => prev.filter(o => o.id !== order.id));
-                            alert('✅ Order marked as delivered!');
+                            
+                            const newCount = getCompletedOrdersToday();
+                            alert(`✅ Order delivered! 🏍️ Progress: ${newCount}/10 orders (₹${newCount * 25} earned)`);
                           } else {
                             alert('❌ Failed to update order status');
                           }
@@ -676,7 +900,7 @@ const DeliveryTasks = () => {
         {/* Nearby Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Available Orders (Within 10km)</h2>
+            <h2 className="text-xl font-bold text-gray-800">{t('delivery.availableOrders')}</h2>
             <Badge variant="secondary" className="bg-green-100 text-green-700">
               {nearbyOrders.length}
             </Badge>
@@ -686,8 +910,8 @@ const DeliveryTasks = () => {
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="p-8 text-center">
                 <MapPin className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No nearby orders</h3>
-                <p className="text-gray-500">Orders within 10km will appear here</p>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">{t('delivery.noNearbyOrders')}</h3>
+                <p className="text-gray-500">{t('delivery.ordersWithinRange')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -698,7 +922,7 @@ const DeliveryTasks = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-gray-800">Order #{order.orderId}</h3>
-                        <Badge className="bg-green-500 text-white mt-1">Nearby Order</Badge>
+                        <Badge className="bg-green-500 text-white mt-1">{t('delivery.nearbyOrder')}</Badge>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-green-600">₹{Number(order.total || 0).toFixed(0)}</p>
@@ -720,7 +944,7 @@ const DeliveryTasks = () => {
                       onClick={() => handleAcceptDelivery(order.orderId)}
                     >
                       <Package className="w-4 h-4 mr-2" />
-                      Accept Delivery
+                      {t('delivery.acceptDelivery')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -731,7 +955,7 @@ const DeliveryTasks = () => {
 
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">All Available Tasks</h2>
+            <h2 className="text-xl font-bold text-gray-800">{t('delivery.allTasks')}</h2>
             <Badge variant="secondary" className="bg-blue-100 text-blue-700">
               {deliveryTasks.length}
             </Badge>
@@ -741,8 +965,8 @@ const DeliveryTasks = () => {
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="p-8 text-center">
                 <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No tasks available</h3>
-                <p className="text-gray-500">New delivery tasks will appear here when available</p>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">{t('delivery.noTasksAvailable')}</h3>
+                <p className="text-gray-500">{t('delivery.newTasksWillAppear')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -755,7 +979,7 @@ const DeliveryTasks = () => {
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-bold text-gray-800">Order #{task.order_id || task.orderId}</h3>
                           <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
-                            Ready for Pickup
+                            {t('delivery.readyForPickup')}
                           </Badge>
                         </div>
                         
@@ -801,14 +1025,14 @@ const DeliveryTasks = () => {
                       
                       <div className="text-right bg-green-50 p-4 rounded-lg">
                         <p className="text-2xl font-bold text-green-600">₹{Number(task.total || 0).toFixed(0)}</p>
-                        <p className="text-sm text-gray-600 mt-1">Order Value</p>
+                        <p className="text-sm text-gray-600 mt-1">{t('delivery.orderValue')}</p>
                         <div className="mt-2 pt-2 border-t border-green-200">
                           <p className="text-lg font-bold text-green-700">₹{task.estimatedEarning}</p>
-                          <p className="text-xs text-gray-500">Your Earning (15%)</p>
+                          <p className="text-xs text-gray-500">{t('delivery.yourEarning')}</p>
                         </div>
                         <div className="mt-2 pt-2 border-t border-green-200">
-                          <p className="text-xs text-gray-500">Status: Out for Delivery</p>
-                          <p className="text-xs text-gray-500">Admin Approved</p>
+                          <p className="text-xs text-gray-500">{t('common.status')}: {t('delivery.outForDelivery')}</p>
+                          <p className="text-xs text-gray-500">{t('delivery.adminApproved')}</p>
                         </div>
                       </div>
                     </div>
@@ -819,7 +1043,7 @@ const DeliveryTasks = () => {
                         onClick={() => handleAcceptDelivery(task.orderId)}
                       >
                         <Package className="w-4 h-4 mr-2" />
-                        Accept & Start GPS Tracking
+                        {t('delivery.acceptOrder')}
                       </Button>
                     </div>
                   </CardContent>
@@ -828,6 +1052,133 @@ const DeliveryTasks = () => {
             </div>
           )}
         </div>
+
+        {/* Earnings Details Modal */}
+        {showEarningsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md bg-white">
+              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardTitle className="flex items-center justify-between">
+                  <span>💰 {t('delivery.earnings.details')}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-white hover:bg-white/20"
+                    onClick={() => setShowEarningsModal(false)}
+                  >
+                    ✕
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {(() => {
+                  const [earningsData, setEarningsData] = useState({ today: 0, week: 0, month: 0, completedToday: [] });
+                  
+                  useEffect(() => {
+                    const loadEarningsData = async () => {
+                      if (!agentId) return;
+                      const completions = await supabaseApi.getDeliveryCompletions(agentId);
+                      
+                      const today = new Date().toDateString();
+                      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+                      const monthStart = new Date(); monthStart.setDate(monthStart.getDate() - 30);
+                      
+                      const completedToday = completions.filter((c: any) => new Date(c.completed_at).toDateString() === today);
+                      const completedThisWeek = completions.filter((c: any) => new Date(c.completed_at) >= weekStart);
+                      const completedThisMonth = completions.filter((c: any) => new Date(c.completed_at) >= monthStart);
+                      
+                      setEarningsData({
+                        today: completedToday.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
+                        week: completedThisWeek.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
+                        month: completedThisMonth.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
+                        completedToday
+                      });
+                    };
+                    loadEarningsData();
+                  }, [agentId]);
+                  
+                  const { today: todayEarnings, week: weeklyEarnings, month: monthlyEarnings, completedToday } = earningsData;
+                  
+                  return (
+                    <div className="space-y-4">
+                      {/* Today's Summary */}
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-green-800 mb-2">📅 {t('delivery.earnings.today')}</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span>{t('delivery.completedOrders')}:</span>
+                            <span className="font-bold">{completedToday.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('delivery.earnings')}:</span>
+                            <span className="font-bold text-green-600">₹{todayEarnings}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('delivery.incentiveBonus')}:</span>
+                            <span className="font-bold text-orange-600">₹{Math.min((metrics.completedOrders || 0) * 25, 250)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Order History */}
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-blue-800 mb-2">📋 {t('delivery.completedOrders')}</h3>
+                        {completedToday.length === 0 ? (
+                          <p className="text-gray-500 text-sm">{t('delivery.noOrders')}</p>
+                        ) : (
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {completedToday.map((completion: any, idx: number) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span>Order #{completion.order_id?.slice(-6) || idx + 1}</span>
+                                <span className="font-medium">₹{completion.earnings}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Weekly & Monthly */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-purple-50 p-3 rounded-lg text-center">
+                          <p className="text-xs text-purple-600">{t('delivery.earnings.week')}</p>
+                          <p className="font-bold text-purple-800">₹{weeklyEarnings}</p>
+                          <p className="text-xs text-purple-500">{Math.floor(weeklyEarnings / 25)} orders</p>
+                        </div>
+                        <div className="bg-orange-50 p-3 rounded-lg text-center">
+                          <p className="text-xs text-orange-600">{t('delivery.earnings.month')}</p>
+                          <p className="font-bold text-orange-800">₹{monthlyEarnings}</p>
+                          <p className="text-xs text-orange-500">{Math.floor(monthlyEarnings / 25)} orders</p>
+                        </div>
+                      </div>
+                      
+                      {/* Performance Stats */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-gray-800 mb-2">📊 {t('delivery.performance')}</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>{t('delivery.avgPerOrder')}:</span>
+                            <span className="font-medium">₹{completedToday.length > 0 ? (todayEarnings / completedToday.length).toFixed(0) : 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('delivery.completionRate')}:</span>
+                            <span className="font-medium">{metrics.completionRate}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('delivery.rating')}:</span>
+                            <span className="font-medium">{(() => {
+                              const rating = localStorage.getItem('customerRating');
+                              return rating ? `⭐ ${rating}/5` : 'N/A';
+                            })()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* OTP Verification Modal */}
         {showOTPVerification && selectedOrder && (
@@ -841,7 +1192,7 @@ const DeliveryTasks = () => {
                 setSelectedOrder(null);
                 // Remove from pending deliveries
                 setPendingDeliveries(prev => prev.filter(order => order.orderId !== selectedOrder.orderId));
-                alert('✅ Order delivered successfully!');
+                alert('✅ ' + t('delivery.orderDelivered'));
               }}
               onCancel={() => {
                 setShowOTPVerification(false);

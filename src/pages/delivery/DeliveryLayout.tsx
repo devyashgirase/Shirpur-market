@@ -1,36 +1,52 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User, Package } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { useTranslation } from "@/lib/i18n";
 
 const DeliveryLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleBackNavigation = () => {
+    if (location.pathname === '/delivery') {
+      navigate('/home');
+    } else {
+      navigate('/delivery');
+    }
+  };
+
   const navItems = [
-    { path: '/delivery', icon: List, label: 'Tasks', activeColor: 'text-blue-600' },
+    { path: '/delivery', icon: List, label: t('nav.home'), activeColor: 'text-blue-600' },
     { path: '/delivery/tracking', icon: MapPin, label: 'Track', activeColor: 'text-green-600' },
-    { path: '/delivery/notifications', icon: Bell, label: 'New', activeColor: 'text-orange-600' },
-    { path: '/delivery/out-for-delivery', icon: Package, label: 'Ready', activeColor: 'text-red-600' },
-    { path: '/delivery/profile', icon: User, label: 'Profile', activeColor: 'text-purple-600' }
+    { path: '/delivery/notifications', icon: Bell, label: t('nav.notifications'), activeColor: 'text-orange-600' },
+    { path: '/delivery/out-for-delivery', icon: Package, label: t('nav.orders'), activeColor: 'text-red-600' },
+    { path: '/delivery/profile', icon: User, label: t('nav.profile'), activeColor: 'text-purple-600' }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 pb-16 md:pb-0">
+    <LanguageProvider>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 pb-16 md:pb-0">
       {/* Mobile Header */}
       <header className="md:hidden bg-gradient-to-r from-blue-600 to-orange-600 text-white shadow-lg sticky top-0 z-40">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="text-white hover:text-white/80 transition-colors">
+              <button 
+                onClick={handleBackNavigation}
+                className="text-white hover:text-white/80 transition-colors"
+              >
                 <ArrowLeft className="w-5 h-5" />
-              </Link>
+              </button>
               <div className="flex items-center gap-2">
                 <Truck className="h-5 w-5" />
-                <h1 className="text-lg font-bold">Delivery</h1>
+                <h1 className="text-lg font-bold">{t('delivery.tasks')}</h1>
               </div>
             </div>
             <RealTimeNotifications userType="delivery" />
@@ -43,12 +59,15 @@ const DeliveryLayout = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="text-white hover:text-white/80 transition-colors">
+              <button 
+                onClick={handleBackNavigation}
+                className="text-white hover:text-white/80 transition-colors"
+              >
                 <ArrowLeft className="w-5 h-5" />
-              </Link>
+              </button>
               <div className="flex items-center gap-2">
                 <Truck className="h-6 w-6" />
-                <h1 className="text-2xl font-bold">Delivery Portal</h1>
+                <h1 className="text-2xl font-bold">{t('delivery.tasks')}</h1>
               </div>
             </div>
             
@@ -105,7 +124,8 @@ const DeliveryLayout = () => {
           })}
         </div>
       </nav>
-    </div>
+      </div>
+    </LanguageProvider>
   );
 };
 

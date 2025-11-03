@@ -6,6 +6,7 @@ import { Truck, User, Lock } from 'lucide-react';
 import { deliveryAuthService } from '@/lib/deliveryAuthService';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import YashBranding from '@/components/YashBranding';
 
 const DeliveryLogin = () => {
   const [userId, setUserId] = useState('');
@@ -128,6 +129,11 @@ const DeliveryLogin = () => {
 
         </CardContent>
       </Card>
+      
+      {/* YASH Technologies Branding */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+        <YashBranding variant="compact" className="text-white/80" />
+      </div>
     </div>
   );
 };

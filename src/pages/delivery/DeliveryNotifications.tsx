@@ -121,21 +121,38 @@ const DeliveryNotifications = () => {
     
     setProcessingOrders(prev => new Set(prev).add(orderId));
     
-    const result = await orderManagementService.rejectOrder(orderId, currentUser.id);
-    
-    setProcessingOrders(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(orderId);
-      return newSet;
-    });
-    
-    if (result.success) {
+    try {
+      // Simple rejection - just remove from local state
       toast({
         title: "Order Rejected",
         description: "Order removed from your list",
       });
-      // Remove from local state
+      
+      // Remove from local state immediately
       setNewOrders(prev => prev.filter(order => order.id !== orderId));
+      
+      // Store rejection in localStorage for tracking
+      const rejectedOrders = JSON.parse(localStorage.getItem('rejectedOrders') || '[]');
+      rejectedOrders.push({
+        orderId,
+        agentId: currentUser.userId,
+        rejectedAt: new Date().toISOString()
+      });
+      localStorage.setItem('rejectedOrders', JSON.stringify(rejectedOrders));
+      
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject order",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orderId);
+        return newSet;
+      });
     }
   };
 

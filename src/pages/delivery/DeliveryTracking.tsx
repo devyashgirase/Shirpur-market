@@ -39,13 +39,13 @@ const DeliveryTracking = () => {
     console.log('📦 Current order loaded:', order);
     
     if (order.orderId) {
-      // Ensure proper structure
+      // Ensure proper structure with real customer data
       const orderData = {
         orderId: order.orderId,
         customerAddress: {
-          name: order.customerAddress?.name || order.customer_name || 'Customer Name',
-          address: order.customerAddress?.address || order.customer_address || 'Delivery Address',
-          phone: order.customerAddress?.phone || order.customer_phone || 'Phone Number'
+          name: order.customerAddress?.name || order.customer_name || '',
+          address: order.customerAddress?.address || order.customer_address || order.delivery_address || '',
+          phone: order.customerAddress?.phone || order.customer_phone || ''
         },
         total: order.total || order.total_amount || 0,
         items: order.items || []
@@ -265,17 +265,17 @@ const DeliveryTracking = () => {
                 <div className="space-y-2">
                   <div>
                     <p className="text-sm text-gray-600">Customer Name</p>
-                    <p className="font-semibold text-lg">{currentOrder?.customerAddress?.name}</p>
+                    <p className="font-semibold text-lg">{currentOrder?.customerAddress?.name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Delivery Address</p>
-                    <p className="text-gray-700">{currentOrder?.customerAddress?.address}</p>
+                    <p className="text-gray-700">{currentOrder?.customerAddress?.address || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Phone Number</p>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-blue-500" />
-                      <span className="text-blue-600 font-medium">{currentOrder?.customerAddress?.phone}</span>
+                      <span className="text-blue-600 font-medium">{currentOrder?.customerAddress?.phone || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -314,8 +314,21 @@ const DeliveryTracking = () => {
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3"
                 size="lg"
                 onClick={() => {
-                  // Open live Google Maps with real-time navigation
-                  const mapsUrl = `https://www.google.com/maps/dir/${agentLocation.lat},${agentLocation.lng}/${customerLocation.lat},${customerLocation.lng}/@${agentLocation.lat},${agentLocation.lng},15z/data=!3m1!4b1!4m2!4m1!3e0`;
+                  // Use real customer address for Google Maps navigation
+                  const customerAddress = currentOrder?.customerAddress?.address || currentOrder?.customer_address || currentOrder?.delivery_address;
+                  console.log('🗺️ Opening maps with customer address:', customerAddress);
+                  
+                  let mapsUrl;
+                  if (customerAddress && customerAddress.trim() !== '') {
+                    // Use address-based navigation
+                    const encodedAddress = encodeURIComponent(customerAddress);
+                    mapsUrl = `https://www.google.com/maps/dir/Current+Location/${encodedAddress}`;
+                  } else {
+                    // Fallback to coordinates
+                    mapsUrl = `https://www.google.com/maps/dir/${agentLocation.lat},${agentLocation.lng}/${customerLocation.lat},${customerLocation.lng}/@${agentLocation.lat},${agentLocation.lng},15z/data=!3m1!4b1!4m2!4m1!3e0`;
+                  }
+                  
+                  console.log('🚀 Opening Google Maps URL:', mapsUrl);
                   window.open(mapsUrl, '_blank');
                   
                   // Start continuous GPS tracking
@@ -355,8 +368,9 @@ const DeliveryTracking = () => {
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    const phoneNumber = currentOrder.customerAddress?.phone;
-                    if (phoneNumber) {
+                    const phoneNumber = currentOrder.customerAddress?.phone || currentOrder.customer_phone;
+                    console.log('📞 Calling customer:', phoneNumber);
+                    if (phoneNumber && phoneNumber.trim() !== '') {
                       window.location.href = `tel:${phoneNumber}`;
                     } else {
                       alert('Customer phone number not available');
@@ -372,8 +386,9 @@ const DeliveryTracking = () => {
                   variant="outline"
                   onClick={() => {
                     const message = `Hi! I'm your delivery agent for order #${currentOrder.orderId}. I'm on my way to deliver your order. ETA: 15-20 minutes.`;
-                    const phoneNumber = currentOrder.customerAddress?.phone?.replace(/^\+?91/, '91');
-                    if (phoneNumber) {
+                    const phoneNumber = (currentOrder.customerAddress?.phone || currentOrder.customer_phone)?.replace(/^\+?91/, '91');
+                    console.log('📱 WhatsApp to customer:', phoneNumber);
+                    if (phoneNumber && phoneNumber.trim() !== '') {
                       window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
                     } else {
                       alert('Customer phone number not available');

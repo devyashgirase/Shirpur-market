@@ -165,6 +165,7 @@ const CustomerCart = () => {
         customer_name: addressData.name,
         customer_phone: customerPhone,
         customer_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
+        delivery_address: `${addressData.address}${addressData.landmark ? ', ' + addressData.landmark : ''}${addressData.city ? ', ' + addressData.city : ''}${addressData.state ? ', ' + addressData.state : ''} - ${addressData.pincode}`,
         items: cart.map(item => ({
           product_id: parseInt(item.product.id),
           product_name: item.product.name,

@@ -14,6 +14,8 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [deliveryCount, setDeliveryCount] = useState(0);
+  const [hasNewDelivery, setHasNewDelivery] = useState(false);
 
   useEffect(() => {
     // Get user ID for customer-specific notifications
@@ -33,6 +35,30 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
         });
       });
     } else if (userType === 'delivery') {
+      // Load delivery orders count
+      const loadDeliveryCount = async () => {
+        try {
+          const { orderManagementService } = await import('@/lib/orderManagementService');
+          const result = await orderManagementService.getOrdersReadyForDelivery();
+          if (result.success) {
+            const newCount = result.orders.length;
+            const oldCount = deliveryCount;
+            setDeliveryCount(newCount);
+            
+            // Trigger blink animation if new orders arrived
+            if (newCount > oldCount && oldCount > 0) {
+              setHasNewDelivery(true);
+              setTimeout(() => setHasNewDelivery(false), 3000);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load delivery count:', error);
+        }
+      };
+      
+      loadDeliveryCount();
+      const deliveryInterval = setInterval(loadDeliveryCount, 5000);
+      
       realTimeService.subscribe('DeliveryNotification', (notification: any) => {
         NotificationService.addNotification({
           title: notification.title,
@@ -40,7 +66,17 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
           type: notification.type,
           priority: notification.priority
         });
+        
+        // Trigger blink for new delivery notifications
+        if (notification.type === 'delivery_request') {
+          setHasNewDelivery(true);
+          setTimeout(() => setHasNewDelivery(false), 3000);
+        }
       });
+      
+      return () => {
+        clearInterval(deliveryInterval);
+      };
     } else if (userType === 'customer') {
       realTimeService.subscribe('CustomerNotification', (notification: any) => {
         NotificationService.addNotification({
@@ -101,8 +137,13 @@ const RealTimeNotifications = ({ userType }: RealTimeNotificationsProps) => {
         onClick={() => setShowNotifications(!showNotifications)}
         className="relative"
       >
-        <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
+        <Bell className={`w-5 h-5 ${hasNewDelivery ? 'animate-bounce text-orange-500' : ''} ${userType === 'delivery' && deliveryCount > 0 ? 'text-orange-600' : ''}`} />
+        {userType === 'delivery' && deliveryCount > 0 && (
+          <Badge className={`absolute -top-1 -right-1 bg-orange-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full ${hasNewDelivery ? 'animate-pulse' : ''}`}>
+            {deliveryCount > 99 ? '99+' : deliveryCount}
+          </Badge>
+        )}
+        {userType !== 'delivery' && unreadCount > 0 && (
           <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
             {unreadCount > 99 ? '99+' : unreadCount}
           </Badge>

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Phone, Shield, Timer, User, ShoppingBag, Truck } from "lucide-react";
 import { authService, User as AuthUser } from "@/lib/authService";
 import { SimpleFreeOtp, OTPResult } from "@/lib/simpleFreeOtp";
+import YashBranding from "@/components/YashBranding";
 
 const OTPLogin = () => {
   const [step, setStep] = useState<'phone' | 'otp' | 'setup'>('phone');
@@ -974,6 +975,9 @@ const OTPLogin = () => {
 
 
           </div>
+          
+          {/* YASH Technologies Branding */}
+          <YashBranding variant="footer" className="mt-8" />
         </div>
       </div>
     </div>
