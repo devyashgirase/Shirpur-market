@@ -28,6 +28,7 @@ const DeliveryTasks = () => {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showEarningsModal, setShowEarningsModal] = useState(false);
   const [currentLocationName, setCurrentLocationName] = useState('Getting location...');
+  const [weeklyEarnings, setWeeklyEarnings] = useState(0);
   const { t } = useTranslation();
 
   // Function to get address from coordinates
@@ -75,6 +76,21 @@ const DeliveryTasks = () => {
     const completedCount = await getCompletedOrdersToday();
     setMetrics(prev => ({ ...prev, completedOrders: completedCount }));
   };
+
+  // Load weekly earnings
+  useEffect(() => {
+    const loadWeeklyEarnings = async () => {
+      if (!agentId) return;
+      const completions = await supabaseApi.getDeliveryCompletions(agentId);
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - 7);
+      const weeklyTotal = completions
+        .filter((c: any) => new Date(c.completed_at) >= weekStart)
+        .reduce((sum: number, c: any) => sum + (c.earnings || 0), 0);
+      setWeeklyEarnings(weeklyTotal);
+    };
+    loadWeeklyEarnings();
+  }, [agentId]);
 
   useEffect(() => {
     // Initialize completed orders count
@@ -430,23 +446,7 @@ const DeliveryTasks = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Weekly Earnings</span>
-<span className="font-semibold text-green-600">{(() => {
-                  const [weeklyEarnings, setWeeklyEarnings] = useState(0);
-                  useEffect(() => {
-                    const loadWeeklyEarnings = async () => {
-                      if (!agentId) return;
-                      const completions = await supabaseApi.getDeliveryCompletions(agentId);
-                      const weekStart = new Date();
-                      weekStart.setDate(weekStart.getDate() - 7);
-                      const weeklyTotal = completions
-                        .filter((c: any) => new Date(c.completed_at) >= weekStart)
-                        .reduce((sum: number, c: any) => sum + (c.earnings || 0), 0);
-                      setWeeklyEarnings(weeklyTotal);
-                    };
-                    loadWeeklyEarnings();
-                  }, [agentId]);
-                  return `₹${weeklyEarnings}`;
-                })()}</span>
+<span className="font-semibold text-green-600">₹{weeklyEarnings}</span>
               </div>
             </div>
           </CardContent>

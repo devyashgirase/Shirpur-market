@@ -12,6 +12,7 @@
     "netlify": "npm run build:prod && echo 'Drag dist/ folder to netlify.com/drop'"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.922.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -25,7 +26,7 @@
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.0.7",
-
+    "@smithy/util-base64": "^4.3.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "leaflet": "^1.9.4",
