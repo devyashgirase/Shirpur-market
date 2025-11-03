@@ -29,6 +29,7 @@ const DeliveryTasks = () => {
   const [showEarningsModal, setShowEarningsModal] = useState(false);
   const [currentLocationName, setCurrentLocationName] = useState('Getting location...');
   const [weeklyEarnings, setWeeklyEarnings] = useState(0);
+  const [earningsData, setEarningsData] = useState({ today: 0, week: 0, month: 0, completedToday: [] });
   const { t } = useTranslation();
 
   // Function to get address from coordinates
@@ -90,6 +91,30 @@ const DeliveryTasks = () => {
       setWeeklyEarnings(weeklyTotal);
     };
     loadWeeklyEarnings();
+  }, [agentId]);
+
+  // Load earnings data for modal
+  useEffect(() => {
+    const loadEarningsData = async () => {
+      if (!agentId) return;
+      const completions = await supabaseApi.getDeliveryCompletions(agentId);
+      
+      const today = new Date().toDateString();
+      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+      const monthStart = new Date(); monthStart.setDate(monthStart.getDate() - 30);
+      
+      const completedToday = completions.filter((c: any) => new Date(c.completed_at).toDateString() === today);
+      const completedThisWeek = completions.filter((c: any) => new Date(c.completed_at) >= weekStart);
+      const completedThisMonth = completions.filter((c: any) => new Date(c.completed_at) >= monthStart);
+      
+      setEarningsData({
+        today: completedToday.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
+        week: completedThisWeek.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
+        month: completedThisMonth.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
+        completedToday
+      });
+    };
+    loadEarningsData();
   }, [agentId]);
 
   useEffect(() => {
@@ -341,7 +366,7 @@ const DeliveryTasks = () => {
             <Truck className="h-8 w-8" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">{t('delivery.tasks')}</h1>
-              <p className="text-blue-100 mt-1">Manage your deliveries and track earnings</p>
+              <p className="text-blue-100 mt-1">{t('delivery.manageDeliveries')}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -375,7 +400,7 @@ const DeliveryTasks = () => {
               }}
             >
               <Headphones className="w-4 h-4 mr-2" />
-              Support
+              {t('delivery.support')}
             </Button>
             
             <Button 
@@ -402,7 +427,7 @@ const DeliveryTasks = () => {
                 alert(`✅ Refreshed! Found ${orders.length} total orders, ${orders.filter(o => o.order_status === 'ready_for_delivery').length} ready for delivery`);
               }}
             >
-              🔄 Refresh
+              🔄 {t('delivery.refresh')}
             </Button>
             
             <Button 
@@ -413,7 +438,7 @@ const DeliveryTasks = () => {
                 navigate('/delivery/login');
               }}
             >
-              Logout
+              {t('delivery.logout')}
             </Button>
           </div>
         </div>
@@ -426,26 +451,26 @@ const DeliveryTasks = () => {
         
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
+            <CardTitle>{t('delivery.quickStats')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex justify-between">
-                <span className="text-sm">Avg Delivery Time</span>
+                <span className="text-sm">{t('delivery.avgDeliveryTime')}</span>
                 <span className="font-semibold">{(() => {
                   const avgTime = localStorage.getItem('avgDeliveryTime');
                   return avgTime ? `${avgTime} min` : 'N/A';
                 })()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Customer Rating</span>
+                <span className="text-sm">{t('delivery.customerRating')}</span>
                 <span className="font-semibold">{(() => {
                   const rating = localStorage.getItem('customerRating');
                   return rating ? `${rating} ⭐` : 'N/A';
                 })()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Weekly Earnings</span>
+                <span className="text-sm">{t('delivery.weeklyEarnings')}</span>
 <span className="font-semibold text-green-600">₹{weeklyEarnings}</span>
               </div>
             </div>
@@ -456,13 +481,13 @@ const DeliveryTasks = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              System Status - Live Data
+              {t('delivery.systemStatus')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="bg-blue-50 p-3 rounded">
-                <p className="font-semibold text-blue-800">Current Location</p>
+                <p className="font-semibold text-blue-800">{t('delivery.currentLocation')}</p>
                 <p className="text-blue-600">
                   📍 {localStorage.getItem('agentLocationName') || currentLocationName}
                 </p>
@@ -484,22 +509,22 @@ const DeliveryTasks = () => {
               </div>
               
               <div className="bg-green-50 p-3 rounded">
-                <p className="font-semibold text-green-800">Orders Available</p>
+                <p className="font-semibold text-green-800">{t('delivery.ordersAvailable')}</p>
                 <p className="text-green-600 text-xl font-bold">
                   {deliveryTasks.length}
                 </p>
                 <p className="text-xs text-green-500 mt-1">
-                  Out for delivery status
+                  {t('delivery.outForDeliveryStatus')}
                 </p>
               </div>
               
               <div className="bg-orange-50 p-3 rounded">
-                <p className="font-semibold text-orange-800">Total Orders</p>
+                <p className="font-semibold text-orange-800">{t('delivery.totalOrders')}</p>
                 <p className="text-orange-600 text-xl font-bold">
                   {deliveryTasks[0]?.debugInfo?.totalOrders || 0}
                 </p>
                 <p className="text-xs text-orange-500 mt-1">
-                  All statuses combined
+                  {t('delivery.allStatusesCombined')}
                 </p>
               </div>
             </div>
@@ -511,7 +536,7 @@ const DeliveryTasks = () => {
             <CardContent className="p-3 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-xs md:text-sm font-medium">Active Tasks</p>
+                  <p className="text-blue-100 text-xs md:text-sm font-medium">{t('delivery.activeTasks')}</p>
                   <p className="text-xl md:text-3xl font-bold mt-1">{metrics.activeTasks}</p>
                 </div>
                 <Package className="h-6 w-6 md:h-8 md:w-8 text-blue-200" />
@@ -526,7 +551,7 @@ const DeliveryTasks = () => {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">Today's Earnings</p>
+                  <p className="text-green-100 text-sm font-medium">{t('delivery.todaysEarnings')}</p>
                   <p className="text-2xl sm:text-3xl font-bold mt-1">₹{metrics.todaysEarnings}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-200" />
@@ -538,7 +563,7 @@ const DeliveryTasks = () => {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium">Completion Rate</p>
+                  <p className="text-purple-100 text-sm font-medium">{t('delivery.completionRate')}</p>
                   <p className="text-2xl sm:text-3xl font-bold mt-1">{metrics.completionRate}%</p>
                 </div>
                 <Star className="h-8 w-8 text-purple-200" />
@@ -550,7 +575,7 @@ const DeliveryTasks = () => {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-medium">Performance</p>
+                  <p className="text-orange-100 text-sm font-medium">{t('delivery.performance')}</p>
                   <p className="text-2xl sm:text-3xl font-bold mt-1">⭐⭐⭐⭐⭐</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-orange-200" />
@@ -565,13 +590,13 @@ const DeliveryTasks = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  🎯 Daily Incentive Tracker
+                  🎯 {t('delivery.dailyIncentiveTracker')}
                 </h3>
-                <p className="text-sm text-gray-600">Complete 10 orders to earn ₹250 bonus!</p>
+                <p className="text-sm text-gray-600">{t('delivery.incentiveDescription')}</p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-orange-600">₹{Math.min((metrics.completedOrders || 0) * 25, 250)}</p>
-                <p className="text-xs text-gray-500">Earned Today</p>
+                <p className="text-xs text-gray-500">{t('delivery.earnedToday')}</p>
               </div>
             </div>
             
@@ -611,11 +636,11 @@ const DeliveryTasks = () => {
               <div className="flex justify-between mt-3">
                 <div className="text-sm">
                   <span className="font-bold text-green-600">{metrics.completedOrders || 0}</span>
-                  <span className="text-gray-500"> / 10 orders</span>
+                  <span className="text-gray-500"> / 10 {t('delivery.orders')}</span>
                 </div>
                 <div className="text-sm">
                   <span className="font-bold text-orange-600">₹{250 - Math.min((metrics.completedOrders || 0) * 25, 250)}</span>
-                  <span className="text-gray-500"> remaining</span>
+                  <span className="text-gray-500"> {t('delivery.remaining')}</span>
                 </div>
               </div>
             </div>
@@ -636,7 +661,7 @@ const DeliveryTasks = () => {
                   }`}
                 >
                   <div className="text-2xl mb-1">{milestone.icon}</div>
-                  <div className="text-xs font-bold">{milestone.orders} Orders</div>
+                  <div className="text-xs font-bold">{milestone.orders} {t('delivery.orders')}</div>
                   <div className="text-xs">₹{milestone.reward}</div>
                 </div>
               ))}
@@ -644,8 +669,8 @@ const DeliveryTasks = () => {
             
             {(metrics.completedOrders || 0) >= 10 && (
               <div className="mt-4 p-3 bg-green-100 border-2 border-green-400 rounded-lg text-center">
-                <p className="text-green-800 font-bold">🎉 Congratulations! Daily target achieved!</p>
-                <p className="text-sm text-green-600">You've earned the full ₹250 incentive bonus!</p>
+                <p className="text-green-800 font-bold">🎉 {t('delivery.congratulations')}</p>
+                <p className="text-sm text-green-600">{t('delivery.fullIncentiveEarned')}</p>
               </div>
             )}
           </CardContent>
@@ -654,12 +679,12 @@ const DeliveryTasks = () => {
         {/* Ready for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">📦 Ready for Delivery</h2>
+            <h2 className="text-xl font-bold text-gray-800">📦 {t('delivery.readyForDelivery')}</h2>
             <Badge variant="secondary" className="bg-blue-100 text-blue-700">
               {deliveryOrders.filter(order => order.order_status === 'ready_for_delivery').length}
             </Badge>
             <Badge variant="outline" className="text-xs">
-              Total: {deliveryOrders.length} orders
+              {t('delivery.total')}: {deliveryOrders.length} {t('delivery.orders')}
             </Badge>
           </div>
 
@@ -667,8 +692,8 @@ const DeliveryTasks = () => {
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="p-8 text-center">
                 <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No orders ready for delivery</h3>
-                <p className="text-gray-500">Orders marked 'Ready for Delivery' by admin will appear here</p>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">{t('delivery.noOrdersReady')}</h3>
+                <p className="text-gray-500">{t('delivery.ordersMarkedReady')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -679,7 +704,7 @@ const DeliveryTasks = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
-                        <Badge className="bg-blue-500 text-white mt-1">📦 Ready for Delivery</Badge>
+                        <Badge className="bg-blue-500 text-white mt-1">📦 {t('delivery.readyForDelivery')}</Badge>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-blue-600">₹{order.total_amount}</p>
@@ -689,25 +714,25 @@ const DeliveryTasks = () => {
                     <div className="bg-white p-4 rounded-lg mb-3 border border-gray-200">
                       <div className="flex items-center gap-2 mb-3">
                         <MapPin className="w-5 h-5 text-red-500" />
-                        <span className="font-bold text-gray-800">📋 Customer Details</span>
+                        <span className="font-bold text-gray-800">📋 {t('delivery.customerDetails')}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">NAME</span>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">{t('delivery.name')}</span>
                           <span className="font-semibold text-gray-800">{order.customer_name}</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">ADDRESS</span>
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">{t('delivery.address')}</span>
                           <span className="text-sm text-gray-700 flex-1">{order.customer_address}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">PHONE</span>
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">{t('delivery.phone')}</span>
                           <a href={`tel:${order.customer_phone}`} className="text-sm font-medium text-blue-600 hover:underline">
                             📞 {order.customer_phone}
                           </a>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">ORDER ID</span>
+                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">{t('delivery.orderId')}</span>
                           <span className="text-sm font-mono text-gray-700">#{order.id}</span>
                         </div>
                       </div>
@@ -716,14 +741,14 @@ const DeliveryTasks = () => {
                     <div className="bg-green-50 p-3 rounded-lg mb-3">
                       <div className="flex items-center gap-2 mb-1">
                         <Package className="w-4 h-4 text-green-500" />
-                        <span className="font-semibold text-green-700">Order Items</span>
+                        <span className="font-semibold text-green-700">{t('delivery.orderItems')}</span>
                       </div>
                       {order.items && order.items.length > 0 ? order.items.slice(0, 2).map((item: any, idx: number) => (
                         <p key={idx} className="text-sm text-green-600">
                           {item.quantity}x {item.product?.name || item.name || item.product_name || 'Unknown Item'} - ₹{item.price || item.product?.price || 0}
                         </p>
                       )) : (
-                        <p className="text-sm text-gray-500">No items found</p>
+                        <p className="text-sm text-gray-500">{t('delivery.noItemsFound')}</p>
                       )}
                       {order.items.length > 2 && (
                         <p className="text-xs text-green-500">+{order.items.length - 2} more items</p>
@@ -747,7 +772,7 @@ const DeliveryTasks = () => {
                       }}
                     >
                       <Truck className="w-4 h-4 mr-2" />
-                      Accept & Start Delivery
+                      {t('delivery.acceptStartDelivery')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -759,7 +784,7 @@ const DeliveryTasks = () => {
         {/* Out for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">🚚 Orders Out for Delivery</h2>
+            <h2 className="text-xl font-bold text-gray-800">🚚 {t('delivery.ordersOutForDelivery')}</h2>
             <Badge variant="secondary" className="bg-orange-100 text-orange-700">
               {deliveryOrders.filter(order => order.order_status === 'out_for_delivery').length}
             </Badge>
@@ -769,8 +794,8 @@ const DeliveryTasks = () => {
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="p-8 text-center">
                 <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No orders for delivery</h3>
-                <p className="text-gray-500">Orders marked 'Out for Delivery' will appear here</p>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">{t('delivery.noOrdersForDelivery')}</h3>
+                <p className="text-gray-500">{t('delivery.ordersMarkedOutForDelivery')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -781,7 +806,7 @@ const DeliveryTasks = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
-                        <Badge className="bg-orange-500 text-white mt-1">Out for Delivery</Badge>
+                        <Badge className="bg-orange-500 text-white mt-1">{t('delivery.outForDelivery')}</Badge>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-orange-600">₹{order.total_amount}</p>
@@ -791,19 +816,19 @@ const DeliveryTasks = () => {
                     <div className="bg-white p-4 rounded-lg mb-3 border border-gray-200">
                       <div className="flex items-center gap-2 mb-3">
                         <MapPin className="w-5 h-5 text-red-500" />
-                        <span className="font-bold text-gray-800">📋 Delivery Details</span>
+                        <span className="font-bold text-gray-800">📋 {t('delivery.deliveryDetails')}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">CUSTOMER</span>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">{t('delivery.customer')}</span>
                           <span className="font-semibold text-gray-800">{order.customer_name}</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">DELIVER TO</span>
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">{t('delivery.deliverTo')}</span>
                           <span className="text-sm text-gray-700 flex-1">{order.customer_address}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">CONTACT</span>
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">{t('delivery.contact')}</span>
                           <a href={`tel:${order.customer_phone}`} className="text-sm font-medium text-blue-600 hover:underline">
                             📞 {order.customer_phone}
                           </a>
@@ -812,7 +837,7 @@ const DeliveryTasks = () => {
                           </a>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">ORDER</span>
+                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">{t('delivery.order')}</span>
                           <span className="text-sm font-mono text-gray-700">#{order.id}</span>
                         </div>
                       </div>
@@ -821,7 +846,7 @@ const DeliveryTasks = () => {
                     <div className="bg-blue-50 p-3 rounded-lg mb-3">
                       <div className="flex items-center gap-2 mb-1">
                         <Package className="w-4 h-4 text-blue-500" />
-                        <span className="font-semibold text-blue-700">Order Items</span>
+                        <span className="font-semibold text-blue-700">{t('delivery.orderItems')}</span>
                       </div>
                       {order.items.slice(0, 2).map((item: any, idx: number) => (
                         <p key={idx} className="text-sm text-blue-600">
@@ -859,7 +884,7 @@ const DeliveryTasks = () => {
                         }}
                       >
                         <Navigation className="w-4 h-4 mr-2" />
-                        Start Route
+                        {t('delivery.startRoute')}
                       </Button>
                       <Button 
                         className="bg-green-500 hover:bg-green-600 text-white"
@@ -887,7 +912,7 @@ const DeliveryTasks = () => {
                         }}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Mark Delivered
+                        {t('delivery.markDelivered')}
                       </Button>
                     </div>
                   </CardContent>
@@ -1071,51 +1096,26 @@ const DeliveryTasks = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                {(() => {
-                  const [earningsData, setEarningsData] = useState({ today: 0, week: 0, month: 0, completedToday: [] });
-                  
-                  useEffect(() => {
-                    const loadEarningsData = async () => {
-                      if (!agentId) return;
-                      const completions = await supabaseApi.getDeliveryCompletions(agentId);
-                      
-                      const today = new Date().toDateString();
-                      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
-                      const monthStart = new Date(); monthStart.setDate(monthStart.getDate() - 30);
-                      
-                      const completedToday = completions.filter((c: any) => new Date(c.completed_at).toDateString() === today);
-                      const completedThisWeek = completions.filter((c: any) => new Date(c.completed_at) >= weekStart);
-                      const completedThisMonth = completions.filter((c: any) => new Date(c.completed_at) >= monthStart);
-                      
-                      setEarningsData({
-                        today: completedToday.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
-                        week: completedThisWeek.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
-                        month: completedThisMonth.reduce((sum: number, c: any) => sum + (c.earnings || 0), 0),
-                        completedToday
-                      });
-                    };
-                    loadEarningsData();
-                  }, [agentId]);
-                  
-                  const { today: todayEarnings, week: weeklyEarnings, month: monthlyEarnings, completedToday } = earningsData;
-                  
-                  return (
-                    <div className="space-y-4">
+                <div className="space-y-4">
                       {/* Today's Summary */}
                       <div className="bg-green-50 p-4 rounded-lg">
                         <h3 className="font-bold text-green-800 mb-2">📅 {t('delivery.earnings.today')}</h3>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span>{t('delivery.completedOrders')}:</span>
-                            <span className="font-bold">{completedToday.length}</span>
+                            <span className="font-bold">{earningsData.completedToday.length}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>{t('delivery.earnings')}:</span>
-                            <span className="font-bold text-green-600">₹{todayEarnings}</span>
+                            <span className="font-bold text-green-600">₹{earningsData.today}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>{t('delivery.incentiveBonus')}:</span>
                             <span className="font-bold text-orange-600">₹{Math.min((metrics.completedOrders || 0) * 25, 250)}</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-2 mt-2">
+                            <span className="font-bold">{t('delivery.totalEarnings')}:</span>
+                            <span className="font-bold text-green-700">₹{earningsData.today + Math.min((metrics.completedOrders || 0) * 25, 250)}</span>
                           </div>
                         </div>
                       </div>
@@ -1123,11 +1123,11 @@ const DeliveryTasks = () => {
                       {/* Order History */}
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <h3 className="font-bold text-blue-800 mb-2">📋 {t('delivery.completedOrders')}</h3>
-                        {completedToday.length === 0 ? (
+                        {earningsData.completedToday.length === 0 ? (
                           <p className="text-gray-500 text-sm">{t('delivery.noOrders')}</p>
                         ) : (
                           <div className="space-y-2 max-h-32 overflow-y-auto">
-                            {completedToday.map((completion: any, idx: number) => (
+                            {earningsData.completedToday.map((completion: any, idx: number) => (
                               <div key={idx} className="flex justify-between text-sm">
                                 <span>Order #{completion.order_id?.slice(-6) || idx + 1}</span>
                                 <span className="font-medium">₹{completion.earnings}</span>
@@ -1141,13 +1141,13 @@ const DeliveryTasks = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-purple-50 p-3 rounded-lg text-center">
                           <p className="text-xs text-purple-600">{t('delivery.earnings.week')}</p>
-                          <p className="font-bold text-purple-800">₹{weeklyEarnings}</p>
-                          <p className="text-xs text-purple-500">{Math.floor(weeklyEarnings / 25)} orders</p>
+                          <p className="font-bold text-purple-800">₹{earningsData.week}</p>
+                          <p className="text-xs text-purple-500">{Math.floor(earningsData.week / 25)} orders</p>
                         </div>
                         <div className="bg-orange-50 p-3 rounded-lg text-center">
                           <p className="text-xs text-orange-600">{t('delivery.earnings.month')}</p>
-                          <p className="font-bold text-orange-800">₹{monthlyEarnings}</p>
-                          <p className="text-xs text-orange-500">{Math.floor(monthlyEarnings / 25)} orders</p>
+                          <p className="font-bold text-orange-800">₹{earningsData.month}</p>
+                          <p className="text-xs text-orange-500">{Math.floor(earningsData.month / 25)} orders</p>
                         </div>
                       </div>
                       
@@ -1157,7 +1157,7 @@ const DeliveryTasks = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>{t('delivery.avgPerOrder')}:</span>
-                            <span className="font-medium">₹{completedToday.length > 0 ? (todayEarnings / completedToday.length).toFixed(0) : 0}</span>
+                            <span className="font-medium">₹{earningsData.completedToday.length > 0 ? (earningsData.today / earningsData.completedToday.length).toFixed(0) : 0}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>{t('delivery.completionRate')}:</span>
@@ -1172,9 +1172,7 @@ const DeliveryTasks = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                </div>
               </CardContent>
             </Card>
           </div>
