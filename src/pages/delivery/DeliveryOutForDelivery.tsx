@@ -153,10 +153,10 @@ const DeliveryOutForDelivery = () => {
             // Store initial location
             localStorage.setItem(`tracking_${order.id}`, JSON.stringify([location]));
             
-            // Update agent location in database
+            // Update agent location in database with order ID
             try {
               const { supabaseApi } = await import('@/lib/supabase');
-              await supabaseApi.updateAgentLocation(currentAgent.id, location.lat, location.lng);
+              await supabaseApi.updateAgentLocation(currentAgent.id, location.lat, location.lng, order.id);
             } catch (error) {
               console.warn('Failed to update agent location:', error);
             }

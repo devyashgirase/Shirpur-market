@@ -587,20 +587,50 @@ export const supabaseApi = {
     }
   },
 
-  async updateAgentLocation(agentId: string, lat: number, lng: number) {
+  async updateAgentLocation(agentId: string, lat: number, lng: number, orderId?: string) {
     try {
-      // Store location in localStorage as primary method
+      // Store location in localStorage for immediate access
       const locationData = {
         agentId,
         lat,
         lng,
+        orderId: orderId || null,
         timestamp: new Date().toISOString()
       };
       
       localStorage.setItem(`agent_location_${agentId}`, JSON.stringify(locationData));
       localStorage.setItem('current_agent_location', JSON.stringify(locationData));
       
-      console.log('📍 Agent location stored locally:', locationData);
+      // Store in a simple tracking format for admin access
+      try {
+        const trackingData = {
+          agent_id: agentId,
+          order_id: orderId || null,
+          lat: lat,
+          lng: lng,
+          timestamp: new Date().toISOString(),
+          status: 'active'
+        };
+        
+        // Store in localStorage with a key that admin can access
+        const allAgentLocations = JSON.parse(localStorage.getItem('all_agent_locations') || '{}');
+        allAgentLocations[agentId] = trackingData;
+        localStorage.setItem('all_agent_locations', JSON.stringify(allAgentLocations));
+        
+        // Also store tracking history
+        const trackingHistory = JSON.parse(localStorage.getItem(`tracking_history_${agentId}`) || '[]');
+        trackingHistory.push(trackingData);
+        // Keep only last 50 locations to prevent storage overflow
+        if (trackingHistory.length > 50) {
+          trackingHistory.splice(0, trackingHistory.length - 50);
+        }
+        localStorage.setItem(`tracking_history_${agentId}`, JSON.stringify(trackingHistory));
+        
+        console.log('📍 Agent location stored in localStorage for admin tracking');
+      } catch (trackingError) {
+        console.warn('Tracking storage failed:', trackingError);
+      }
+      
       return true;
     } catch (error) {
       console.warn('Agent location update failed:', error);
@@ -699,6 +729,52 @@ export const supabaseApi = {
     } catch (error) {
       console.error('Customer update failed:', error);
       throw error;
+    }
+  },
+
+  // Admin methods for real-time tracking (using localStorage)
+  async getActiveAgentLocations() {
+    try {
+      const allAgentLocations = JSON.parse(localStorage.getItem('all_agent_locations') || '{}');
+      return Object.values(allAgentLocations).filter((location: any) => {
+        // Only return locations from last 30 minutes
+        const locationTime = new Date(location.timestamp).getTime();
+        const now = new Date().getTime();
+        return (now - locationTime) < 30 * 60 * 1000; // 30 minutes
+      });
+    } catch (error) {
+      console.error('Failed to get agent locations:', error);
+      return [];
+    }
+  },
+
+  async getAgentTrackingHistory(agentId: string) {
+    try {
+      const trackingHistory = JSON.parse(localStorage.getItem(`tracking_history_${agentId}`) || '[]');
+      return trackingHistory;
+    } catch (error) {
+      console.error('Failed to get agent tracking history:', error);
+      return [];
+    }
+  },
+
+  async getOrderTrackingPath(orderId: string) {
+    try {
+      // Search through all agent histories for this order
+      const allAgentLocations = JSON.parse(localStorage.getItem('all_agent_locations') || '{}');
+      const orderPath = [];
+      
+      for (const agentId in allAgentLocations) {
+        const history = JSON.parse(localStorage.getItem(`tracking_history_${agentId}`) || '[]');
+        const orderLocations = history.filter((loc: any) => loc.order_id === orderId);
+        orderPath.push(...orderLocations);
+      }
+      
+      // Sort by timestamp
+      return orderPath.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    } catch (error) {
+      console.error('Failed to get order tracking path:', error);
+      return [];
     }
   }
 };
