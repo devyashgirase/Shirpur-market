@@ -26,11 +26,21 @@ const DeliveryLayout = () => {
         setNewOrdersCount(newOrdersResult.orders.length);
       }
       
-      // Active orders count for orders tab (out_for_delivery status)
-      const { supabaseApi } = await import('@/lib/supabase');
-      const allOrders = await supabaseApi.getOrders();
-      const activeOrders = allOrders.filter(order => order.order_status === 'out_for_delivery');
-      setActiveOrdersCount(activeOrders.length);
+      // Active orders count for orders tab (only assigned to current agent)
+      const { deliveryAuthService } = await import('@/lib/deliveryAuthService');
+      const currentUser = deliveryAuthService.getCurrentUser();
+      
+      if (currentUser) {
+        const { supabaseApi } = await import('@/lib/supabase');
+        const allOrders = await supabaseApi.getOrders();
+        const myActiveOrders = allOrders.filter(order => 
+          order.order_status === 'out_for_delivery' && 
+          order.delivery_agent_id === currentUser.id
+        );
+        setActiveOrdersCount(myActiveOrders.length);
+      } else {
+        setActiveOrdersCount(0);
+      }
     };
 
     loadCounts();
