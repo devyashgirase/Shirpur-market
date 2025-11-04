@@ -589,11 +589,19 @@ export const supabaseApi = {
 
   async updateAgentLocation(agentId: string, lat: number, lng: number) {
     try {
-      return await supabaseRest.patch(`delivery_agents?userid=eq.${agentId}`, {
-        current_lat: lat,
-        current_lng: lng,
-        last_location_update: new Date().toISOString()
-      });
+      // Store location in localStorage as primary method
+      const locationData = {
+        agentId,
+        lat,
+        lng,
+        timestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem(`agent_location_${agentId}`, JSON.stringify(locationData));
+      localStorage.setItem('current_agent_location', JSON.stringify(locationData));
+      
+      console.log('📍 Agent location stored locally:', locationData);
+      return true;
     } catch (error) {
       console.warn('Agent location update failed:', error);
       return false;
