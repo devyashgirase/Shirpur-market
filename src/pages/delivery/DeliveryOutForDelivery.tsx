@@ -12,11 +12,18 @@ const DeliveryOutForDelivery = () => {
   const [outForDeliveryOrders, setOutForDeliveryOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
+  const [currentAgent, setCurrentAgent] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadOutForDeliveryOrders();
+    const initializeComponent = async () => {
+      const agent = await deliveryAuthService.getCurrentAgent();
+      setCurrentAgent(agent);
+      loadOutForDeliveryOrders();
+    };
+    
+    initializeComponent();
     
     // Set up polling for updates
     const pollInterval = setInterval(() => {
@@ -51,7 +58,7 @@ const DeliveryOutForDelivery = () => {
   };
 
   const acceptOrder = async (orderId: string) => {
-    const currentUser = deliveryAuthService.getCurrentUser();
+    const currentUser = await deliveryAuthService.getCurrentAgent();
     if (!currentUser) return;
     
     setProcessingOrders(prev => new Set(prev).add(orderId));
@@ -104,7 +111,7 @@ const DeliveryOutForDelivery = () => {
         
         // Trigger tracking start event
         window.dispatchEvent(new CustomEvent('trackingStarted', {
-          detail: { orderId: order.id, location, agentId: deliveryAuthService.getCurrentUser()?.id }
+          detail: { orderId: order.id, location, agentId: currentAgent?.id }
         }));
         
         toast({
@@ -161,7 +168,7 @@ const DeliveryOutForDelivery = () => {
           </div>
           {outForDeliveryOrders.map((order) => {
             const isProcessing = processingOrders.has(order.id);
-            const isAssignedToMe = order.delivery_agent_id === deliveryAuthService.getCurrentUser()?.id;
+            const isAssignedToMe = order.delivery_agent_id === currentAgent?.id;
             
             return (
               <Card key={order.id} className={`border-l-4 ${isAssignedToMe ? 'border-l-blue-500 bg-blue-50' : 'border-l-green-500'}`}>

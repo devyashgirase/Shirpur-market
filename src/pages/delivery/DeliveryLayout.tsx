@@ -30,7 +30,7 @@ const DeliveryLayout = () => {
       const outForDeliveryResult = await orderManagementService.getOrdersOutForDelivery();
       if (outForDeliveryResult.success) {
         const { deliveryAuthService } = await import('@/lib/deliveryAuthService');
-        const currentUser = deliveryAuthService.getCurrentUser();
+        const currentUser = await deliveryAuthService.getCurrentAgent();
         
         if (currentUser) {
           // Only count orders assigned to current agent
