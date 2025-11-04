@@ -50,6 +50,20 @@ const DeliveryOutForDelivery = () => {
     
     if (result.success) {
       console.log('✅ Found orders out for delivery:', result.orders.length);
+      console.log('📋 Order data structure:', result.orders);
+      
+      // Log each order to debug structure
+      result.orders.forEach((order: any, index: number) => {
+        console.log(`Order ${index + 1}:`, {
+          id: order.id,
+          customer_name: order.customer_name,
+          customer_address: order.customer_address,
+          items: order.items,
+          total_amount: order.total_amount,
+          delivery_agent_id: order.delivery_agent_id
+        });
+      });
+      
       setOutForDeliveryOrders(result.orders);
     } else {
       console.error('❌ Failed to load out for delivery orders:', result.error);
@@ -175,12 +189,12 @@ const DeliveryOutForDelivery = () => {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">Order #{order.id.slice(-6)}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">{order.customer_name}</p>
+                      <CardTitle className="text-lg">Order #{order.id ? order.id.toString().slice(-6) : 'N/A'}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">{order.customer_name || 'Customer'}</p>
                     </div>
                     <div className="text-right">
                       <Badge className={isAssignedToMe ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}>
-                        ₹{order.total_amount}
+                        ₹{order.total_amount || 0}
                       </Badge>
                       {isAssignedToMe && (
                         <Badge className="bg-blue-500 text-white mt-1 block">
@@ -197,7 +211,7 @@ const DeliveryOutForDelivery = () => {
                       <MapPin className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-gray-800">Delivery Address:</p>
-                        <p className="text-sm text-gray-700">{order.customer_address}</p>
+                        <p className="text-sm text-gray-700">{order.customer_address || 'Address not available'}</p>
                       </div>
                     </div>
                     {isAssignedToMe && (
@@ -216,7 +230,10 @@ const DeliveryOutForDelivery = () => {
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-500" />
                     <p className="text-sm text-gray-700">
-                      {order.items?.map((item: any) => `${item.name} (${item.quantity})`).join(', ') || 'Order items'}
+                      {order.items && Array.isArray(order.items) && order.items.length > 0 
+                        ? order.items.map((item: any) => `${item.name || item.product_name || 'Item'} (${item.quantity || 1})`).join(', ')
+                        : 'Order items not available'
+                      }
                     </p>
                   </div>
                   
