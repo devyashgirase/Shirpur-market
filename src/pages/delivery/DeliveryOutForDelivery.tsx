@@ -109,35 +109,112 @@ const DeliveryOutForDelivery = () => {
     }
   };
 
-  const startDelivery = (order: Order) => {
-    // Store order details for tracking
-    localStorage.setItem('currentDeliveryOrder', JSON.stringify(order));
-    
-    // Start GPS tracking
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Store initial location
-        localStorage.setItem(`tracking_${order.id}`, JSON.stringify([location]));
-        
-        // Trigger tracking start event
-        window.dispatchEvent(new CustomEvent('trackingStarted', {
-          detail: { orderId: order.id, location, agentId: currentAgent?.id }
-        }));
-        
+  const startDelivery = async (order: Order) => {
+    if (!currentAgent) {
+      toast({
+        title: "Error",
+        description: "Please login again",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setProcessingOrders(prev => new Set(prev).add(order.id));
+
+    try {
+      // Store order details for tracking
+      const deliverySession = {
+        orderId: order.id,
+        agentId: currentAgent.id,
+        agentName: currentAgent.name,
+        customerName: order.customer_name,
+        customerPhone: order.customer_phone,
+        customerAddress: order.customer_address,
+        orderItems: order.items,
+        totalAmount: order.total_amount,
+        startTime: new Date().toISOString(),
+        status: 'in_progress'
+      };
+      
+      localStorage.setItem('currentDeliveryOrder', JSON.stringify(deliverySession));
+      localStorage.setItem('activeDelivery', 'true');
+      
+      // Start GPS tracking
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              timestamp: new Date().toISOString(),
+              accuracy: position.coords.accuracy
+            };
+            
+            // Store initial location
+            localStorage.setItem(`tracking_${order.id}`, JSON.stringify([location]));
+            
+            // Update agent location in database
+            try {
+              const { supabaseApi } = await import('@/lib/supabase');
+              await supabaseApi.updateAgentLocation(currentAgent.id, location.lat, location.lng);
+            } catch (error) {
+              console.warn('Failed to update agent location:', error);
+            }
+            
+            // Trigger tracking start event
+            window.dispatchEvent(new CustomEvent('trackingStarted', {
+              detail: { 
+                orderId: order.id, 
+                location, 
+                agentId: currentAgent.id,
+                customerAddress: order.customer_address
+              }
+            }));
+            
+            toast({
+              title: "🚚 Delivery Started!",
+              description: "GPS tracking active. Navigate to customer location.",
+            });
+            
+            // Navigate to tracking page
+            navigate('/delivery/tracking');
+          },
+          (error) => {
+            console.error('GPS Error:', error);
+            toast({
+              title: "GPS Error",
+              description: "Please enable location services and try again",
+              variant: "destructive"
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+          }
+        );
+      } else {
         toast({
-          title: "GPS Tracking Started!",
-          description: "Your location is now being tracked for this delivery",
+          title: "GPS Not Available",
+          description: "Location services not supported on this device",
+          variant: "destructive"
         });
+      }
+      
+    } catch (error) {
+      console.error('Start delivery error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start delivery. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(order.id);
+        return newSet;
       });
     }
-    
-    navigate('/delivery/tracking');
   };
 
   return (
@@ -260,8 +337,13 @@ const DeliveryOutForDelivery = () => {
                       <Button 
                         onClick={() => startDelivery(order)}
                         className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        disabled={processingOrders.has(order.id)}
                       >
-                        <Navigation className="w-4 h-4 mr-2" />
+                        {processingOrders.has(order.id) ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        ) : (
+                          <Navigation className="w-4 h-4 mr-2" />
+                        )}
                         {t('delivery.startDelivery')}
                       </Button>
                     ) : !order.delivery_agent_id ? (
