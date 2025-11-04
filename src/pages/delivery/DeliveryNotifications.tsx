@@ -214,11 +214,11 @@ const DeliveryNotifications = () => {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">Order #{order.id.slice(-6)}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">{order.customer_name}</p>
+                      <CardTitle className="text-lg">Order #{order.id ? order.id.toString().slice(-6) : 'N/A'}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">{order.customer_name || 'Customer'}</p>
                     </div>
                     <Badge className="bg-orange-100 text-orange-800">
-                      ₹{order.total_amount}
+                      ₹{order.total_amount || 0}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -226,13 +226,16 @@ const DeliveryNotifications = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-700">{order.customer_address}</p>
+                    <p className="text-sm text-gray-700">{order.customer_address || 'Address not available'}</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-500" />
                     <p className="text-sm text-gray-700">
-                      {order.items?.map((item: any) => `${item.name} (${item.quantity})`).join(', ') || 'Order items'}
+                      {order.items && Array.isArray(order.items) && order.items.length > 0 
+                        ? order.items.map((item: any) => `${item.name || item.product_name || 'Item'} (${item.quantity || 1})`).join(', ')
+                        : 'Order items not available'
+                      }
                     </p>
                   </div>
                   
