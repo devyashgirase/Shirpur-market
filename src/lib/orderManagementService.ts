@@ -155,21 +155,18 @@ class OrderManagementService {
     try {
       console.log('🔍 Fetching orders marked as out for delivery by admin...');
       
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'out_for_delivery')
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('❌ Supabase error fetching out for delivery orders:', error);
-        throw error;
-      }
+      const { supabaseApi } = await import('./supabase');
+      const allOrders = await supabaseApi.getOrders();
       
-      console.log('📦 Found out for delivery orders:', data?.length || 0);
-      console.log('📋 Orders data:', data);
+      // Filter orders that are out for delivery
+      const outForDeliveryOrders = allOrders.filter((order: any) => 
+        order.order_status === 'out_for_delivery'
+      );
       
-      return { success: true, orders: data || [] };
+      console.log('📦 Found out for delivery orders:', outForDeliveryOrders.length);
+      console.log('📋 Orders data:', outForDeliveryOrders);
+      
+      return { success: true, orders: outForDeliveryOrders };
     } catch (error) {
       console.error('❌ Error fetching out for delivery orders:', error);
       return { success: false, orders: [] };
