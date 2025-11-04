@@ -125,12 +125,23 @@ export const supabaseApi = {
       console.log('📦 Fetched orders from database:', orders.length, 'orders');
       console.log('📊 Order statuses:', orders.map(o => ({ id: o.id, status: o.order_status })));
       
-      // Ensure proper customer address mapping
-      return orders.map((order: any) => ({
-        ...order,
-        customer_address: order.customer_address || order.delivery_address,
-        delivery_address: order.delivery_address || order.customer_address
-      }));
+      // Ensure proper data parsing and mapping
+      return orders.map((order: any) => {
+        let parsedItems = [];
+        try {
+          parsedItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
+        } catch (e) {
+          console.warn('Failed to parse order items:', order.items);
+          parsedItems = [];
+        }
+        
+        return {
+          ...order,
+          items: parsedItems,
+          customer_address: order.customer_address || order.delivery_address,
+          delivery_address: order.delivery_address || order.customer_address
+        };
+      });
     } catch (error) {
       console.warn('Using mock orders:', error);
       return JSON.parse(localStorage.getItem('orders') || '[]');
@@ -350,7 +361,7 @@ export const supabaseApi = {
   
   async getCart(userPhone: string) {
     try {
-      // Try to get from Supabase first
+      // Try to get from user_carts table first
       try {
         const dbCart = await supabaseRest.get('user_carts', `user_phone=eq.${userPhone}`);
         if (dbCart.length > 0) {
@@ -363,7 +374,19 @@ export const supabaseApi = {
         console.warn('Database cart fetch failed, using localStorage:', dbError);
       }
       
-      // Fallback to localStorage
+      // Try customers table as fallback
+      try {
+        const customer = await this.getCustomerByPhone(userPhone);
+        if (customer && customer.cart_data) {
+          const cartData = JSON.parse(customer.cart_data || '[]');
+          localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cartData));
+          return cartData;
+        }
+      } catch (customerError) {
+        console.warn('Customer cart fetch failed:', customerError);
+      }
+      
+      // Final fallback to localStorage
       return JSON.parse(localStorage.getItem(`cart_${userPhone}`) || '[]');
     } catch (error) {
       return [];
