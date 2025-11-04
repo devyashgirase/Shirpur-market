@@ -89,6 +89,31 @@ const DeliveryOutForDelivery = () => {
   const startDelivery = (order: Order) => {
     // Store order details for tracking
     localStorage.setItem('currentDeliveryOrder', JSON.stringify(order));
+    
+    // Start GPS tracking
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Store initial location
+        localStorage.setItem(`tracking_${order.id}`, JSON.stringify([location]));
+        
+        // Trigger tracking start event
+        window.dispatchEvent(new CustomEvent('trackingStarted', {
+          detail: { orderId: order.id, location, agentId: deliveryAuthService.getCurrentUser()?.id }
+        }));
+        
+        toast({
+          title: "GPS Tracking Started!",
+          description: "Your location is now being tracked for this delivery",
+        });
+      });
+    }
+    
     navigate('/delivery/tracking');
   };
 
@@ -160,9 +185,25 @@ const DeliveryOutForDelivery = () => {
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-700">{order.customer_address}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Delivery Address:</p>
+                        <p className="text-sm text-gray-700">{order.customer_address}</p>
+                      </div>
+                    </div>
+                    {isAssignedToMe && (
+                      <div className="bg-green-50 p-2 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2 text-green-800">
+                          <Navigation className="w-4 h-4" />
+                          <span className="text-sm font-medium">Live GPS Tracking Active</span>
+                        </div>
+                        <p className="text-xs text-green-700 mt-1">
+                          Your location is being tracked for this delivery
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">

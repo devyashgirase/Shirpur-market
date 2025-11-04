@@ -13,20 +13,28 @@ const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [notificationCount, setNotificationCount] = useState(0);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 
   const isActive = (path: string) => location.pathname === path;
 
   useEffect(() => {
-    const loadNotificationCount = async () => {
-      const result = await orderManagementService.getOrdersReadyForDelivery();
-      if (result.success) {
-        setNotificationCount(result.orders.length);
+    const loadCounts = async () => {
+      // New orders count for notifications
+      const newOrdersResult = await orderManagementService.getOrdersReadyForDelivery();
+      if (newOrdersResult.success) {
+        setNewOrdersCount(newOrdersResult.orders.length);
       }
+      
+      // Active orders count for orders tab (out_for_delivery status)
+      const { supabaseApi } = await import('@/lib/supabase');
+      const allOrders = await supabaseApi.getOrders();
+      const activeOrders = allOrders.filter(order => order.order_status === 'out_for_delivery');
+      setActiveOrdersCount(activeOrders.length);
     };
 
-    loadNotificationCount();
-    const interval = setInterval(loadNotificationCount, 5000);
+    loadCounts();
+    const interval = setInterval(loadCounts, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -41,8 +49,8 @@ const DeliveryLayout = () => {
   const navItems = [
     { path: '/delivery', icon: List, label: t('nav.home'), activeColor: 'text-blue-600' },
     { path: '/delivery/tracking', icon: MapPin, label: 'Track', activeColor: 'text-green-600' },
-    { path: '/delivery/notifications', icon: Bell, label: t('nav.notifications'), activeColor: 'text-orange-600', count: notificationCount },
-    { path: '/delivery/out-for-delivery', icon: Package, label: t('nav.orders'), activeColor: 'text-red-600', count: notificationCount },
+    { path: '/delivery/notifications', icon: Bell, label: t('nav.notifications'), activeColor: 'text-orange-600', count: newOrdersCount },
+    { path: '/delivery/out-for-delivery', icon: Package, label: t('nav.orders'), activeColor: 'text-red-600', count: activeOrdersCount },
     { path: '/delivery/profile', icon: User, label: t('nav.profile'), activeColor: 'text-purple-600' }
   ];
 
