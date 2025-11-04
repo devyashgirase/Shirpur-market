@@ -15,7 +15,7 @@ const CustomerOrderTracking = () => {
 
   useEffect(() => {
     if (!orderId) {
-      navigate('/customer/orders');
+      setLoading(false);
       return;
     }
 
@@ -59,6 +59,23 @@ const CustomerOrderTracking = () => {
         <div className="text-center py-12">
           <div className="loading-spinner mx-auto mb-4"></div>
           <p className="text-lg text-gray-600">Loading order tracking...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!orderId) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <Truck className="w-24 h-24 text-muted-foreground mx-auto mb-6" />
+          <h2 className="text-2xl font-bold mb-4">Track Your Orders</h2>
+          <p className="text-muted-foreground mb-6">
+            Select an order from your orders page to track its delivery status
+          </p>
+          <Button onClick={() => navigate('/customer/orders')}>
+            View My Orders
+          </Button>
         </div>
       </div>
     );
