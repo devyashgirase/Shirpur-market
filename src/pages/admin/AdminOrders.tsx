@@ -200,7 +200,8 @@ const AdminOrders: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(order.created_at).toLocaleDateString()}
+                    <div>{new Date(order.created_at).toLocaleDateString()}</div>
+                    <div className="text-xs text-gray-400">{new Date(order.created_at).toLocaleTimeString()}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
