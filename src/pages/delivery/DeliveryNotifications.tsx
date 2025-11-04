@@ -6,6 +6,7 @@ import { Bell, MapPin, Package, Clock, CheckCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { orderManagementService, Order } from "@/lib/orderManagementService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
+import { useTranslation } from "@/lib/i18n";
 
 
 
@@ -14,6 +15,7 @@ const DeliveryNotifications = () => {
   const [loading, setLoading] = useState(true);
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadNewOrders();
@@ -169,7 +171,7 @@ const DeliveryNotifications = () => {
     <div className="container mx-auto px-4 py-4 md:py-8">
       <div className="flex items-center space-x-3 mb-4 md:mb-6">
         <Bell className="w-6 h-6 md:w-8 md:h-8 text-primary" />
-        <h1 className="text-xl md:text-3xl font-bold">New Orders</h1>
+        <h1 className="text-xl md:text-3xl font-bold">{t('delivery.newOrders')}</h1>
         {newOrders.length > 0 && (
           <Badge className="bg-red-500 text-white text-xs">{newOrders.length}</Badge>
         )}
@@ -260,7 +262,7 @@ const DeliveryNotifications = () => {
                       ) : (
                         <CheckCircle className="w-4 h-4 mr-2" />
                       )}
-                      Accept Order
+                      {t('delivery.acceptOrder')}
                     </Button>
                     <Button 
                       onClick={() => rejectOrder(order.id)}
@@ -269,7 +271,7 @@ const DeliveryNotifications = () => {
                       className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Reject
+                      {t('delivery.reject')}
                     </Button>
                   </div>
                 </CardContent>

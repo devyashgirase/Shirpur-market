@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { orderManagementService, Order } from "@/lib/orderManagementService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@/lib/i18n";
 
 const DeliveryOutForDelivery = () => {
   const [outForDeliveryOrders, setOutForDeliveryOrders] = useState<Order[]>([]);
@@ -15,6 +16,7 @@ const DeliveryOutForDelivery = () => {
   const [currentAgent, setCurrentAgent] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -142,7 +144,7 @@ const DeliveryOutForDelivery = () => {
     <div className="container mx-auto px-4 py-4 md:py-8">
       <div className="flex items-center space-x-3 mb-4 md:mb-6">
         <Truck className="w-6 h-6 md:w-8 md:h-8 text-primary" />
-        <h1 className="text-xl md:text-3xl font-bold">Orders Out for Delivery</h1>
+        <h1 className="text-xl md:text-3xl font-bold">{t('delivery.ordersOutForDelivery')}</h1>
         {outForDeliveryOrders.length > 0 && (
           <Badge className="bg-green-500 text-white text-xs">{outForDeliveryOrders.length}</Badge>
         )}
@@ -210,18 +212,18 @@ const DeliveryOutForDelivery = () => {
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-gray-800">Delivery Address:</p>
-                        <p className="text-sm text-gray-700">{order.customer_address || 'Address not available'}</p>
+                        <p className="text-sm font-medium text-gray-800">{t('delivery.deliveryAddress')}</p>
+                        <p className="text-sm text-gray-700">{order.customer_address || t('delivery.addressNotAvailable')}</p>
                       </div>
                     </div>
                     {isAssignedToMe && (
                       <div className="bg-green-50 p-2 rounded-lg border border-green-200">
                         <div className="flex items-center gap-2 text-green-800">
                           <Navigation className="w-4 h-4" />
-                          <span className="text-sm font-medium">Live GPS Tracking Active</span>
+                          <span className="text-sm font-medium">{t('delivery.liveGpsTracking')}</span>
                         </div>
                         <p className="text-xs text-green-700 mt-1">
-                          Your location is being tracked for this delivery
+                          {t('delivery.locationBeingTracked')}
                         </p>
                       </div>
                     )}
@@ -232,7 +234,7 @@ const DeliveryOutForDelivery = () => {
                     <p className="text-sm text-gray-700">
                       {order.items && Array.isArray(order.items) && order.items.length > 0 
                         ? order.items.map((item: any) => `${item.name || item.product_name || 'Item'} (${item.quantity || 1})`).join(', ')
-                        : 'Order items not available'
+                        : t('delivery.orderItemsNotAvailable')
                       }
                     </p>
                   </div>
@@ -260,7 +262,7 @@ const DeliveryOutForDelivery = () => {
                         className="flex-1 bg-blue-600 hover:bg-blue-700"
                       >
                         <Navigation className="w-4 h-4 mr-2" />
-                        Start Delivery
+                        {t('delivery.startDelivery')}
                       </Button>
                     ) : !order.delivery_agent_id ? (
                       <Button 
@@ -273,7 +275,7 @@ const DeliveryOutForDelivery = () => {
                         ) : (
                           <CheckCircle className="w-4 h-4 mr-2" />
                         )}
-                        Accept Order
+                        {t('delivery.acceptOrder')}
                       </Button>
                     ) : (
                       <Button 
@@ -281,7 +283,7 @@ const DeliveryOutForDelivery = () => {
                         variant="outline" 
                         className="flex-1 text-gray-500"
                       >
-                        Already Assigned
+                        {t('delivery.alreadyAssigned')}
                       </Button>
                     )}
                   </div>
