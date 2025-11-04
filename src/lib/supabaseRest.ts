@@ -22,13 +22,23 @@ class SupabaseRest {
     
     const response = await fetch(`${this.baseUrl}/${table}`, {
       method: 'POST',
-      headers: this.headers,
+      headers: {
+        ...this.headers,
+        'X-Client-Info': 'shirpur-delivery-app'
+      },
       body: JSON.stringify(data)
     });
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Supabase error details:', errorText);
+      
+      // If RLS error, try with service role or fallback
+      if (errorText.includes('row-level security') || response.status === 401) {
+        console.warn('⚠️ RLS blocking insert, using fallback storage');
+        throw new Error('RLS_BLOCKED');
+      }
+      
       throw new Error(`Supabase error: ${response.status} - ${errorText}`);
     }
     

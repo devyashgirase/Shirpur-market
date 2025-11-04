@@ -49,25 +49,37 @@ export const supabaseApi = {
   },
   
   async createProduct(product: any) {
+    const productData = {
+      name: product.name,
+      description: product.description || '',
+      price: Number(product.price),
+      category: product.category,
+      stock_quantity: Number(product.stockQuantity || product.stock_quantity || 0),
+      image_url: product.imageUrl || product.image_url || '/placeholder.svg',
+      is_active: product.isActive !== undefined ? product.isActive : true,
+      sku: product.sku || `SKU${Date.now()}`,
+      unit: product.unit || 'kg'
+    };
+    
     try {
-      const result = await supabaseRest.post('products', {
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-        stock_quantity: product.stockQuantity || product.stock_quantity,
-        image_url: product.imageUrl || product.image_url,
-        is_active: product.isActive !== undefined ? product.isActive : true,
-        sku: product.sku || `SKU${Date.now()}`,
-        unit: product.unit || 'kg'
-      });
-      return result[0];
+      console.log('📦 Creating product in Supabase:', productData);
+      const result = await supabaseRest.post('products', productData);
+      console.log('✅ Product saved to Supabase successfully:', result);
+      return result[0] || result;
     } catch (error) {
-      console.warn('Supabase failed, using localStorage:', error);
-      const productWithId = { id: Date.now(), ...product, isActive: true };
+      console.warn('⚠️ Supabase failed, using localStorage:', error);
+      
+      const productWithId = { 
+        id: Date.now(), 
+        ...productData,
+        created_at: new Date().toISOString()
+      };
+      
       const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
       existingProducts.push(productWithId);
       localStorage.setItem('products', JSON.stringify(existingProducts));
+      
+      console.log('💾 Product saved to localStorage:', productWithId);
       return productWithId;
     }
   },
@@ -126,29 +138,37 @@ export const supabaseApi = {
   },
   
   async createOrder(order: any) {
+    const orderData = {
+      order_id: order.order_id || `ORD${Date.now()}`,
+      customer_name: order.customer_name,
+      customer_phone: order.customer_phone,
+      customer_address: order.customer_address,
+      items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items),
+      total_amount: Number(order.total_amount),
+      order_status: order.order_status || 'confirmed',
+      payment_status: order.payment_status || 'paid'
+    };
+    
     try {
-      return await supabaseRest.post('orders', {
-        order_id: order.order_id || `ORD${Date.now()}`,
-        customer_name: order.customer_name,
-        customer_phone: order.customer_phone,
-        customer_address: order.customer_address,
-        delivery_address: order.delivery_address || order.customer_address,
-        items: order.items,
-        total_amount: order.total_amount,
-        order_status: 'confirmed',
-        payment_status: 'paid'
-      });
+      console.log('📦 Creating order in Supabase:', orderData);
+      const result = await supabaseRest.post('orders', orderData);
+      console.log('✅ Order saved to Supabase successfully:', result);
+      return result[0] || result;
     } catch (error) {
-      console.warn('Supabase failed, using localStorage:', error);
+      console.warn('⚠️ Supabase failed, using localStorage:', error);
+      
+      // Always save to localStorage as backup
       const newOrder = { 
         id: Date.now(), 
-        order_id: `ORD${Date.now()}`, 
-        ...order,
-        delivery_address: order.delivery_address || order.customer_address
+        ...orderData,
+        created_at: new Date().toISOString()
       };
+      
       const orders = JSON.parse(localStorage.getItem('orders') || '[]');
       orders.push(newOrder);
       localStorage.setItem('orders', JSON.stringify(orders));
+      
+      console.log('💾 Order saved to localStorage:', newOrder);
       return newOrder;
     }
   },
@@ -330,6 +350,20 @@ export const supabaseApi = {
   
   async getCart(userPhone: string) {
     try {
+      // Try to get from Supabase first
+      try {
+        const dbCart = await supabaseRest.get('user_carts', `user_phone=eq.${userPhone}`);
+        if (dbCart.length > 0) {
+          const cartData = JSON.parse(dbCart[0].cart_data || '[]');
+          // Sync to localStorage
+          localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cartData));
+          return cartData;
+        }
+      } catch (dbError) {
+        console.warn('Database cart fetch failed, using localStorage:', dbError);
+      }
+      
+      // Fallback to localStorage
       return JSON.parse(localStorage.getItem(`cart_${userPhone}`) || '[]');
     } catch (error) {
       return [];
@@ -338,12 +372,13 @@ export const supabaseApi = {
   
   async addToCart(userPhone: string, productId: string, quantity: number) {
     try {
-      const cart = JSON.parse(localStorage.getItem(`cart_${userPhone}`) || '[]');
       const products = await this.getProducts();
       const product = products.find((p: any) => p.id.toString() === productId.toString());
       
       if (!product) throw new Error('Product not found');
       
+      // Get current cart from localStorage
+      const cart = JSON.parse(localStorage.getItem(`cart_${userPhone}`) || '[]');
       const existingItem = cart.find((item: any) => item.product.id.toString() === productId.toString());
       
       if (existingItem) {
@@ -358,11 +393,22 @@ export const supabaseApi = {
             image_url: product.imageUrl || product.image_url || '/placeholder.svg',
             stock_qty: product.stockQuantity || product.stock_quantity || 0
           },
-          quantity
+          quantity,
+          added_at: new Date().toISOString()
         });
       }
       
+      // Save to localStorage
       localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
+      
+      // Try to sync with Supabase user_carts table
+      try {
+        await this.syncCartToDatabase(userPhone, cart);
+      } catch (dbError) {
+        console.warn('Cart sync to database failed, using localStorage only:', dbError);
+      }
+      
+      console.log('🛒 Cart updated for user:', userPhone, 'Items:', cart.length);
       return cart;
     } catch (error) {
       throw error;
@@ -528,6 +574,100 @@ export const supabaseApi = {
     } catch (error) {
       console.warn('Agent location update failed:', error);
       return false;
+    }
+  },
+
+  async syncCartToDatabase(userPhone: string, cartData: any[]) {
+    try {
+      const cartJson = JSON.stringify(cartData);
+      
+      // Check if user cart exists
+      const existing = await supabaseRest.get('user_carts', `user_phone=eq.${userPhone}`);
+      
+      if (existing.length > 0) {
+        // Update existing cart
+        return await supabaseRest.patch(`user_carts?user_phone=eq.${userPhone}`, {
+          cart_data: cartJson,
+          updated_at: new Date().toISOString()
+        });
+      } else {
+        // Create new cart record
+        return await supabaseRest.post('user_carts', {
+          user_phone: userPhone,
+          cart_data: cartJson
+        });
+      }
+    } catch (error) {
+      console.error('Cart sync failed:', error);
+      throw error;
+    }
+  },
+
+  async getCarouselItems() {
+    try {
+      return await supabaseRest.get('carousel_items', 'is_active=eq.true&order=display_order.asc');
+    } catch (error) {
+      console.warn('Carousel fetch failed, using fallback:', error);
+      return [
+        { id: 1, product_id: 1, banner_image: '/placeholder.svg', is_active: true, display_order: 1 },
+        { id: 2, product_id: 2, banner_image: '/placeholder.svg', is_active: true, display_order: 2 }
+      ];
+    }
+  },
+
+  async createCarouselItem(carouselData: any) {
+    try {
+      return await supabaseRest.post('carousel_items', {
+        product_id: carouselData.product_id,
+        banner_image: carouselData.banner_image,
+        is_active: carouselData.is_active !== undefined ? carouselData.is_active : true,
+        display_order: carouselData.display_order || 0
+      });
+    } catch (error) {
+      console.error('Carousel creation failed:', error);
+      throw error;
+    }
+  },
+
+  async getCustomers() {
+    try {
+      return await supabaseRest.get('customers', 'order=created_at.desc');
+    } catch (error) {
+      console.warn('Customers fetch failed:', error);
+      return [];
+    }
+  },
+
+  async createCustomer(customerData: any) {
+    try {
+      return await supabaseRest.post('customers', {
+        phone: customerData.phone,
+        name: customerData.name,
+        email: customerData.email || null,
+        cart_data: customerData.cart_data || '[]'
+      });
+    } catch (error) {
+      console.error('Customer creation failed:', error);
+      throw error;
+    }
+  },
+
+  async getCustomerByPhone(phone: string) {
+    try {
+      const customers = await supabaseRest.get('customers', `phone=eq.${phone}`);
+      return customers[0] || null;
+    } catch (error) {
+      console.warn('Customer fetch failed:', error);
+      return null;
+    }
+  },
+
+  async updateCustomer(phone: string, updateData: any) {
+    try {
+      return await supabaseRest.patch(`customers?phone=eq.${phone}`, updateData);
+    } catch (error) {
+      console.error('Customer update failed:', error);
+      throw error;
     }
   }
 };
