@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -6,13 +7,28 @@ import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { useTranslation } from "@/lib/i18n";
+import { orderManagementService } from "@/lib/orderManagementService";
 
 const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const isActive = (path: string) => location.pathname === path;
+
+  useEffect(() => {
+    const loadNotificationCount = async () => {
+      const result = await orderManagementService.getOrdersReadyForDelivery();
+      if (result.success) {
+        setNotificationCount(result.orders.length);
+      }
+    };
+
+    loadNotificationCount();
+    const interval = setInterval(loadNotificationCount, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleBackNavigation = () => {
     if (location.pathname === '/delivery') {
@@ -25,7 +41,7 @@ const DeliveryLayout = () => {
   const navItems = [
     { path: '/delivery', icon: List, label: t('nav.home'), activeColor: 'text-blue-600' },
     { path: '/delivery/tracking', icon: MapPin, label: 'Track', activeColor: 'text-green-600' },
-    { path: '/delivery/notifications', icon: Bell, label: t('nav.notifications'), activeColor: 'text-orange-600' },
+    { path: '/delivery/notifications', icon: Bell, label: t('nav.notifications'), activeColor: 'text-orange-600', count: notificationCount },
     { path: '/delivery/out-for-delivery', icon: Package, label: t('nav.orders'), activeColor: 'text-red-600' },
     { path: '/delivery/profile', icon: User, label: t('nav.profile'), activeColor: 'text-purple-600' }
   ];
@@ -108,11 +124,18 @@ const DeliveryLayout = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
+                className={`flex flex-col items-center justify-center space-y-1 transition-colors relative ${
                   active ? item.activeColor : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${active ? 'scale-110' : ''} transition-transform`} />
+                <div className="relative">
+                  <Icon className={`w-5 h-5 ${active ? 'scale-110' : ''} transition-transform`} />
+                  {item.count && item.count > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      {item.count > 9 ? '9+' : item.count}
+                    </span>
+                  )}
+                </div>
                 <span className={`text-xs font-medium ${active ? 'font-semibold' : ''}`}>
                   {item.label}
                 </span>
