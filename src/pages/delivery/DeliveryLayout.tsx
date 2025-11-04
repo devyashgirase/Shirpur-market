@@ -42,7 +42,7 @@ const DeliveryLayout = () => {
     { path: '/delivery', icon: List, label: t('nav.home'), activeColor: 'text-blue-600' },
     { path: '/delivery/tracking', icon: MapPin, label: 'Track', activeColor: 'text-green-600' },
     { path: '/delivery/notifications', icon: Bell, label: t('nav.notifications'), activeColor: 'text-orange-600', count: notificationCount },
-    { path: '/delivery/out-for-delivery', icon: Package, label: t('nav.orders'), activeColor: 'text-red-600' },
+    { path: '/delivery/out-for-delivery', icon: Package, label: t('nav.orders'), activeColor: 'text-red-600', count: notificationCount },
     { path: '/delivery/profile', icon: User, label: t('nav.profile'), activeColor: 'text-purple-600' }
   ];
 
@@ -97,7 +97,14 @@ const DeliveryLayout = () => {
                       className={isActive(item.path) ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}
                       size="sm"
                     >
-                      <item.icon className="w-4 h-4 mr-2" />
+                      <div className="relative flex items-center">
+                        <item.icon className="w-4 h-4 mr-2" />
+                        {item.count && item.count > 0 && (
+                          <span className="absolute -top-2 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {item.count > 9 ? '9+' : item.count}
+                          </span>
+                        )}
+                      </div>
                       {item.label}
                     </Button>
                   </Link>
