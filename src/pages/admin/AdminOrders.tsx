@@ -33,6 +33,27 @@ const AdminOrders: React.FC = () => {
     setStats(statsData);
   };
 
+  const handleViewDetails = (order: AdminOrder) => {
+    alert(`Order Details:\n\nID: ${order.id}\nCustomer: ${order.customer_name}\nPhone: ${order.customer_phone}\nAddress: ${order.customer_address}\nItems: ${order.items.map((item: any) => `${item.name} x${item.quantity}`).join(', ')}\nTotal: ₹${order.total_amount}\nStatus: ${order.order_status}\nPayment: ${order.payment_status}\nDate: ${new Date(order.created_at).toLocaleString()}`);
+  };
+
+  const handleTrackOrder = (orderId: string) => {
+    // Get agent location from localStorage
+    const allAgentLocations = JSON.parse(localStorage.getItem('all_agent_locations') || '{}');
+    const activeAgents = Object.values(allAgentLocations).filter((location: any) => {
+      const locationTime = new Date(location.timestamp).getTime();
+      const now = new Date().getTime();
+      return (now - locationTime) < 30 * 60 * 1000; // Last 30 minutes
+    });
+    
+    if (activeAgents.length > 0) {
+      const agent = activeAgents[0] as any;
+      alert(`Order Tracking:\n\nOrder ID: ${orderId}\nAgent Location: ${agent.lat}, ${agent.lng}\nLast Updated: ${new Date(agent.timestamp).toLocaleString()}\n\nNote: Real-time tracking is active!`);
+    } else {
+      alert(`Order Tracking:\n\nOrder ID: ${orderId}\nStatus: Out for Delivery\n\nNo active agent location found.\nAgent will update location when delivery starts.`);
+    }
+  };
+
   const handleStatusUpdate = async (orderId: string, newStatus: AdminOrder['order_status']) => {
     const success = await AdminOrderService.updateOrderStatusWithNotification(orderId, newStatus);
     if (success) {
@@ -204,17 +225,35 @@ const AdminOrders: React.FC = () => {
                     <div className="text-xs text-gray-400">{new Date(order.created_at).toLocaleTimeString()}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={order.order_status}
-                      onChange={(e) => handleStatusUpdate(order.id, e.target.value as AdminOrder['order_status'])}
-                      className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {statusOptions.map((status) => (
-                        <option key={status} value={status}>
-                          {status.replace('_', ' ')}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex flex-col gap-2">
+                      <select
+                        value={order.order_status}
+                        onChange={(e) => handleStatusUpdate(order.id, e.target.value as AdminOrder['order_status'])}
+                        className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {statusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {status.replace('_', ' ')}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleViewDetails(order)}
+                          className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                        >
+                          View Details
+                        </button>
+                        {order.order_status === 'out_for_delivery' && (
+                          <button
+                            onClick={() => handleTrackOrder(order.id)}
+                            className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                          >
+                            Track
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}

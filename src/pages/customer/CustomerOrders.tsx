@@ -126,6 +126,20 @@ const CustomerOrders = () => {
   };
 
   const handleViewDetails = (order: CustomerOrder) => {
+    // Store order data for details page
+    localStorage.setItem('selectedOrderDetails', JSON.stringify({
+      id: order.order_id,
+      orderId: order.order_id,
+      status: order.order_status,
+      items: order.items,
+      total: order.total_amount,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      customerAddress: order.customer_address,
+      deliveryAddress: order.customer_address,
+      createdAt: order.created_at,
+      paymentStatus: order.payment_status
+    }));
     navigate(`/customer/order-details/${order.order_id}`);
   };
 
@@ -196,9 +210,11 @@ const CustomerOrders = () => {
                 <Button variant="outline" size="sm" onClick={() => handleViewDetails(order)}>
                   View Details
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleTrackOrder(order)} className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
-                  {order.order_status === 'out_for_delivery' ? '🚚 Track Live' : '📍 Track Order'}
-                </Button>
+                {order.order_status === 'out_for_delivery' && (
+                  <Button variant="outline" size="sm" onClick={() => handleTrackOrder(order)} className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
+                    🚚 Track Live
+                  </Button>
+                )}
                 {order.order_status === 'delivered' && (
                   <Button variant="outline" size="sm">
                     Reorder
