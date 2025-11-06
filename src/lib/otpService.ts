@@ -36,7 +36,9 @@ Please share this OTP with the delivery agent when they arrive to complete your 
 
 Thank you for choosing Shirpur Delivery! 🙏`;
 
-      const formattedPhone = customerPhone.replace(/^(\+91|91)?/, '91');
+      // Remove any existing +91 or 91 prefix, then add 91
+      const cleanPhone = customerPhone.replace(/^(\+91|91)/, '');
+      const formattedPhone = `91${cleanPhone}`;
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
       
       // Auto-open WhatsApp

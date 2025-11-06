@@ -7,9 +7,18 @@ export class WhatsAppService {
   }
 
   private static formatPhoneNumber(phone: string): string {
-    // Remove +91 if present and ensure 10 digits
+    // Remove all non-digits
     const cleaned = phone.replace(/\D/g, '');
-    return cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    // If it starts with 91 and has 12 digits, return as is
+    if (cleaned.startsWith('91') && cleaned.length === 12) {
+      return cleaned;
+    }
+    // If it's 10 digits, add 91 prefix
+    if (cleaned.length === 10) {
+      return `91${cleaned}`;
+    }
+    // Return cleaned number as is
+    return cleaned;
   }
 
   static async sendOrderConfirmation(customerData: any, orderData: any): Promise<string> {
