@@ -88,9 +88,19 @@ export class SimpleFreeOtp {
   }
 
   private static createWhatsAppLink(phone: string, message: string): string {
+    // Remove all non-digits
     const cleanPhone = phone.replace(/\D/g, '');
+    // If phone already starts with 91 and has 12 digits, use as is
+    // Otherwise, if it's 10 digits, add 91 prefix
+    let formattedPhone = cleanPhone;
+    if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
+      formattedPhone = cleanPhone;
+    } else if (cleanPhone.length === 10) {
+      formattedPhone = `91${cleanPhone}`;
+    }
+    
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
     
     console.log('📱 WhatsApp Link:', whatsappUrl);
     

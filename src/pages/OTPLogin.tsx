@@ -65,7 +65,7 @@ const OTPLogin = () => {
     
     // Generate and send OTP using free service
     const otp = SimpleFreeOtp.generateOTP();
-    const result: OTPResult = await SimpleFreeOtp.sendOTP(`+91${phone}`, otp);
+    const result: OTPResult = await SimpleFreeOtp.sendOTP(phone, otp);
     
     if (result.success) {
       setStep('otp');
@@ -111,7 +111,7 @@ const OTPLogin = () => {
     setLoading(true);
     
     // Verify OTP using SimpleFreeOtp service
-    const isValidOTP = SimpleFreeOtp.verifyOTP(`+91${phone}`, otp);
+    const isValidOTP = SimpleFreeOtp.verifyOTP(phone, otp);
     
     if (isValidOTP) {
       // Get or create user
@@ -672,7 +672,7 @@ const OTPLogin = () => {
     
     // Generate and send new OTP
     const otp = SimpleFreeOtp.generateOTP();
-    const result: OTPResult = await SimpleFreeOtp.sendOTP(`+91${phone}`, otp);
+    const result: OTPResult = await SimpleFreeOtp.sendOTP(phone, otp);
     
     if (result.success) {
       startTimer();
