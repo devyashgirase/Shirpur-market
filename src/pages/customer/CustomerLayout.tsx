@@ -41,14 +41,101 @@ const CustomerLayout = () => {
     // Listen for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
     
-    // Voice search setup
-    const setupVoiceSearch = () => {
-      const voiceBtn = document.getElementById('voice-btn');
-      const searchInput = document.getElementById('voice-search') as HTMLInputElement;
+    // Google-style search setup
+    const setupGoogleSearch = () => {
+      const searchInput = document.getElementById('google-search') as HTMLInputElement;
+      const voiceBtn = document.getElementById('voice-search-btn');
+      const searchBtn = document.getElementById('search-btn');
+      const suggestions = document.getElementById('search-suggestions');
       
-      if (!voiceBtn || !searchInput) return;
+      if (!searchInput || !voiceBtn || !searchBtn || !suggestions) return;
       
-      // Check if browser supports speech recognition
+      // Perform search function
+      const performSearch = (query: string) => {
+        if (!query.trim()) return;
+        
+        console.log('🔍 Searching for:', query);
+        
+        // Hide suggestions
+        suggestions.classList.add('hidden');
+        
+        // Trigger product search event
+        const searchEvent = new CustomEvent('productSearch', { 
+          detail: { 
+            query: query.trim(),
+            type: 'manual_search'
+          } 
+        });
+        window.dispatchEvent(searchEvent);
+        
+        // Navigate to catalog with search
+        if (location.pathname !== '/customer') {
+          navigate(`/customer?search=${encodeURIComponent(query.trim())}`);
+        }
+      };
+      
+      // Search button click
+      searchBtn.addEventListener('click', () => {
+        performSearch(searchInput.value);
+      });
+      
+      // Enter key search
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          performSearch(searchInput.value);
+        }
+      });
+      
+      // Show suggestions on focus
+      searchInput.addEventListener('focus', () => {
+        if (searchInput.value.length === 0) {
+          suggestions.classList.remove('hidden');
+        }
+      });
+      
+      // Hide suggestions on blur (with delay for clicks)
+      searchInput.addEventListener('blur', () => {
+        setTimeout(() => {
+          suggestions.classList.add('hidden');
+        }, 200);
+      });
+      
+      // Real-time search as user types
+      searchInput.addEventListener('input', (e) => {
+        const query = (e.target as HTMLInputElement).value;
+        
+        if (query.length === 0) {
+          suggestions.classList.remove('hidden');
+        } else {
+          suggestions.classList.add('hidden');
+        }
+        
+        if (query.length > 2) {
+          // Debounced search
+          clearTimeout((window as any).searchTimeout);
+          (window as any).searchTimeout = setTimeout(() => {
+            const searchEvent = new CustomEvent('productSearch', { 
+              detail: { 
+                query: query.trim(),
+                type: 'live_search'
+              } 
+            });
+            window.dispatchEvent(searchEvent);
+          }, 300);
+        }
+      });
+      
+      // Suggestion clicks
+      const suggestionItems = suggestions.querySelectorAll('.search-suggestion');
+      suggestionItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const text = item.textContent?.replace(/🥬|🍚|🥛|🍅/g, '').trim() || '';
+          searchInput.value = text;
+          performSearch(text);
+        });
+      });
+      
+      // Voice search setup
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       
       if (!SpeechRecognition) {
@@ -72,47 +159,33 @@ const CustomerLayout = () => {
         recognition.start();
         isListening = true;
         voiceBtn.innerHTML = '🔴';
-        voiceBtn.style.backgroundColor = '#ef4444';
-        searchInput.placeholder = '🎤 Listening... Speak now!';
+        voiceBtn.style.backgroundColor = '#fee2e2';
+        searchInput.placeholder = 'Listening... Speak now!';
       });
       
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         searchInput.value = transcript;
-        searchInput.focus();
-        
-        // Trigger search
-        const searchEvent = new CustomEvent('voiceSearch', { detail: { query: transcript } });
-        window.dispatchEvent(searchEvent);
+        performSearch(transcript);
       };
       
       recognition.onend = () => {
         isListening = false;
         voiceBtn.innerHTML = '🎤';
-        voiceBtn.style.backgroundColor = '#3b82f6';
-        searchInput.placeholder = '🔍 Search for products... (Click mic for voice search)';
+        voiceBtn.style.backgroundColor = 'transparent';
+        searchInput.placeholder = 'Search products, vegetables, groceries...';
       };
       
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+      recognition.onerror = () => {
         isListening = false;
         voiceBtn.innerHTML = '🎤';
-        voiceBtn.style.backgroundColor = '#3b82f6';
-        searchInput.placeholder = '🔍 Search for products... (Click mic for voice search)';
+        voiceBtn.style.backgroundColor = 'transparent';
+        searchInput.placeholder = 'Search products, vegetables, groceries...';
       };
-      
-      // Regular search on input
-      searchInput.addEventListener('input', (e) => {
-        const query = (e.target as HTMLInputElement).value;
-        if (query.length > 2) {
-          const searchEvent = new CustomEvent('productSearch', { detail: { query } });
-          window.dispatchEvent(searchEvent);
-        }
-      });
     };
     
-    // Setup voice search after component mounts
-    setTimeout(setupVoiceSearch, 100);
+    // Setup Google-style search after component mounts
+    setTimeout(setupGoogleSearch, 100);
     
     return () => {
       window.removeEventListener('cartUpdated', updateCartCount);
@@ -268,23 +341,50 @@ const CustomerLayout = () => {
         </div>
       </header>
 
-      {/* Search Box */}
-      <div className="bg-white shadow-md border-b">
-        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3">
-          <div className="relative max-w-4xl mx-auto">
-            <input
-              id="voice-search"
-              type="text"
-              placeholder="🔍 Search for products... (Click mic for voice search)"
-              className="w-full h-12 pl-4 pr-16 text-base border-2 border-gray-200 rounded-full focus:border-blue-500 focus:outline-none transition-colors"
-            />
-            <button
-              id="voice-btn"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors"
-              title="Voice Search"
-            >
-              🎤
-            </button>
+      {/* Google-style Search Box */}
+      <div className="bg-white shadow-lg border-b">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4">
+          <div className="relative max-w-2xl mx-auto">
+            <div className="relative flex items-center bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow">
+              <div className="absolute left-4 text-gray-400">
+                🔍
+              </div>
+              <input
+                id="google-search"
+                type="text"
+                placeholder="Search products, vegetables, groceries..."
+                className="w-full h-12 pl-12 pr-20 text-base bg-transparent border-0 rounded-full focus:outline-none"
+              />
+              <div className="absolute right-2 flex items-center gap-1">
+                <button
+                  id="voice-search-btn"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  title="Voice Search"
+                >
+                  🎤
+                </button>
+                <button
+                  id="search-btn"
+                  className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors ml-1"
+                  title="Search"
+                >
+                  →
+                </button>
+              </div>
+            </div>
+            
+            {/* Search Suggestions */}
+            <div id="search-suggestions" className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 hidden z-50">
+              <div className="p-2">
+                <div className="text-xs text-gray-500 mb-2">Popular searches:</div>
+                <div className="space-y-1">
+                  <div className="search-suggestion px-3 py-2 hover:bg-gray-100 cursor-pointer rounded text-sm">🥬 Fresh Vegetables</div>
+                  <div className="search-suggestion px-3 py-2 hover:bg-gray-100 cursor-pointer rounded text-sm">🍚 Basmati Rice</div>
+                  <div className="search-suggestion px-3 py-2 hover:bg-gray-100 cursor-pointer rounded text-sm">🥛 Dairy Products</div>
+                  <div className="search-suggestion px-3 py-2 hover:bg-gray-100 cursor-pointer rounded text-sm">🍅 Tomatoes</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
