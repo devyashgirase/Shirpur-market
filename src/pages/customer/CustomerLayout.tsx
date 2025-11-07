@@ -38,7 +38,83 @@ const CustomerLayout = () => {
     
     // Listen for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
-    return () => window.removeEventListener('cartUpdated', updateCartCount);
+    
+    // Voice search setup
+    const setupVoiceSearch = () => {
+      const voiceBtn = document.getElementById('voice-btn');
+      const searchInput = document.getElementById('voice-search') as HTMLInputElement;
+      
+      if (!voiceBtn || !searchInput) return;
+      
+      // Check if browser supports speech recognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        voiceBtn.style.display = 'none';
+        return;
+      }
+      
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      
+      let isListening = false;
+      
+      voiceBtn.addEventListener('click', () => {
+        if (isListening) {
+          recognition.stop();
+          return;
+        }
+        
+        recognition.start();
+        isListening = true;
+        voiceBtn.innerHTML = '🔴';
+        voiceBtn.style.backgroundColor = '#ef4444';
+        searchInput.placeholder = '🎤 Listening... Speak now!';
+      });
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        searchInput.value = transcript;
+        searchInput.focus();
+        
+        // Trigger search
+        const searchEvent = new CustomEvent('voiceSearch', { detail: { query: transcript } });
+        window.dispatchEvent(searchEvent);
+      };
+      
+      recognition.onend = () => {
+        isListening = false;
+        voiceBtn.innerHTML = '🎤';
+        voiceBtn.style.backgroundColor = '#3b82f6';
+        searchInput.placeholder = '🔍 Search for products... (Click mic for voice search)';
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        isListening = false;
+        voiceBtn.innerHTML = '🎤';
+        voiceBtn.style.backgroundColor = '#3b82f6';
+        searchInput.placeholder = '🔍 Search for products... (Click mic for voice search)';
+      };
+      
+      // Regular search on input
+      searchInput.addEventListener('input', (e) => {
+        const query = (e.target as HTMLInputElement).value;
+        if (query.length > 2) {
+          const searchEvent = new CustomEvent('productSearch', { detail: { query } });
+          window.dispatchEvent(searchEvent);
+        }
+      });
+    };
+    
+    // Setup voice search after component mounts
+    setTimeout(setupVoiceSearch, 100);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
   }, []);
 
   const isActive = (path: string) => location.pathname === path;
@@ -189,6 +265,27 @@ const CustomerLayout = () => {
           </div>
         </div>
       </header>
+
+      {/* Search Box */}
+      <div className="bg-white shadow-md border-b">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3">
+          <div className="relative max-w-4xl mx-auto">
+            <input
+              id="voice-search"
+              type="text"
+              placeholder="🔍 Search for products... (Click mic for voice search)"
+              className="w-full h-12 pl-4 pr-16 text-base border-2 border-gray-200 rounded-full focus:border-blue-500 focus:outline-none transition-colors"
+            />
+            <button
+              id="voice-btn"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors"
+              title="Voice Search"
+            >
+              🎤
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="pb-16 lg:pb-0">
