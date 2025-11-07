@@ -158,7 +158,7 @@ const CustomerLayout = () => {
         
         recognition.start();
         isListening = true;
-        voiceBtn.innerHTML = '🔴';
+        voiceBtn.innerHTML = '<div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>';
         voiceBtn.style.backgroundColor = '#fee2e2';
         searchInput.placeholder = 'Listening... Speak now!';
       });
@@ -171,14 +171,24 @@ const CustomerLayout = () => {
       
       recognition.onend = () => {
         isListening = false;
-        voiceBtn.innerHTML = '🎤';
+        voiceBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>`;
         voiceBtn.style.backgroundColor = 'transparent';
         searchInput.placeholder = 'Search products, vegetables, groceries...';
       };
       
       recognition.onerror = () => {
         isListening = false;
-        voiceBtn.innerHTML = '🎤';
+        voiceBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>`;
         voiceBtn.style.backgroundColor = 'transparent';
         searchInput.placeholder = 'Search products, vegetables, groceries...';
       };
@@ -358,17 +368,25 @@ const CustomerLayout = () => {
               <div className="absolute right-2 flex items-center gap-1">
                 <button
                   id="voice-search-btn"
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
                   title="Voice Search"
                 >
-                  🎤
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
                 </button>
                 <button
                   id="search-btn"
-                  className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors ml-1"
+                  className="w-9 h-9 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors ml-1"
                   title="Search"
                 >
-                  →
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
                 </button>
               </div>
             </div>

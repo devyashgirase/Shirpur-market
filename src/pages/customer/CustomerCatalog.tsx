@@ -123,12 +123,23 @@ const CustomerCatalog = () => {
       handleProductUpdate(event.detail);
     };
     
+    // Listen for search events from layout
+    const handleSearchEvent = (event: CustomEvent) => {
+      const query = event.detail?.query || '';
+      console.log('🔍 Search event received:', query);
+      setSearchQuery(query);
+    };
+    
     window.addEventListener('productsUpdated', handleAdminProductUpdate as EventListener);
+    window.addEventListener('productSearch', handleSearchEvent as EventListener);
+    window.addEventListener('voiceSearch', handleSearchEvent as EventListener);
     loadCustomerProducts();
     
     return () => {
       realTimeDataService.unsubscribe('products', handleProductUpdate);
       window.removeEventListener('productsUpdated', handleAdminProductUpdate as EventListener);
+      window.removeEventListener('productSearch', handleSearchEvent as EventListener);
+      window.removeEventListener('voiceSearch', handleSearchEvent as EventListener);
     };
   }, []);
 
