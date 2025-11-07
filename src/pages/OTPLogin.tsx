@@ -708,41 +708,34 @@ const OTPLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-      {/* Left Side - Illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-400 to-red-500 items-center justify-center p-12">
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
+      {/* Top/Left Side - Illustration */}
+      <div className="w-full lg:w-1/2 bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-6 lg:p-12 min-h-[40vh] lg:min-h-screen">
         <div className="text-center text-white">
-          <div className="w-64 h-64 mx-auto mb-8 relative">
+          <div className="w-32 h-32 lg:w-64 lg:h-64 mx-auto mb-4 lg:mb-8 relative">
             <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
-            <div className="absolute inset-4 bg-white/30 rounded-full animate-pulse delay-300"></div>
-            <div className="absolute inset-8 bg-white rounded-full flex items-center justify-center">
-              <span className="text-6xl text-orange-500">🍽️</span>
+            <div className="absolute inset-2 lg:inset-4 bg-white/30 rounded-full animate-pulse delay-300"></div>
+            <div className="absolute inset-4 lg:inset-8 bg-white rounded-full flex items-center justify-center">
+              <span className="text-3xl lg:text-6xl text-orange-500">🍽️</span>
             </div>
           </div>
-          <h2 className="text-4xl font-bold mb-4">Shirpur Delivery</h2>
-          <p className="text-xl opacity-90">Fresh food delivered in 30 minutes</p>
+          <h2 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4">Shirpur Delivery</h2>
+          <p className="text-sm lg:text-xl opacity-90">Fresh food delivered in 30 minutes</p>
         </div>
       </div>
       
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+      {/* Bottom/Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl text-white">🍽️</span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800">Shirpur Delivery</h1>
-          </div>
 
           <div className="bg-white">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+            <div className="mb-6 lg:mb-8">
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
                 {step === 'phone' && 'Login'}
                 {step === 'otp' && 'Verify OTP'}
                 {step === 'setup' && 'Complete Profile'}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm lg:text-base">
                 {step === 'phone' && 'Enter your phone number to continue'}
                 {step === 'otp' && `We've sent an OTP to +91 ${phone}`}
                 {step === 'setup' && 'Tell us a bit about yourself'}
