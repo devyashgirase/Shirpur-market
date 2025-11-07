@@ -9,6 +9,8 @@ import ProfileDropdown from "@/components/ProfileDropdown";
 import CustomerLocation from "@/components/CustomerLocation";
 
 import MobileBottomNav from "@/components/MobileBottomNav";
+import AIAssistant from "@/components/AIAssistant";
+import VoiceCommands from "@/components/VoiceCommands";
 
 const CustomerLayout = () => {
   const location = useLocation();
@@ -294,6 +296,12 @@ const CustomerLayout = () => {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav userType="customer" />
+      
+      {/* AI Assistant */}
+      <AIAssistant />
+      
+      {/* Voice Commands */}
+      <VoiceCommands />
     </div>
   );
 };
