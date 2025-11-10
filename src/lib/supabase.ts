@@ -1,6 +1,11 @@
-// Completely disable Supabase to prevent Node.js warnings and headers errors
-export const supabase = null;
-export const isSupabaseConfigured = false;
+// Enable Supabase for production use
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
 // Import REST client
 import { supabaseRest } from './supabaseRest';

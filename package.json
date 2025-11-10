@@ -27,6 +27,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.0.7",
     "@smithy/util-base64": "^4.3.0",
+    "@supabase/supabase-js": "^2.80.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "leaflet": "^1.9.4",
