@@ -38,10 +38,19 @@ const AdminProducts = () => {
       setLoading(true);
       console.log('📊 Loading products from database...');
       
-      // Load from unified database (auto-switches between MySQL/Supabase)
-      const dbProducts = await unifiedDB.getProducts();
-      setProducts(dbProducts || []);
-      setFilteredProducts(dbProducts || []);
+      // Load directly from REST API
+      const { directSupabaseRest, isRestConfigured } = await import('@/lib/directSupabaseRest');
+      
+      if (isRestConfigured) {
+        const dbProducts = await directSupabaseRest.getProducts();
+        console.log('📦 Loaded products:', dbProducts.length);
+        setProducts(dbProducts || []);
+        setFilteredProducts(dbProducts || []);
+      } else {
+        console.warn('⚠️ REST API not configured');
+        setProducts([]);
+        setFilteredProducts([]);
+      }
     } catch (error) {
       console.error('❌ Failed to load products:', error);
       setProducts([]);
@@ -144,6 +153,7 @@ const AdminProducts = () => {
         return;
       }
 
+      // Reset form and refresh list
       setNewProduct({
         name: '',
         description: '',
@@ -153,7 +163,13 @@ const AdminProducts = () => {
         imageUrl: ''
       });
       setIsDialogOpen(false);
-      loadProducts();
+      
+      // Force refresh products list
+      console.log('🔄 Refreshing products list...');
+      await loadProducts();
+      
+      // Also trigger customer catalog refresh
+      window.dispatchEvent(new CustomEvent('productsUpdated'));
     } catch (error) {
       console.error('❌ Failed to add product:', error);
       toast({
