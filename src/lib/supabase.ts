@@ -143,34 +143,7 @@ export const supabaseApi = {
     }
   },
   
-  async getOrders() {
-    try {
-      const orders = await supabaseRest.get('orders', 'order=created_at.desc');
-      console.log('📦 Fetched orders from database:', orders.length, 'orders');
-      console.log('📊 Order statuses:', orders.map(o => ({ id: o.id, status: o.order_status })));
-      
-      // Ensure proper data parsing and mapping
-      return orders.map((order: any) => {
-        let parsedItems = [];
-        try {
-          parsedItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
-        } catch (e) {
-          console.warn('Failed to parse order items:', order.items);
-          parsedItems = [];
-        }
-        
-        return {
-          ...order,
-          items: parsedItems,
-          customer_address: order.customer_address || order.delivery_address,
-          delivery_address: order.delivery_address || order.customer_address
-        };
-      });
-    } catch (error) {
-      console.warn('Using mock orders:', error);
-      return JSON.parse(localStorage.getItem('orders') || '[]');
-    }
-  },
+
   
   async createOrder(order: any) {
     if (isRestConfigured) {
@@ -202,9 +175,6 @@ export const supabaseApi = {
       return await directSupabaseRest.getOrders();
     }
     return JSON.parse(localStorage.getItem('orders') || '[]');
-  },
-      throw error;
-    }
   },
   
   async updateOrderStatus(orderId: string, status: string, deliveryAgentId?: string) {
