@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { orderManagementService, Order } from "@/lib/orderManagementService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "@/lib/i18n";
+// i18n disabled
 
 const DeliveryOutForDelivery = () => {
   const [outForDeliveryOrders, setOutForDeliveryOrders] = useState<Order[]>([]);

@@ -6,7 +6,7 @@ import { User, Phone, Mail, Truck, Star, LogOut, Edit, Globe } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { deliveryAuthService } from '@/lib/deliveryAuthService';
-import { useTranslation, Language } from '@/lib/i18n';
+// i18n disabled
 
 const DeliveryProfile = () => {
   const navigate = useNavigate();

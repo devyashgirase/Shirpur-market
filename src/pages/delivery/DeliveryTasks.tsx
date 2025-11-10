@@ -8,7 +8,7 @@ import { DeliveryOrderService, DeliveryOrder } from "@/lib/deliveryOrderService"
 import { Link, useNavigate } from "react-router-dom";
 import DeliveryPerformance from "@/components/DeliveryPerformance";
 import DeliveryOTPVerification from "@/components/DeliveryOTPVerification";
-import { useTranslation } from "@/lib/i18n";
+// i18n disabled
 
 import AttractiveLoader from "@/components/AttractiveLoader";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";

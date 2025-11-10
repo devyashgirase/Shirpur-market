@@ -6,7 +6,7 @@ import { Bell, MapPin, Package, Clock, CheckCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { orderManagementService, Order } from "@/lib/orderManagementService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
-import { useTranslation } from "@/lib/i18n";
+// i18n disabled
 
 
 

@@ -6,7 +6,7 @@ import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User, Package }
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
 import { LanguageProvider } from "@/components/LanguageProvider";
-import { useTranslation } from "@/lib/i18n";
+// i18n disabled
 import { orderManagementService } from "@/lib/orderManagementService";
 
 const DeliveryLayout = () => {

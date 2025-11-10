@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { LanguageService, Language } from '@/lib/i18n';
+// i18n disabled
 
 interface LanguageContextType {
   currentLanguage: Language;
