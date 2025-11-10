@@ -1,8 +1,18 @@
 // Fix for production headers error
 if (typeof globalThis !== 'undefined') {
-  globalThis.global = globalThis.global || {};
-  if (!globalThis.global.headers) {
-    globalThis.global.headers = {};
+  globalThis.global = globalThis.global || globalThis;
+  if (!globalThis.global.Headers) {
+    globalThis.global.Headers = globalThis.Headers || class Headers {
+      constructor() {}
+      append() {}
+      delete() {}
+      get() { return null; }
+      has() { return false; }
+      set() {}
+    };
+  }
+  if (!globalThis.global.fetch) {
+    globalThis.global.fetch = globalThis.fetch;
   }
 }
 
