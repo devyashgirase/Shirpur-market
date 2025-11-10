@@ -110,7 +110,8 @@ const AdminProducts = () => {
         price: parseFloat(newProduct.price),
         category: newProduct.category,
         stockQuantity: parseInt(newProduct.stockQuantity) || 0,
-        imageUrl: newProduct.imageUrl,
+        imageUrl: newProduct.imageUrl || '/placeholder.svg',
+        image_url: newProduct.imageUrl || '/placeholder.svg',
         isActive: true
       };
 
@@ -443,11 +444,20 @@ const AdminProducts = () => {
             <CardContent className="p-3 md:p-4 pt-0">
               <div className="space-y-3">
                 <div className="flex items-center justify-center w-full h-32 bg-muted rounded-md overflow-hidden">
-                  {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                  ) : (
+                  {(product.imageUrl || product.image_url) ? (
+                    <img 
+                      src={product.imageUrl || product.image_url} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`flex items-center justify-center w-full h-full ${(product.imageUrl || product.image_url) ? 'hidden' : 'flex'}`}>
                     <Package className="w-12 h-12 text-muted-foreground" />
-                  )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
