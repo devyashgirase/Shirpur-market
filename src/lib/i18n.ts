@@ -146,7 +146,7 @@ export const translations: Record<Language, Translations> = {
     'delivery.noNewOrders': 'No New Orders',
     'delivery.newRequestsWillAppear': 'New delivery requests will appear here automatically when admin marks orders as ready.',
     'delivery.realTimeNotifications': 'Real-time notifications enabled',
-    'delivery.notifiedInstantly': "You'll be notified instantly when new orders are available in your area.",
+    'delivery.notifiedInstantly': 'You will be notified instantly when new orders are available in your area.',
     'delivery.acceptOrder': 'Accept Order',
     'delivery.reject': 'Reject',
     'delivery.readyForDelivery': 'Ready for Delivery',
