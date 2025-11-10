@@ -1,6 +1,5 @@
 import React, { createContext, useContext } from 'react';
-
-type Language = 'en';
+import { useTranslation, Language } from '@/lib/i18n';
 
 interface LanguageContextType {
   currentLanguage: Language;
@@ -11,12 +10,10 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const currentLanguage: Language = 'en';
-  const changeLanguage = () => {};
-  const t = (key: string) => key;
+  const { t, currentLang, changeLanguage } = useTranslation();
 
   return (
-    <LanguageContext.Provider value={{ currentLanguage, changeLanguage, t }}>
+    <LanguageContext.Provider value={{ currentLanguage: currentLang, changeLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -25,7 +22,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {
-    return { currentLanguage: 'en', changeLanguage: () => {}, t: (key: string) => key };
+    const { t, currentLang, changeLanguage } = useTranslation();
+    return { currentLanguage: currentLang, changeLanguage, t };
   }
   return context;
 };

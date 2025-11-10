@@ -6,13 +6,13 @@ import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User, Package }
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
 import { LanguageProvider } from "@/components/LanguageProvider";
-// i18n disabled
+import { useTranslation } from "@/lib/i18n";
 import { orderManagementService } from "@/lib/orderManagementService";
 
 const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const t = (key: string) => key;
+  const { t } = useTranslation();
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 
