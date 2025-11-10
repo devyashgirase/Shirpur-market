@@ -128,6 +128,27 @@ export const orderService = {
       
       console.log('✅ Order saved to Supabase:', result);
       console.log('🎯 Order ID created:', result[0]?.order_id || result?.order_id);
+      
+      // Show success notification
+      if (typeof window !== 'undefined') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #10b981;
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          z-index: 9999;
+          font-size: 14px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        notification.innerHTML = `✅ Order saved to Supabase Database!`;
+        document.body.appendChild(notification);
+        setTimeout(() => document.body.removeChild(notification), 4000);
+      }
+      
       return result[0] || result;
     } catch (error) {
       console.error('❌ Supabase save failed:', error);
@@ -137,6 +158,27 @@ export const orderService = {
       orders.push(newOrder);
       localStorage.setItem('orders', JSON.stringify(orders));
       console.log('💾 Saved to localStorage instead');
+      
+      // Show fallback notification
+      if (typeof window !== 'undefined') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #f59e0b;
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          z-index: 9999;
+          font-size: 14px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        notification.innerHTML = `💾 Order saved to Local Storage (Supabase failed)`;
+        document.body.appendChild(notification);
+        setTimeout(() => document.body.removeChild(notification), 4000);
+      }
+      
       return newOrder;
     }
   },

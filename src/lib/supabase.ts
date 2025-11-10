@@ -1,12 +1,15 @@
-// Safe Supabase client initialization without top-level await
+// Safe Supabase client initialization
+import { createClient } from '@supabase/supabase-js';
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = null; // Disabled to prevent build errors
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
+export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey && supabase);
 
 // Import REST client
 import { supabaseRest } from './supabaseRest';
+import { dataDebugger } from './dataDebugger';
 
 // Mock data for development
 const mockData = {
@@ -72,6 +75,7 @@ export const supabaseApi = {
       console.log('📦 Creating product in Supabase:', productData);
       const result = await supabaseRest.post('products', productData);
       console.log('✅ Product saved to Supabase successfully:', result);
+      dataDebugger.logDataSave('Product', productData, 'supabase');
       return result[0] || result;
     } catch (error) {
       console.warn('⚠️ Supabase failed, using localStorage:', error);
@@ -87,6 +91,7 @@ export const supabaseApi = {
       localStorage.setItem('products', JSON.stringify(existingProducts));
       
       console.log('💾 Product saved to localStorage:', productWithId);
+      dataDebugger.logDataSave('Product', productWithId, 'localStorage');
       return productWithId;
     }
   },
@@ -150,6 +155,7 @@ export const supabaseApi = {
     const orders = JSON.parse(localStorage.getItem('orders') || '[]');
     orders.push(orderData);
     localStorage.setItem('orders', JSON.stringify(orders));
+    dataDebugger.logDataSave('Order', orderData, 'localStorage');
     return orderData;
   },
   
