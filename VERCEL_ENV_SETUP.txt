@@ -1,0 +1,33 @@
+🚀 VERCEL ENVIRONMENT VARIABLES SETUP
+
+1. Vercel Dashboard में जाएं:
+   https://vercel.com/dashboard
+
+2. अपना project select करें (shirpur-market)
+
+3. Settings tab पर click करें
+
+4. Environment Variables section में जाएं
+
+5. ये variables add करें:
+
+   Name: VITE_SUPABASE_URL
+   Value: https://ftexuxkdfahbqjddidaf.supabase.co
+   Environment: Production, Preview, Development (सभी select करें)
+
+   Name: VITE_SUPABASE_ANON_KEY  
+   Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0ZXh1eGtkZmFoYnFqZGRpZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4OTg0MjMsImV4cCI6MjA3NTQ3NDQyM30.j_HfG_5FLay9EymJkJAkWRx0P0yScHXPZckIQ3apbEY
+   Environment: Production, Preview, Development (सभी select करें)
+
+   Name: VITE_RAZORPAY_KEY_ID
+   Value: rzp_test_1DP5mmOlF5G5ag
+   Environment: Production, Preview, Development (सभी select करें)
+
+6. Save करने के बाद Redeploy करें:
+   - Deployments tab में जाएं
+   - Latest deployment के ... menu पर click करें  
+   - "Redeploy" select करें
+
+7. Deployment complete होने के बाद test करें
+
+⚠️ IMPORTANT: Environment variables add करने के बाद हमेशा redeploy करना जरूरी है!
