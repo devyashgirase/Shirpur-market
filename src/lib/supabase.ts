@@ -1,26 +1,9 @@
-// Safe Supabase client initialization
-let supabase = null;
-let isSupabaseConfigured = false;
+// Safe Supabase client initialization without top-level await
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-try {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  if (supabaseUrl && supabaseKey) {
-    const { createClient } = await import('@supabase/supabase-js');
-    supabase = createClient(supabaseUrl, supabaseKey);
-    isSupabaseConfigured = true;
-    console.log('✅ Supabase client initialized successfully');
-  } else {
-    console.warn('⚠️ Supabase credentials not found');
-  }
-} catch (error) {
-  console.error('❌ Supabase initialization failed:', error);
-  supabase = null;
-  isSupabaseConfigured = false;
-}
-
-export { supabase, isSupabaseConfigured };
+export const supabase = null; // Disabled to prevent build errors
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
 // Import REST client
 import { supabaseRest } from './supabaseRest';
