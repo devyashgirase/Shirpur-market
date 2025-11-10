@@ -12,7 +12,7 @@ import { orderManagementService } from "@/lib/orderManagementService";
 const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const t = (key: string) => key;
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 

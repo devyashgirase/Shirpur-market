@@ -15,7 +15,7 @@ const DeliveryNotifications = () => {
   const [loading, setLoading] = useState(true);
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const t = (key: string) => key;
 
   useEffect(() => {
     loadNewOrders();

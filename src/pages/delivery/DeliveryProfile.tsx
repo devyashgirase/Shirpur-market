@@ -13,7 +13,9 @@ const DeliveryProfile = () => {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState(null);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const { t, currentLang, changeLanguage } = useTranslation();
+  const t = (key: string) => key;
+  const currentLang = 'en';
+  const changeLanguage = () => {};
 
   useEffect(() => {
     const loadCurrentAgent = async () => {

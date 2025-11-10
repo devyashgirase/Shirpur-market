@@ -30,7 +30,7 @@ const DeliveryTasks = () => {
   const [currentLocationName, setCurrentLocationName] = useState('Getting location...');
   const [weeklyEarnings, setWeeklyEarnings] = useState(0);
   const [earningsData, setEarningsData] = useState({ today: 0, week: 0, month: 0, completedToday: [] });
-  const { t } = useTranslation();
+  const t = (key: string) => key;
 
   // Function to get address from coordinates
   const getAddressFromCoordinates = async (lat: number, lng: number) => {

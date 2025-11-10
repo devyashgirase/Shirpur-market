@@ -16,7 +16,7 @@ const DeliveryOutForDelivery = () => {
   const [currentAgent, setCurrentAgent] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const t = (key: string) => key;
 
   useEffect(() => {
     const initializeComponent = async () => {
