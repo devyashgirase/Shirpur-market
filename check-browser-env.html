@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Environment Check</title>
+</head>
+<body>
+    <h1>Browser Environment Check</h1>
+    <div id="results"></div>
+    
+    <script type="module">
+        console.log('🔍 Checking browser environment...');
+        
+        const results = document.getElementById('results');
+        
+        // Check if environment variables are available
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        results.innerHTML = `
+            <h2>Environment Variables:</h2>
+            <p><strong>VITE_SUPABASE_URL:</strong> ${supabaseUrl || 'NOT SET'}</p>
+            <p><strong>VITE_SUPABASE_ANON_KEY:</strong> ${supabaseKey ? 'SET' : 'NOT SET'}</p>
+            
+            <h2>Test Product Creation:</h2>
+            <button onclick="testProductCreation()">Test Create Product</button>
+            <div id="test-results"></div>
+        `;
+        
+        window.testProductCreation = async () => {
+            const testResults = document.getElementById('test-results');
+            testResults.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const testProduct = {
+                    name: `Browser Test Product ${Date.now()}`,
+                    description: 'Test from browser',
+                    price: 99.99,
+                    category: 'test',
+                    stock_quantity: 10,
+                    image_url: '/placeholder.svg',
+                    is_active: true,
+                    sku: `BRW${Date.now()}`,
+                    unit: 'kg'
+                };
+                
+                const response = await fetch(`${supabaseUrl}/rest/v1/products`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(testProduct)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    testResults.innerHTML = `<p style="color: green;">✅ Success! Product created: ${JSON.stringify(result[0], null, 2)}</p>`;
+                } else {
+                    const error = await response.text();
+                    testResults.innerHTML = `<p style="color: red;">❌ Failed: ${response.status} - ${error}</p>`;
+                }
+            } catch (error) {
+                testResults.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        };
+    </script>
+</body>
+</html>

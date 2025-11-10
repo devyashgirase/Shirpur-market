@@ -117,8 +117,11 @@ const AdminProducts = () => {
 
       console.log('💾 Adding product to database:', productData.name);
       
-      // Save to unified database
-      const dbProduct = await unifiedDB.createProduct(productData);
+      // Save directly to Supabase
+      const { supabaseApi } = await import('@/lib/supabase');
+      console.log('📤 Calling supabaseApi.createProduct with:', productData);
+      const dbProduct = await supabaseApi.createProduct(productData);
+      console.log('📥 supabaseApi response:', dbProduct);
       if (dbProduct) {
         toast({
           title: "Product Added to Database",
@@ -180,8 +183,9 @@ const AdminProducts = () => {
     try {
       console.log('🔄 Updating product status in database:', productId, '→', newStatus);
       
-      // Update in unified database
-      await unifiedDB.updateProduct(parseInt(productId), { isActive: newStatus });
+      // Update directly in Supabase
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.updateProduct(parseInt(productId), { isActive: newStatus });
       
       // Update local state immediately
       const updatedProducts = products.map(p => 

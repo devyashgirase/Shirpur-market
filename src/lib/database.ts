@@ -14,7 +14,15 @@ export const unifiedDB = {
   },
   
   async createProduct(product: any) {
-    return await supabaseApi.createProduct(product);
+    console.log('🔍 UnifiedDB creating product:', product);
+    try {
+      const result = await supabaseApi.createProduct(product);
+      console.log('✅ UnifiedDB product created:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ UnifiedDB product creation failed:', error);
+      throw error;
+    }
   },
   
   async updateProduct(id: number, product: any) {
