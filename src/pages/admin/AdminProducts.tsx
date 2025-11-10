@@ -117,11 +117,19 @@ const AdminProducts = () => {
 
       console.log('💾 Adding product to database:', productData.name);
       
-      // Save directly to Supabase
-      const { supabaseApi } = await import('@/lib/supabase');
-      console.log('📤 Calling supabaseApi.createProduct with:', productData);
-      const dbProduct = await supabaseApi.createProduct(productData);
-      console.log('📥 supabaseApi response:', dbProduct);
+      // Save directly to Supabase REST API
+      console.log('🔍 AdminProducts: Starting product creation...');
+      console.log('📤 Product data to save:', productData);
+      
+      const { directSupabaseRest, isRestConfigured } = await import('@/lib/directSupabaseRest');
+      console.log('🔧 REST API configured:', isRestConfigured);
+      
+      if (!isRestConfigured) {
+        throw new Error('Supabase REST API not configured');
+      }
+      
+      const dbProduct = await directSupabaseRest.createProduct(productData);
+      console.log('✅ AdminProducts: Product created in database:', dbProduct);
       if (dbProduct) {
         toast({
           title: "Product Added to Database",
