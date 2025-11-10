@@ -5,14 +5,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User, Package } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
-import { LanguageProvider } from "@/components/LanguageProvider";
-import { useTranslation } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { orderManagementService } from "@/lib/orderManagementService";
 
 const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 
@@ -68,8 +67,7 @@ const DeliveryLayout = () => {
   ];
 
   return (
-    <LanguageProvider>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 pb-16 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 pb-16 md:pb-0">
       {/* Mobile Header */}
       <header className="md:hidden bg-gradient-to-r from-blue-600 to-orange-600 text-white shadow-lg sticky top-0 z-40">
         <div className="px-4 py-3">
@@ -175,8 +173,7 @@ const DeliveryLayout = () => {
           })}
         </div>
       </nav>
-      </div>
-    </LanguageProvider>
+    </div>
   );
 };
 

@@ -6,14 +6,18 @@ import { User, Phone, Mail, Truck, Star, LogOut, Edit, Globe } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { deliveryAuthService } from '@/lib/deliveryAuthService';
-import { useTranslation, Language } from '@/lib/i18n';
+import { t, setLanguage, getLanguage } from '@/lib/i18n';
 
 const DeliveryProfile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState(null);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const { t, currentLang, changeLanguage } = useTranslation();
+  const currentLang = getLanguage();
+  const changeLanguage = (lang: 'en' | 'hi' | 'mr') => {
+    setLanguage(lang);
+    window.location.reload();
+  };
 
   useEffect(() => {
     const loadCurrentAgent = async () => {

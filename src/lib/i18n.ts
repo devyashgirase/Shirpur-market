@@ -1,90 +1,254 @@
-// Clean multi-language support
-export type Language = 'en' | 'hi' | 'mr';
-
-export const translations = {
+// Minimal i18n system
+const translations = {
   en: {
-    'app.title': 'Shirpur Market',
-    'common.loading': 'Loading',
-    'common.save': 'Save',
-    'common.cancel': 'Cancel',
-    'common.edit': 'Edit',
-    'common.delete': 'Delete',
-    'delivery.tasks': 'Delivery Tasks',
-    'delivery.earnings': 'Earnings',
-    'delivery.acceptOrder': 'Accept Order',
-    'delivery.reject': 'Reject',
-    'delivery.readyForDelivery': 'Ready for Delivery',
-    'nav.home': 'Home',
-    'nav.orders': 'Orders',
-    'nav.profile': 'Profile',
-    'nav.notifications': 'Notifications'
+    delivery: {
+      tasks: "Delivery Tasks",
+      manageDeliveries: "Manage your deliveries efficiently",
+      support: "Support",
+      refresh: "Refresh",
+      logout: "Logout",
+      quickStats: "Quick Stats",
+      avgDeliveryTime: "Avg Delivery Time",
+      customerRating: "Customer Rating",
+      weeklyEarnings: "Weekly Earnings",
+      systemStatus: "System Status",
+      currentLocation: "Current Location",
+      ordersAvailable: "Orders Available",
+      totalOrders: "Total Orders",
+      outForDeliveryStatus: "Out for delivery status",
+      allStatusesCombined: "All statuses combined",
+      activeTasks: "Active Tasks",
+      todaysEarnings: "Today's Earnings",
+      completionRate: "Completion Rate",
+      performance: "Performance",
+      dailyIncentiveTracker: "Daily Incentive Tracker",
+      incentiveDescription: "Complete 10 orders today to earn ₹250 bonus!",
+      earnedToday: "Earned Today",
+      orders: "Orders",
+      remaining: "Remaining",
+      congratulations: "Congratulations! 🎉",
+      fullIncentiveEarned: "You've earned the full daily incentive!",
+      readyForDelivery: "Ready for Delivery",
+      total: "Total",
+      noOrdersReady: "No Orders Ready",
+      ordersMarkedReady: "Orders marked as ready will appear here",
+      name: "Name",
+      address: "Address",
+      phone: "Phone",
+      orderId: "Order ID",
+      orderItems: "Order Items",
+      noItemsFound: "No items found",
+      acceptStartDelivery: "Accept & Start Delivery",
+      ordersOutForDelivery: "Orders Out for Delivery",
+      noOrdersForDelivery: "No Orders for Delivery",
+      ordersMarkedOutForDelivery: "Orders marked as out for delivery will appear here",
+      outForDelivery: "Out for Delivery",
+      deliveryDetails: "Delivery Details",
+      customer: "Customer",
+      deliverTo: "Deliver To",
+      contact: "Contact",
+      order: "Order",
+      startRoute: "Start Route",
+      markDelivered: "Mark Delivered",
+      availableOrders: "Available Orders",
+      noNearbyOrders: "No Nearby Orders",
+      ordersWithinRange: "Orders within your delivery range will appear here",
+      nearbyOrder: "Nearby Order",
+      acceptDelivery: "Accept Delivery",
+      allTasks: "All Tasks",
+      noTasksAvailable: "No Tasks Available",
+      newTasksWillAppear: "New delivery tasks will appear here",
+      readyForPickup: "Ready for Pickup",
+      orderValue: "Order Value",
+      yourEarning: "Your Earning",
+      adminApproved: "Admin Approved",
+      acceptOrder: "Accept Order",
+      completedOrders: "Completed Orders",
+      noOrders: "No orders completed today",
+      avgPerOrder: "Avg per Order",
+      rating: "Rating",
+      orderDelivered: "Order delivered successfully!",
+      earnings: "Earnings",
+      incentiveBonus: "Incentive Bonus",
+      totalEarnings: "Total Earnings",
+      customerDetails: "Customer Details"
+    },
+    common: {
+      status: "Status"
+    }
   },
   hi: {
-    'app.title': 'शिरपूर मार्केट',
-    'common.loading': 'लोड हो रहा है',
-    'common.save': 'सेव करें',
-    'common.cancel': 'रद्द करें',
-    'common.edit': 'संपादित करें',
-    'common.delete': 'हटाएं',
-    'delivery.tasks': 'डिलीवरी कार्य',
-    'delivery.earnings': 'कमाई',
-    'delivery.acceptOrder': 'ऑर्डर स्वीकार करें',
-    'delivery.reject': 'अस्वीकार करें',
-    'delivery.readyForDelivery': 'डिलीवरी के लिए तैयार',
-    'nav.home': 'होम',
-    'nav.orders': 'ऑर्डर',
-    'nav.profile': 'प्रोफाइल',
-    'nav.notifications': 'सूचनाएं'
+    delivery: {
+      tasks: "डिलीवरी कार्य",
+      manageDeliveries: "अपनी डिलीवरी को कुशलता से प्रबंधित करें",
+      support: "सहायता",
+      refresh: "रीफ्रेश",
+      logout: "लॉगआउट",
+      quickStats: "त्वरित आंकड़े",
+      avgDeliveryTime: "औसत डिलीवरी समय",
+      customerRating: "ग्राहक रेटिंग",
+      weeklyEarnings: "साप्ताहिक कमाई",
+      systemStatus: "सिस्टम स्थिति",
+      currentLocation: "वर्तमान स्थान",
+      ordersAvailable: "उपलब्ध ऑर्डर",
+      totalOrders: "कुल ऑर्डर",
+      outForDeliveryStatus: "डिलीवरी के लिए निकले",
+      allStatusesCombined: "सभी स्थितियां संयुक्त",
+      activeTasks: "सक्रिय कार्य",
+      todaysEarnings: "आज की कमाई",
+      completionRate: "पूर्णता दर",
+      performance: "प्रदर्शन",
+      dailyIncentiveTracker: "दैनिक प्रोत्साहन ट्रैकर",
+      incentiveDescription: "₹250 बोनस पाने के लिए आज 10 ऑर्डर पूरे करें!",
+      earnedToday: "आज कमाया",
+      orders: "ऑर्डर",
+      remaining: "शेष",
+      congratulations: "बधाई हो! 🎉",
+      fullIncentiveEarned: "आपने पूरा दैनिक प्रोत्साहन अर्जित किया है!",
+      readyForDelivery: "डिलीवरी के लिए तैयार",
+      total: "कुल",
+      noOrdersReady: "कोई ऑर्डर तैयार नहीं",
+      ordersMarkedReady: "तैयार के रूप में चिह्नित ऑर्डर यहां दिखाई देंगे",
+      name: "नाम",
+      address: "पता",
+      phone: "फोन",
+      orderId: "ऑर्डर आईडी",
+      orderItems: "ऑर्डर आइटम",
+      noItemsFound: "कोई आइटम नहीं मिला",
+      acceptStartDelivery: "स्वीकार करें और डिलीवरी शुरू करें",
+      ordersOutForDelivery: "डिलीवरी के लिए निकले ऑर्डर",
+      noOrdersForDelivery: "डिलीवरी के लिए कोई ऑर्डर नहीं",
+      ordersMarkedOutForDelivery: "डिलीवरी के लिए निकले के रूप में चिह्नित ऑर्डर यहां दिखाई देंगे",
+      outForDelivery: "डिलीवरी के लिए निकला",
+      deliveryDetails: "डिलीवरी विवरण",
+      customer: "ग्राहक",
+      deliverTo: "डिलीवर करें",
+      contact: "संपर्क",
+      order: "ऑर्डर",
+      startRoute: "रूट शुरू करें",
+      markDelivered: "डिलीवर किया गया चिह्नित करें",
+      availableOrders: "उपलब्ध ऑर्डर",
+      noNearbyOrders: "कोई नजदीकी ऑर्डर नहीं",
+      ordersWithinRange: "आपकी डिलीवरी रेंज के भीतर के ऑर्डर यहां दिखाई देंगे",
+      nearbyOrder: "नजदीकी ऑर्डर",
+      acceptDelivery: "डिलीवरी स्वीकार करें",
+      allTasks: "सभी कार्य",
+      noTasksAvailable: "कोई कार्य उपलब्ध नहीं",
+      newTasksWillAppear: "नए डिलीवरी कार्य यहां दिखाई देंगे",
+      readyForPickup: "पिकअप के लिए तैयार",
+      orderValue: "ऑर्डर मूल्य",
+      yourEarning: "आपकी कमाई",
+      adminApproved: "एडमिन द्वारा अनुमोदित",
+      acceptOrder: "ऑर्डर स्वीकार करें",
+      completedOrders: "पूर्ण ऑर्डर",
+      noOrders: "आज कोई ऑर्डर पूरा नहीं हुआ",
+      avgPerOrder: "प्रति ऑर्डर औसत",
+      rating: "रेटिंग",
+      orderDelivered: "ऑर्डर सफलतापूर्वक डिलीवर हुआ!",
+      earnings: "कमाई",
+      incentiveBonus: "प्रोत्साहन बोनस",
+      totalEarnings: "कुल कमाई",
+      customerDetails: "ग्राहक विवरण"
+    },
+    common: {
+      status: "स्थिति"
+    }
   },
   mr: {
-    'app.title': 'शिरपूर मार्केट',
-    'common.loading': 'लोड होत आहे',
-    'common.save': 'सेव्ह करा',
-    'common.cancel': 'रद्द करा',
-    'common.edit': 'संपादित करा',
-    'common.delete': 'हटवा',
-    'delivery.tasks': 'डिलिव्हरी कार्ये',
-    'delivery.earnings': 'कमाई',
-    'delivery.acceptOrder': 'ऑर्डर स्वीकारा',
-    'delivery.reject': 'नाकारा',
-    'delivery.readyForDelivery': 'डिलिव्हरीसाठी तयार',
-    'nav.home': 'होम',
-    'nav.orders': 'ऑर्डर',
-    'nav.profile': 'प्रोफाइल',
-    'nav.notifications': 'सूचना'
+    delivery: {
+      tasks: "डिलिव्हरी कार्ये",
+      manageDeliveries: "तुमच्या डिलिव्हरी कुशलतेने व्यवस्थापित करा",
+      support: "सहाय्य",
+      refresh: "रिफ्रेश",
+      logout: "लॉगआउट",
+      quickStats: "त्वरित आकडेवारी",
+      avgDeliveryTime: "सरासरी डिलिव्हरी वेळ",
+      customerRating: "ग्राहक रेटिंग",
+      weeklyEarnings: "साप्ताहिक कमाई",
+      systemStatus: "सिस्टम स्थिती",
+      currentLocation: "सध्याचे स्थान",
+      ordersAvailable: "उपलब्ध ऑर्डर",
+      totalOrders: "एकूण ऑर्डर",
+      outForDeliveryStatus: "डिलिव्हरीसाठी निघाले",
+      allStatusesCombined: "सर्व स्थिती एकत्रित",
+      activeTasks: "सक्रिय कार्ये",
+      todaysEarnings: "आजची कमाई",
+      completionRate: "पूर्णता दर",
+      performance: "कामगिरी",
+      dailyIncentiveTracker: "दैनिक प्रोत्साहन ट्रॅकर",
+      incentiveDescription: "₹250 बोनस मिळवण्यासाठी आज 10 ऑर्डर पूर्ण करा!",
+      earnedToday: "आज कमावले",
+      orders: "ऑर्डर",
+      remaining: "उरलेले",
+      congratulations: "अभिनंदन! 🎉",
+      fullIncentiveEarned: "तुम्ही पूर्ण दैनिक प्रोत्साहन मिळवले आहे!",
+      readyForDelivery: "डिलिव्हरीसाठी तयार",
+      total: "एकूण",
+      noOrdersReady: "कोणतेही ऑर्डर तयार नाहीत",
+      ordersMarkedReady: "तयार म्हणून चिन्हांकित ऑर्डर येथे दिसतील",
+      name: "नाव",
+      address: "पत्ता",
+      phone: "फोन",
+      orderId: "ऑर्डर आयडी",
+      orderItems: "ऑर्डर आयटम",
+      noItemsFound: "कोणतेही आयटम सापडले नाहीत",
+      acceptStartDelivery: "स्वीकार करा आणि डिलिव्हरी सुरू करा",
+      ordersOutForDelivery: "डिलिव्हरीसाठी निघालेले ऑर्डर",
+      noOrdersForDelivery: "डिलिव्हरीसाठी कोणतेही ऑर्डर नाहीत",
+      ordersMarkedOutForDelivery: "डिलिव्हरीसाठी निघाले म्हणून चिन्हांकित ऑर्डर येथे दिसतील",
+      outForDelivery: "डिलिव्हरीसाठी निघाले",
+      deliveryDetails: "डिलिव्हरी तपशील",
+      customer: "ग्राहक",
+      deliverTo: "डिलिव्हर करा",
+      contact: "संपर्क",
+      order: "ऑर्डर",
+      startRoute: "मार्ग सुरू करा",
+      markDelivered: "डिलिव्हर केले म्हणून चिन्हांकित करा",
+      availableOrders: "उपलब्ध ऑर्डर",
+      noNearbyOrders: "जवळपासचे ऑर्डर नाहीत",
+      ordersWithinRange: "तुमच्या डिलिव्हरी रेंजमधील ऑर्डर येथे दिसतील",
+      nearbyOrder: "जवळपासचा ऑर्डर",
+      acceptDelivery: "डिलिव्हरी स्वीकार करा",
+      allTasks: "सर्व कार्ये",
+      noTasksAvailable: "कोणतीही कार्ये उपलब्ध नाहीत",
+      newTasksWillAppear: "नवीन डिलिव्हरी कार्ये येथे दिसतील",
+      readyForPickup: "पिकअपसाठी तयार",
+      orderValue: "ऑर्डर मूल्य",
+      yourEarning: "तुमची कमाई",
+      adminApproved: "प्रशासकाने मंजूर केले",
+      acceptOrder: "ऑर्डर स्वीकार करा",
+      completedOrders: "पूर्ण ऑर्डर",
+      noOrders: "आज कोणतेही ऑर्डर पूर्ण झाले नाहीत",
+      avgPerOrder: "प्रति ऑर्डर सरासरी",
+      rating: "रेटिंग",
+      orderDelivered: "ऑर्डर यशस्वीरित्या डिलिव्हर झाले!",
+      earnings: "कमाई",
+      incentiveBonus: "प्रोत्साहन बोनस",
+      totalEarnings: "एकूण कमाई",
+      customerDetails: "ग्राहक तपशील"
+    },
+    common: {
+      status: "स्थिती"
+    }
   }
 };
 
-export class LanguageService {
-  private static currentLang: Language = 'en';
+export const t = (key: string): string => {
+  const lang = localStorage.getItem('language') || 'en';
+  const keys = key.split('.');
+  let value: any = translations[lang as keyof typeof translations];
   
-  static getCurrentLanguage(): Language {
-    const saved = localStorage.getItem('app_language') as Language;
-    return saved || 'en';
+  for (const k of keys) {
+    value = value?.[k];
   }
   
-  static setLanguage(lang: Language): void {
-    this.currentLang = lang;
-    localStorage.setItem('app_language', lang);
-  }
-  
-  static translate(key: string, lang?: Language): string {
-    const currentLang = lang || this.getCurrentLanguage();
-    return translations[currentLang]?.[key] || translations.en[key] || key;
-  }
-}
+  return value || key;
+};
 
-import React from 'react';
+export const setLanguage = (lang: 'en' | 'hi' | 'mr') => {
+  localStorage.setItem('language', lang);
+};
 
-export const useTranslation = () => {
-  const [currentLang, setCurrentLang] = React.useState<Language>(LanguageService.getCurrentLanguage());
-  
-  const t = (key: string) => LanguageService.translate(key, currentLang);
-  
-  const changeLanguage = (lang: Language) => {
-    LanguageService.setLanguage(lang);
-    setCurrentLang(lang);
-  };
-  
-  return { t, currentLang, changeLanguage };
+export const getLanguage = () => {
+  return localStorage.getItem('language') || 'en';
 };
