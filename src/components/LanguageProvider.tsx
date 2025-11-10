@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-// i18n disabled
+import React, { createContext, useContext } from 'react';
+
+type Language = 'en';
 
 interface LanguageContextType {
   currentLanguage: Language;
@@ -10,18 +11,9 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(LanguageService.getCurrentLanguage());
-
-  useEffect(() => {
-    const unsubscribe = LanguageService.subscribe(setCurrentLanguage);
-    return unsubscribe;
-  }, []);
-
-  const changeLanguage = (lang: Language) => {
-    LanguageService.setLanguage(lang);
-  };
-
-  const t = (key: string) => LanguageService.translate(key, currentLanguage);
+  const currentLanguage: Language = 'en';
+  const changeLanguage = () => {};
+  const t = (key: string) => key;
 
   return (
     <LanguageContext.Provider value={{ currentLanguage, changeLanguage, t }}>
@@ -33,7 +25,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    return { currentLanguage: 'en', changeLanguage: () => {}, t: (key: string) => key };
   }
   return context;
 };
