@@ -63,25 +63,15 @@ import { directSupabaseRest, isRestConfigured } from './directSupabaseRest';
 
 export const supabaseApi = {
   async getProducts() {
-    try {
-      if (isRestConfigured) {
-        return await directSupabaseRest.getProducts();
-      }
-      return await supabaseRest.get('products');
-    } catch (error) {
-      console.warn('Using mock products:', error);
-      return mockData.products;
+    if (isRestConfigured) {
+      return await directSupabaseRest.getProducts();
     }
+    return mockData.products;
   },
   
   async createProduct(product: any) {
-    // Try direct REST API first
     if (isRestConfigured) {
-      try {
-        return await directSupabaseRest.createProduct(product);
-      } catch (error) {
-        console.warn('Direct REST failed, trying supabaseRest:', error);
-      }
+      return await directSupabaseRest.createProduct(product);
     }
     const productData = {
       name: product.name,
@@ -183,16 +173,13 @@ export const supabaseApi = {
   },
   
   async createOrder(order: any) {
-    // Try direct REST API first
     if (isRestConfigured) {
-      try {
-        return await directSupabaseRest.createOrder(order);
-      } catch (error) {
-        console.warn('Direct REST order failed, trying supabaseRest:', error);
-      }
+      return await directSupabaseRest.createOrder(order);
     }
     
+    // Fallback to localStorage
     const orderData = {
+      id: Date.now(),
       order_id: order.order_id || `ORD${Date.now()}`,
       customer_name: order.customer_name,
       customer_phone: order.customer_phone,
@@ -200,30 +187,23 @@ export const supabaseApi = {
       items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items),
       total_amount: Number(order.total_amount),
       order_status: order.order_status || 'confirmed',
-      payment_status: order.payment_status || 'paid'
+      payment_status: order.payment_status || 'paid',
+      created_at: new Date().toISOString()
     };
     
-    try {
-      console.log('📦 Creating order in Supabase:', orderData);
-      const result = await supabaseRest.post('orders', orderData);
-      console.log('✅ Order saved to Supabase successfully:', result);
-      return result[0] || result;
-    } catch (error) {
-      console.warn('⚠️ Supabase failed, using localStorage:', error);
-      
-      // Always save to localStorage as backup
-      const newOrder = { 
-        id: Date.now(), 
-        ...orderData,
-        created_at: new Date().toISOString()
-      };
-      
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-      orders.push(newOrder);
-      localStorage.setItem('orders', JSON.stringify(orders));
-      
-      console.log('💾 Order saved to localStorage:', newOrder);
-      return newOrder;
+    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    orders.push(orderData);
+    localStorage.setItem('orders', JSON.stringify(orders));
+    return orderData;
+  },
+  
+  async getOrders() {
+    if (isRestConfigured) {
+      return await directSupabaseRest.getOrders();
+    }
+    return JSON.parse(localStorage.getItem('orders') || '[]');
+  },
+      throw error;
     }
   },
   
