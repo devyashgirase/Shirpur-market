@@ -1,11 +1,26 @@
-// Enable Supabase for production use
-import { createClient } from '@supabase/supabase-js';
+// Safe Supabase client initialization
+let supabase = null;
+let isSupabaseConfigured = false;
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+try {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  if (supabaseUrl && supabaseKey) {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(supabaseUrl, supabaseKey);
+    isSupabaseConfigured = true;
+    console.log('✅ Supabase client initialized successfully');
+  } else {
+    console.warn('⚠️ Supabase credentials not found');
+  }
+} catch (error) {
+  console.error('❌ Supabase initialization failed:', error);
+  supabase = null;
+  isSupabaseConfigured = false;
+}
 
-export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
+export { supabase, isSupabaseConfigured };
 
 // Import REST client
 import { supabaseRest } from './supabaseRest';
@@ -43,9 +58,15 @@ const mockData = {
   ]
 };
 
+// Import fallback REST client
+import { directSupabaseRest, isRestConfigured } from './directSupabaseRest';
+
 export const supabaseApi = {
   async getProducts() {
     try {
+      if (isRestConfigured) {
+        return await directSupabaseRest.getProducts();
+      }
       return await supabaseRest.get('products');
     } catch (error) {
       console.warn('Using mock products:', error);
@@ -54,6 +75,14 @@ export const supabaseApi = {
   },
   
   async createProduct(product: any) {
+    // Try direct REST API first
+    if (isRestConfigured) {
+      try {
+        return await directSupabaseRest.createProduct(product);
+      } catch (error) {
+        console.warn('Direct REST failed, trying supabaseRest:', error);
+      }
+    }
     const productData = {
       name: product.name,
       description: product.description || '',
@@ -154,6 +183,15 @@ export const supabaseApi = {
   },
   
   async createOrder(order: any) {
+    // Try direct REST API first
+    if (isRestConfigured) {
+      try {
+        return await directSupabaseRest.createOrder(order);
+      } catch (error) {
+        console.warn('Direct REST order failed, trying supabaseRest:', error);
+      }
+    }
+    
     const orderData = {
       order_id: order.order_id || `ORD${Date.now()}`,
       customer_name: order.customer_name,
