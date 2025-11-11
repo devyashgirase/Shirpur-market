@@ -109,7 +109,89 @@ export const supabaseApi = {
         { id: 2, name: 'Basmati Rice', price: 120, category: 'Grains' }
       ];
     }
+  },
+
+  // Cart functions
+  async getCart(userPhone: string) {
+    try {
+      const cart = localStorage.getItem(`cart_${userPhone}`);
+      return cart ? JSON.parse(cart) : [];
+    } catch (error) {
+      return [];
+    }
+  },
+
+  async addToCart(userPhone: string, productId: string, quantity: number) {
+    try {
+      const products = await this.getProducts();
+      const product = products.find((p: any) => p.id.toString() === productId.toString());
+      
+      if (!product) throw new Error('Product not found');
+      
+      const cart = await this.getCart(userPhone);
+      const existingItem = cart.find((item: any) => item.product.id.toString() === productId.toString());
+      
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        cart.push({
+          id: Date.now(),
+          product: {
+            id: product.id.toString(),
+            name: product.name,
+            price: product.price,
+            image_url: product.image_url || '/placeholder.svg'
+          },
+          quantity,
+          added_at: new Date().toISOString()
+        });
+      }
+      
+      localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
+      return cart;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateCartQuantity(userPhone: string, productId: string, quantity: number) {
+    try {
+      const cart = await this.getCart(userPhone);
+      const itemIndex = cart.findIndex((item: any) => item.product.id.toString() === productId.toString());
+      
+      if (itemIndex >= 0) {
+        cart[itemIndex].quantity = quantity;
+        localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
+      }
+      
+      return cart;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async removeFromCart(userPhone: string, productId: string) {
+    try {
+      const cart = await this.getCart(userPhone);
+      const filteredCart = cart.filter((item: any) => item.product.id.toString() !== productId.toString());
+      localStorage.setItem(`cart_${userPhone}`, JSON.stringify(filteredCart));
+      return filteredCart;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async clearCart(userPhone: string) {
+    try {
+      localStorage.removeItem(`cart_${userPhone}`);
+      return [];
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
 export const supabase = null; // Disable SDK completely
+
+// Legacy compatibility
+export { supabaseApi as default };
