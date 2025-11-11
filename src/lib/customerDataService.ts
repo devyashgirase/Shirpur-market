@@ -1,4 +1,5 @@
 import { apiService, DynamicDataManager, ApiProduct, ApiOrder, ApiCustomer, ApiCategory } from './apiService';
+import { supabaseApi } from './supabase';
 
 export class CustomerDataService {
   // Get all customer orders with dynamic caching
@@ -29,12 +30,21 @@ export class CustomerDataService {
   // Get available products with dynamic updates
   static async getAvailableProducts(): Promise<ApiProduct[]> {
     try {
-      console.log('CustomerDataService: Fetching products from API...');
-      const products = await apiService.getProducts();
-      console.log('CustomerDataService: Raw products from API:', products);
+      console.log('CustomerDataService: Fetching products directly from Supabase...');
+      const products = await supabaseApi.getProducts();
+      console.log('CustomerDataService: Raw products from Supabase:', products);
       console.log('CustomerDataService: Number of products:', products.length);
       
-      const filteredProducts = products
+      // Filter out any invalid products (like CART_ products)
+      const validProducts = products.filter(product => {
+        const hasValidName = product.name && !product.name.startsWith('CART_');
+        const hasValidId = product.id && typeof product.id === 'number';
+        return hasValidName && hasValidId;
+      });
+      
+      console.log('CustomerDataService: Valid products after filtering:', validProducts.length);
+      
+      const filteredProducts = validProducts
         .filter(product => {
           const isAvailable = product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true);
           console.log(`Product ${product.name}: is_available=${isAvailable}`);

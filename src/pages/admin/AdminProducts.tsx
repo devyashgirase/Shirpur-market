@@ -38,19 +38,13 @@ const AdminProducts = () => {
       setLoading(true);
       console.log('📊 Loading products from database...');
       
-      // Load directly from REST API
-      const { directSupabaseRest, isRestConfigured } = await import('@/lib/directSupabaseRest');
+      // Load directly from Supabase API
+      const { supabaseApi } = await import('@/lib/supabase');
       
-      if (isRestConfigured) {
-        const dbProducts = await directSupabaseRest.getProducts();
-        console.log('📦 Loaded products:', dbProducts.length);
-        setProducts(dbProducts || []);
-        setFilteredProducts(dbProducts || []);
-      } else {
-        console.warn('⚠️ REST API not configured');
-        setProducts([]);
-        setFilteredProducts([]);
-      }
+      const dbProducts = await supabaseApi.getProducts();
+      console.log('📦 Loaded products from Supabase:', dbProducts.length);
+      setProducts(dbProducts || []);
+      setFilteredProducts(dbProducts || []);
     } catch (error) {
       console.error('❌ Failed to load products:', error);
       setProducts([]);
@@ -127,19 +121,14 @@ const AdminProducts = () => {
 
       console.log('💾 Adding product to database:', productData.name);
       
-      // Save directly to Supabase REST API
+      // Save directly to Supabase API
       console.log('🔍 AdminProducts: Starting product creation...');
       console.log('📤 Product data to save:', productData);
       
-      const { directSupabaseRest, isRestConfigured } = await import('@/lib/directSupabaseRest');
-      console.log('🔧 REST API configured:', isRestConfigured);
+      const { supabaseApi } = await import('@/lib/supabase');
       
-      if (!isRestConfigured) {
-        throw new Error('Supabase REST API not configured');
-      }
-      
-      const dbProduct = await directSupabaseRest.createProduct(productData);
-      console.log('✅ AdminProducts: Product created in database:', dbProduct);
+      const dbProduct = await supabaseApi.createProduct(productData);
+      console.log('✅ AdminProducts: Product created in Supabase:', dbProduct);
       if (dbProduct) {
         toast({
           title: "Product Added to Database",
