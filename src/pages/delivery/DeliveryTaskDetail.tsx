@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin, CheckCircle, Navigation, Play, Square } from "lucide-react";
-import { mockDeliveryTasks } from "@/lib/mockData";
+// No mock data - real-time application only
 import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/lib/orderService";
 import { NotificationService } from "@/lib/notificationService";
@@ -23,7 +23,7 @@ const DeliveryTaskDetail = () => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [watchId, setWatchId] = useState<number | null>(null);
 
-  const task = mockDeliveryTasks.find((t) => t.id === taskId);
+  const task = null; // Real-time data only
 
   useEffect(() => {
     return () => {

@@ -149,50 +149,7 @@ export class OrderService {
     // Only add mock data in development environment
     const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
     
-    if (isDevelopment && storedOrders.length === 0) {
-      console.log('🧪 Development mode: Adding mock orders for testing');
-      const mockOrders = [
-        {
-          orderId: 'ORD_TEST_001',
-          status: 'out_for_delivery' as keyof OrderStatus,
-          timestamp: new Date(Date.now() - 10 * 60000).toISOString(),
-          customerAddress: {
-            name: 'Rajesh Patel',
-            phone: '+91 98765 43210',
-            address: 'Shop No. 15, Main Market Road, Near Bus Stand, Shirpur, Dhule, Maharashtra 425405',
-            coordinates: { lat: 21.3099, lng: 75.1178 }
-          },
-          items: [
-            { product: { id: '1', name: 'Fresh Tomatoes', price: 40 }, quantity: 2 },
-            { product: { id: '2', name: 'Basmati Rice', price: 120 }, quantity: 1 }
-          ],
-          total: 200,
-          paymentStatus: 'paid'
-        },
-        {
-          orderId: 'ORD_TEST_002',
-          status: 'out_for_delivery' as keyof OrderStatus,
-          timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-          customerAddress: {
-            name: 'Priya Sharma',
-            phone: '+91 87654 32109',
-            address: 'House No. 42, Gandhi Nagar Colony, Behind SBI Bank, Shirpur, Dhule, Maharashtra 425405',
-            coordinates: { lat: 21.3150, lng: 75.1200 }
-          },
-          items: [
-            { product: { id: '3', name: 'Organic Milk', price: 60 }, quantity: 2 },
-            { product: { id: '4', name: 'Bread', price: 25 }, quantity: 1 }
-          ],
-          total: 145,
-          paymentStatus: 'paid'
-        }
-      ];
-      
-      // Add mock orders for development testing
-      mockOrders.forEach(mockOrder => {
-        storedOrders.unshift(mockOrder);
-      });
-    }
+    // Real-time application - no mock orders
     
     // Save updated orders with mock data
     localStorage.setItem('allOrders', JSON.stringify(storedOrders));

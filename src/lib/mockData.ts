@@ -70,8 +70,7 @@ export const getDynamicCategories = async () => {
   }
 };
 
-export const mockOrders = [];
-export const mockDeliveryTasks = [];
+// No mock data - all data from Supabase database only
 
 // Database-based cart functions
 export const getCartFromStorage = async () => {

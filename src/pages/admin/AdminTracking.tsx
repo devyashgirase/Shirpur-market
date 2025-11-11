@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { MapPin, Truck, User, Clock, Navigation } from "lucide-react";
-import { mockDeliveryTasks } from "@/lib/mockData";
+// No mock data - real-time application only
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -25,7 +25,7 @@ const AdminTracking = () => {
       phone: "+91 98765 43210",
       currentLocation: { lat: 21.3486, lng: 74.8811 },
       isActive: true,
-      activeTask: mockDeliveryTasks[0]
+      activeTask: null
     },
     {
       id: "delivery_2", 
@@ -33,7 +33,7 @@ const AdminTracking = () => {
       phone: "+91 87654 32109",
       currentLocation: { lat: 21.3500, lng: 74.8820 },
       isActive: true,
-      activeTask: mockDeliveryTasks[1]
+      activeTask: null
     },
     {
       id: "delivery_3",
@@ -193,7 +193,7 @@ const AdminTracking = () => {
                 ))}
 
                 {/* Customer Locations */}
-                {mockDeliveryTasks.map((task) => {
+                {[].map((task) => {
                   // Get customer address from localStorage if available
                   const storedAddress = localStorage.getItem('customerAddress');
                   let customerData = null;
