@@ -194,13 +194,13 @@ const CustomerOrders = () => {
               <div className="border rounded-lg p-4 bg-muted/30">
                 <h4 className="font-semibold mb-3">Order Items</h4>
                 <div className="space-y-2">
-                  {order.items.slice(0, 3).map((item: any, index: number) => (
+                  {Array.isArray(order.items) && order.items.slice(0, 3).map((item: any, index: number) => (
                     <div key={index} className="flex justify-between text-sm">
                       <span>{item.product_name || item.name}</span>
                       <span>x{item.quantity}</span>
                     </div>
                   ))}
-                  {order.items.length > 3 && (
+                  {Array.isArray(order.items) && order.items.length > 3 && (
                     <p className="text-xs text-muted-foreground">+{order.items.length - 3} more items</p>
                   )}
                 </div>

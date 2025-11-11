@@ -198,6 +198,27 @@ export const supabaseApi = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Delivery agents functions
+  async getDeliveryAgents() {
+    try {
+      return await api.get('delivery_agents', 'is_active=eq.true');
+    } catch (error) {
+      return [
+        { id: 1, name: 'Ravi Delivery', phone: '+919876540001', is_active: true },
+        { id: 2, name: 'Suresh Delivery', phone: '+919876540002', is_active: true }
+      ];
+    }
+  },
+
+  async createDeliveryAgent(agentData: any) {
+    try {
+      return await api.post('delivery_agents', agentData);
+    } catch (error) {
+      console.error('Failed to create delivery agent:', error);
+      return null;
+    }
   }
 };
 
