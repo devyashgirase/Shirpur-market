@@ -115,9 +115,16 @@ export const supabaseApi = {
   async getCart(userPhone: string) {
     try {
       const cart = localStorage.getItem(`cart_${userPhone}`);
-      return cart ? JSON.parse(cart) : [];
+      const cartData = cart ? JSON.parse(cart) : [];
+      
+      // Ensure cart has items array structure
+      if (Array.isArray(cartData)) {
+        return { items: cartData };
+      }
+      
+      return { items: cartData.items || [] };
     } catch (error) {
-      return [];
+      return { items: [] };
     }
   },
 
@@ -128,7 +135,8 @@ export const supabaseApi = {
       
       if (!product) throw new Error('Product not found');
       
-      const cart = await this.getCart(userPhone);
+      const cartData = await this.getCart(userPhone);
+      const cart = cartData.items || [];
       const existingItem = cart.find((item: any) => item.product.id.toString() === productId.toString());
       
       if (existingItem) {
@@ -148,7 +156,7 @@ export const supabaseApi = {
       }
       
       localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
-      return cart;
+      return { items: cart };
     } catch (error) {
       throw error;
     }
@@ -156,7 +164,8 @@ export const supabaseApi = {
 
   async updateCartQuantity(userPhone: string, productId: string, quantity: number) {
     try {
-      const cart = await this.getCart(userPhone);
+      const cartData = await this.getCart(userPhone);
+      const cart = cartData.items || [];
       const itemIndex = cart.findIndex((item: any) => item.product.id.toString() === productId.toString());
       
       if (itemIndex >= 0) {
@@ -164,7 +173,7 @@ export const supabaseApi = {
         localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
       }
       
-      return cart;
+      return { items: cart };
     } catch (error) {
       throw error;
     }
@@ -172,10 +181,11 @@ export const supabaseApi = {
 
   async removeFromCart(userPhone: string, productId: string) {
     try {
-      const cart = await this.getCart(userPhone);
+      const cartData = await this.getCart(userPhone);
+      const cart = cartData.items || [];
       const filteredCart = cart.filter((item: any) => item.product.id.toString() !== productId.toString());
       localStorage.setItem(`cart_${userPhone}`, JSON.stringify(filteredCart));
-      return filteredCart;
+      return { items: filteredCart };
     } catch (error) {
       throw error;
     }
@@ -184,7 +194,7 @@ export const supabaseApi = {
   async clearCart(userPhone: string) {
     try {
       localStorage.removeItem(`cart_${userPhone}`);
-      return [];
+      return { items: [] };
     } catch (error) {
       throw error;
     }
