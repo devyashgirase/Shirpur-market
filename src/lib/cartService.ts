@@ -29,7 +29,11 @@ class CartService {
 
     try {
       const cartData = await supabaseApi.getCart(userPhone);
-      return cartData || [];
+      // Handle both array and {items: []} structure
+      if (Array.isArray(cartData)) {
+        return cartData;
+      }
+      return cartData?.items || [];
     } catch (error) {
       console.warn('Cart not available, please set up cart_items table:', error);
       return [];
