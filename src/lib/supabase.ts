@@ -66,25 +66,19 @@ export const supabaseApi = {
       console.log('✅ Order saved to Supabase:', result);
       return result[0] || result;
     } catch (error) {
-      console.error('❌ Supabase save failed:', error);
-      // Fallback to localStorage
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-      const newOrder = { 
-        id: Date.now(), 
-        ...orderData, 
-        created_at: new Date().toISOString() 
-      };
-      orders.push(newOrder);
-      localStorage.setItem('orders', JSON.stringify(orders));
-      return newOrder;
+      console.error('❌ Supabase order creation failed:', error);
+      throw new Error('Order creation failed. Please check Supabase connection.');
     }
   },
 
   async getOrders() {
     try {
-      return await api.get('orders', 'order=created_at.desc');
+      const orders = await api.get('orders', 'order=created_at.desc');
+      console.log('✅ Orders loaded from Supabase:', orders.length);
+      return orders;
     } catch (error) {
-      return JSON.parse(localStorage.getItem('orders') || '[]');
+      console.error('❌ Failed to load orders from Supabase:', error);
+      throw new Error('Orders not available. Please check Supabase connection.');
     }
   },
 
@@ -102,12 +96,12 @@ export const supabaseApi = {
 
   async getProducts() {
     try {
-      return await api.get('products', 'is_active=eq.true');
+      const products = await api.get('products', 'is_available=eq.true');
+      console.log('✅ Products loaded from Supabase:', products.length);
+      return products;
     } catch (error) {
-      return [
-        { id: 1, name: 'Fresh Tomatoes', price: 40, category: 'Vegetables' },
-        { id: 2, name: 'Basmati Rice', price: 120, category: 'Grains' }
-      ];
+      console.error('❌ Failed to load products from Supabase:', error);
+      throw new Error('Products not available. Please check Supabase connection.');
     }
   },
 
@@ -203,12 +197,12 @@ export const supabaseApi = {
   // Delivery agents functions
   async getDeliveryAgents() {
     try {
-      return await api.get('delivery_agents', 'is_active=eq.true');
+      const agents = await api.get('delivery_agents', 'is_active=eq.true');
+      console.log('✅ Delivery agents loaded from Supabase:', agents.length);
+      return agents;
     } catch (error) {
-      return [
-        { id: 1, name: 'Ravi Delivery', phone: '+919876540001', is_active: true },
-        { id: 2, name: 'Suresh Delivery', phone: '+919876540002', is_active: true }
-      ];
+      console.error('❌ Failed to load delivery agents from Supabase:', error);
+      throw new Error('Delivery agents not available. Please check Supabase connection.');
     }
   },
 

@@ -99,15 +99,8 @@ class ApiService {
       console.log(`API Response for ${endpoint}:`, data);
       return data;
     } catch (error) {
-      const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
-      
-      if (isDevelopment) {
-        console.warn(`API Request failed for ${endpoint}, using mock data:`, error);
-        return this.getMockData<T>(endpoint);
-      } else {
-        console.error(`Production API Request failed for ${endpoint}:`, error);
-        throw error; // Don't use mock data in production
-      }
+      console.error(`API Request failed for ${endpoint}:`, error);
+      throw error; // No mock data - real-time application only
     }
   }
 
