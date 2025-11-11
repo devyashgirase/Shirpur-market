@@ -96,7 +96,7 @@ export const supabaseApi = {
 
   async getProducts() {
     try {
-      const products = await api.get('products', 'is_available=eq.true');
+      const products = await api.get('products');
       console.log('✅ Products loaded from Supabase:', products.length);
       return products;
     } catch (error) {
