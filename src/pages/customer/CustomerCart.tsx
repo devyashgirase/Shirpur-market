@@ -24,6 +24,18 @@ const CustomerCart = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
+  
+  // Safe cart setter function
+  const setSafeCart = (cartData: any) => {
+    if (Array.isArray(cartData)) {
+      setCart(cartData);
+    } else if (cartData && Array.isArray(cartData.items)) {
+      setCart(cartData.items);
+    } else {
+      setCart([]);
+    }
+  };
+  
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -33,7 +45,7 @@ const CustomerCart = () => {
     const loadCart = async () => {
       try {
         const cartItems = await cartService.getCartItems();
-        setCart(cartItems);
+        setSafeCart(cartItems);
       } catch (error) {
         console.error('Failed to load cart:', error);
         setCart([]);
@@ -58,7 +70,7 @@ const CustomerCart = () => {
       const success = await cartService.updateCartQuantity(productId, newQuantity);
       if (success) {
         const updatedCart = await cartService.getCartItems();
-        setCart(updatedCart);
+        setSafeCart(updatedCart);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
       }
     } catch (error) {
@@ -71,7 +83,7 @@ const CustomerCart = () => {
       const success = await cartService.removeFromCart(productId);
       if (success) {
         const updatedCart = await cartService.getCartItems();
-        setCart(updatedCart);
+        setSafeCart(updatedCart);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         toast({
           title: "Item removed",
@@ -243,7 +255,7 @@ const CustomerCart = () => {
           <h1 className="text-xl md:text-3xl font-bold mb-4 md:mb-6">Shopping Cart</h1>
           
           <div className="space-y-2 md:space-y-4">
-            {cart.map((item) => (
+            {Array.isArray(cart) && cart.map((item) => (
               <Card key={item.product.id}>
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center space-x-4">
@@ -314,7 +326,7 @@ const CustomerCart = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm md:text-base">
-                  <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
+                  <span>Subtotal ({Array.isArray(cart) ? cart.reduce((sum, item) => sum + item.quantity, 0) : 0} items)</span>
                   <span>₹{getCartTotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm md:text-base">
