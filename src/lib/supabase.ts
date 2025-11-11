@@ -197,9 +197,9 @@ export const supabaseApi = {
   // Delivery agents functions
   async getDeliveryAgents() {
     try {
-      const agents = await api.get('delivery_agents', 'is_active=eq.true');
+      const agents = await api.get('delivery_agents');
       console.log('✅ Delivery agents loaded from Supabase:', agents.length);
-      return agents;
+      return agents.filter(agent => agent.is_active !== false);
     } catch (error) {
       console.error('❌ Failed to load delivery agents from Supabase:', error);
       throw new Error('Delivery agents not available. Please check Supabase connection.');

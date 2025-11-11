@@ -27,9 +27,7 @@ class DirectSupabaseRest {
         category: product.category,
         stock_quantity: Number(product.stockQuantity || product.stock_quantity || 0),
         image_url: product.imageUrl || product.image_url || '/placeholder.svg',
-        is_active: product.isActive !== undefined ? product.isActive : true,
-        sku: product.sku || `SKU${Date.now()}`,
-        unit: product.unit || 'kg'
+        is_available: product.isActive !== undefined ? product.isActive : true
       };
 
       const response = await fetch(`${this.baseUrl}/products`, {

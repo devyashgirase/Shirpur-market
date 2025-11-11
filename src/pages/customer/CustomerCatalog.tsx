@@ -50,7 +50,7 @@ const CustomerCatalog = () => {
             image_url: p.image_url || p.imageUrl || '/placeholder.svg',
             category_id: String(category).toLowerCase().replace(/\s+/g, '-'),
             stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
-            is_active: p.is_active !== undefined ? p.is_active : p.isActive,
+            is_active: p.is_available !== undefined ? p.is_available : (p.is_active !== undefined ? p.is_active : p.isActive),
             sku: `SKU${p.id || Date.now()}`,
             unit: 'kg',
             is_age_restricted: false
@@ -106,7 +106,7 @@ const CustomerCatalog = () => {
           image_url: p.image_url || p.imageUrl || '/placeholder.svg',
           category_id: String(category).toLowerCase().replace(/\s+/g, '-'),
           stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
-          is_active: p.is_active !== undefined ? p.is_active : p.isActive,
+          is_active: p.is_available !== undefined ? p.is_available : (p.is_active !== undefined ? p.is_active : p.isActive),
           sku: `SKU${p.id || Date.now()}`,
           unit: 'kg',
           is_age_restricted: false

@@ -36,19 +36,20 @@ export class CustomerDataService {
       
       const filteredProducts = products
         .filter(product => {
-          const isActive = product.isActive !== undefined ? product.isActive : product.is_active;
-          console.log(`Product ${product.name}: isActive=${isActive}`);
-          return isActive === true || isActive === 1 || isActive === '1';
+          const isAvailable = product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true);
+          console.log(`Product ${product.name}: is_available=${isAvailable}`);
+          return isAvailable === true || isAvailable === 1 || isAvailable === '1';
         })
         .map(product => ({
           id: product.id,
           name: product.name,
           description: product.description,
           price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
-          imageUrl: product.imageUrl || product.image,
+          imageUrl: product.imageUrl || product.image_url,
           category: product.category,
           stockQuantity: product.stockQuantity || product.stock_quantity || 0,
-          isActive: product.isActive !== undefined ? product.isActive : product.is_active
+          isActive: product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true),
+          is_available: product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true)
         }));
       
       // Save to cache

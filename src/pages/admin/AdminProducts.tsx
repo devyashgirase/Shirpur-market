@@ -121,7 +121,8 @@ const AdminProducts = () => {
         stockQuantity: parseInt(newProduct.stockQuantity) || 0,
         imageUrl: newProduct.imageUrl || '/placeholder.svg',
         image_url: newProduct.imageUrl || '/placeholder.svg',
-        isActive: true
+        isActive: true,
+        is_available: true
       };
 
       console.log('💾 Adding product to database:', productData.name);
