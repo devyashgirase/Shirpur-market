@@ -27,49 +27,57 @@ export class CustomerDataService {
     });
   }
 
-  // Get available products with dynamic updates
+  // Get available products ONLY from Supabase
   static async getAvailableProducts(): Promise<ApiProduct[]> {
     try {
-      console.log('CustomerDataService: Fetching products directly from Supabase...');
+      console.log('CustomerDataService: Fetching products ONLY from Supabase...');
+      
+      // Clear any cached products to ensure fresh data
+      localStorage.removeItem('availableProducts');
+      localStorage.removeItem('products');
+      
       const products = await supabaseApi.getProducts();
-      console.log('CustomerDataService: Raw products from Supabase:', products);
-      console.log('CustomerDataService: Number of products:', products.length);
+      console.log('CustomerDataService: Raw Supabase products:', products);
       
-      // Filter out any invalid products (like CART_ products)
-      const validProducts = products.filter(product => {
-        const hasValidName = product.name && !product.name.startsWith('CART_');
-        const hasValidId = product.id && typeof product.id === 'number';
-        return hasValidName && hasValidId;
-      });
-      
-      console.log('CustomerDataService: Valid products after filtering:', validProducts.length);
-      
-      const filteredProducts = validProducts
+      // Only process products that come from Supabase (have proper structure)
+      const supabaseProducts = products
         .filter(product => {
-          const isAvailable = product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true);
+          // Filter out invalid products
+          const isValid = product && 
+                         product.id && 
+                         product.name && 
+                         !product.name.startsWith('CART_') &&
+                         product.category &&
+                         product.price;
+          
+          if (!isValid) {
+            console.log('Filtering out invalid product:', product);
+          }
+          return isValid;
+        })
+        .filter(product => {
+          // Only show available products
+          const isAvailable = product.is_available === true;
           console.log(`Product ${product.name}: is_available=${isAvailable}`);
-          return isAvailable === true || isAvailable === 1 || isAvailable === '1';
+          return isAvailable;
         })
         .map(product => ({
           id: product.id,
           name: product.name,
-          description: product.description,
+          description: product.description || '',
           price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
-          imageUrl: product.imageUrl || product.image_url,
+          imageUrl: product.image_url || '/placeholder.svg',
           category: product.category,
-          stockQuantity: product.stockQuantity || product.stock_quantity || 0,
-          isActive: product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true),
-          is_available: product.is_available !== undefined ? product.is_available : (product.isActive !== undefined ? product.isActive : true)
+          stockQuantity: product.stock_quantity || 0,
+          isActive: product.is_available,
+          is_available: product.is_available
         }));
       
-      // Save to cache
-      DynamicDataManager.saveData('availableProducts', filteredProducts);
-      console.log('CustomerDataService: Filtered products for customer:', filteredProducts);
-      console.log('CustomerDataService: Returning', filteredProducts.length, 'products');
-      return filteredProducts;
+      console.log('CustomerDataService: Final Supabase products:', supabaseProducts.length);
+      return supabaseProducts;
     } catch (error) {
-      console.error('Failed to fetch products from API, using cached data:', error);
-      return DynamicDataManager.getData('availableProducts') || [];
+      console.error('Failed to fetch products from Supabase:', error);
+      return [];
     }
   }
 
