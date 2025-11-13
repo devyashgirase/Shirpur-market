@@ -57,10 +57,9 @@ export class CustomerDataService {
           return isValid;
         })
         .filter(product => {
-          // Only show available products
-          const isAvailable = product.is_available === true;
-          console.log(`Product ${product.name}: is_available=${isAvailable}`);
-          return isAvailable;
+          // Show all products regardless of is_available status
+          console.log(`Product ${product.name}: is_available=${product.is_available}`);
+          return true; // Show all valid products
         })
         .map(product => ({
           id: product.id,
