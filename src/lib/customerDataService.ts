@@ -39,7 +39,7 @@ export class CustomerDataService {
       const products = await supabaseApi.getProducts();
       console.log('CustomerDataService: Raw Supabase products:', products);
       
-      // Only process products that come from Supabase (have proper structure)
+      // Only process valid Supabase products (filter out CART_ and test products)
       const supabaseProducts = products
         .filter(product => {
           // Filter out invalid products
@@ -47,6 +47,7 @@ export class CustomerDataService {
                          product.id && 
                          product.name && 
                          !product.name.startsWith('CART_') &&
+                         !['coco-cola', 'pizza', 'pizza2', 'sdfsdf', 'Yash Spacial Biryani', 'dffgdfg'].includes(product.name) &&
                          product.category &&
                          product.price;
           
