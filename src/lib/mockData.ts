@@ -1,5 +1,5 @@
 // Database-only data service - No hardcoded data
-import { apiService } from './apiService';
+// Direct Supabase integration - no mock data
 import { cartService } from './cartService';
 import { personalizationService } from './personalizationService';
 
@@ -19,25 +19,27 @@ export interface Product {
 
 export const getProductsFromStorage = async (): Promise<Product[]> => {
   try {
-    const products = await apiService.getProducts();
-    return products.map(p => {
-      if (!p) return null;
-      return {
-        id: String(p.id || Date.now()),
-        name: String(p.name || 'Unknown Product'),
+    const { supabaseApi } = await import('./supabase');
+    const products = await supabaseApi.getProducts();
+    console.log('🔍 getProductsFromStorage: Raw Supabase products:', products);
+    
+    return products
+      .filter(p => p && p.id && p.name && p.is_available === true)
+      .map(p => ({
+        id: String(p.id),
+        name: String(p.name),
         description: String(p.description || ''),
         price: Number(p.price || 0),
-        image_url: p.imageUrl || '/placeholder.svg',
+        image_url: p.image_url || '/placeholder.svg',
         category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
-        stock_qty: Number(p.stockQuantity || 0),
-        is_active: Boolean(p.isActive !== false),
-        sku: `SKU${p.id || Date.now()}`,
+        stock_qty: Number(p.stock_quantity || 0),
+        is_active: Boolean(p.is_available),
+        sku: `SKU${p.id}`,
         unit: 'kg',
         is_age_restricted: false
-      };
-    }).filter(Boolean);
+      }));
   } catch (error) {
-    console.error('Failed to fetch products from API:', error);
+    console.error('Failed to fetch products from Supabase:', error);
     return [];
   }
 };

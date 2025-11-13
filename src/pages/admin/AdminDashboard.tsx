@@ -53,8 +53,9 @@ const AdminDashboard = () => {
         const products = await AdminDataService.getAdminProducts();
         setAdminProducts(products);
         
-        // Load orders from Supabase
-        const dbOrders = await AdminOrderService.getAllOrders();
+        // Load orders directly from Supabase
+        const { supabaseApi } = await import('@/lib/supabase');
+        const dbOrders = await supabaseApi.getOrders();
         console.log('📊 Raw orders from Supabase:', dbOrders);
         
         const formattedOrders = dbOrders.map(order => ({

@@ -3,7 +3,7 @@ import { WhatsAppService } from './whatsappService';
 import { SMSService } from './smsService';
 import { FreeSmsService } from './freeSmsService';
 import { WhatsAppBusinessService } from './whatsappBusinessService';
-import { apiService } from './apiService';
+// Direct Supabase integration
 import { realTimeService } from './realTimeService';
 
 export interface OrderStatus {
@@ -77,21 +77,16 @@ export class OrderService {
     };
 
     try {
-      // Save to database via API for admin tracking
-      await apiService.createOrder({
-        orderId,
-        customerName: customerInfo.name,
-        customerPhone: customerInfo.phone,
-        deliveryAddress: customerInfo.address,
-        items: newOrder.items.map(item => ({
-          productId: parseInt(item.product.id),
-          productName: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity
-        })),
-        total,
-        status: 'confirmed',
-        paymentStatus: 'paid'
+      // Save to Supabase database
+      const { supabaseApi } = await import('./supabase');
+      await supabaseApi.createOrder({
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
+        customer_address: customerInfo.address,
+        items: newOrder.items,
+        total_amount: total,
+        order_status: 'confirmed',
+        payment_status: 'paid'
       });
       console.log(`✅ Order ${orderId} saved to database successfully`);
     } catch (error) {
@@ -163,33 +158,31 @@ export class OrderService {
     return storedOrders;
   }
 
-  // Get orders from API
+  // Get orders from Supabase
   static async getOrdersFromAPI(): Promise<Order[]> {
     try {
-      const apiOrders = await apiService.getOrders();
-      const orders = apiOrders.map(order => ({
-        orderId: order.orderId || order.id?.toString() || '',
-        status: order.status as keyof OrderStatus,
-        timestamp: new Date().toISOString(),
+      const { supabaseApi } = await import('./supabase');
+      const supabaseOrders = await supabaseApi.getOrders();
+      const orders = supabaseOrders.map(order => ({
+        orderId: order.order_id || order.id?.toString() || '',
+        status: order.order_status as keyof OrderStatus,
+        timestamp: order.created_at || new Date().toISOString(),
         customerAddress: {
-          name: order.customerName,
-          phone: order.customerPhone,
-          address: order.deliveryAddress,
-          coordinates: order.coordinates || { lat: 21.3099, lng: 75.1178 }
+          name: order.customer_name,
+          phone: order.customer_phone,
+          address: order.customer_address,
+          coordinates: { lat: 21.3099, lng: 75.1178 }
         },
-        items: order.items?.map(item => ({
-          product: { id: item.productId.toString(), name: item.productName, price: item.price },
-          quantity: item.quantity
-        })) || [],
-        total: order.total,
-        paymentStatus: order.paymentStatus
+        items: JSON.parse(order.items || '[]'),
+        total: order.total_amount,
+        paymentStatus: order.payment_status
       }));
       
       // Update local storage
       localStorage.setItem('allOrders', JSON.stringify(orders));
       return orders;
     } catch (error) {
-      console.error('Failed to fetch orders from API:', error);
+      console.error('Failed to fetch orders from Supabase:', error);
       return this.getAllOrders();
     }
   }
@@ -205,11 +198,11 @@ export class OrderService {
     const oldStatus = order.status;
     
     try {
-      // Update via API
-      const dbId = parseInt(orderId.replace(/\D/g, '')) || 1;
-      await apiService.updateOrderStatus(dbId, newStatus);
+      // Update via Supabase
+      const { supabaseApi } = await import('./supabase');
+      await supabaseApi.updateOrderStatus(orderId, newStatus);
     } catch (error) {
-      console.error('Failed to update order status via API:', error);
+      console.error('Failed to update order status via Supabase:', error);
     }
     
     // Update local storage
