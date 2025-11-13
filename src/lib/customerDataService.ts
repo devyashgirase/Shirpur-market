@@ -57,9 +57,10 @@ export class CustomerDataService {
           return isValid;
         })
         .filter(product => {
-          // Show all products regardless of is_available status
-          console.log(`Product ${product.name}: is_available=${product.is_available}`);
-          return true; // Show all valid products
+          // Only show admin-enabled products (is_available = true)
+          const isEnabled = product.is_available === true;
+          console.log(`Product ${product.name}: admin_enabled=${isEnabled}`);
+          return isEnabled;
         })
         .map(product => ({
           id: product.id,
