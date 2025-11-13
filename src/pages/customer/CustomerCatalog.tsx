@@ -10,8 +10,6 @@ import { cartService } from "@/lib/cartService";
 import { CustomerDataService } from "@/lib/customerDataService";
 import { useToast } from "@/hooks/use-toast";
 import { sweetAlert } from "@/components/ui/sweet-alert";
-import { realTimeDataService } from "@/lib/realTimeDataService";
-
 import DynamicPrice from "@/components/DynamicPrice";
 import CustomerLoyalty from "@/components/CustomerLoyalty";
 import PersonalizedWelcome from "@/components/PersonalizedWelcome";
@@ -19,7 +17,6 @@ import { RealTimeLocation } from "@/components/RealTimeLocation";
 
 import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
-import { personalizationService } from "@/lib/personalizationService";
 import PersonalizedRecommendations from "@/components/PersonalizedRecommendations";
 import PanCornerCarousel from "@/components/PanCornerCarousel";
 import "@/styles/carousel.css";

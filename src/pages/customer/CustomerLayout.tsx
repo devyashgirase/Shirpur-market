@@ -41,29 +41,6 @@ const CustomerLayout = () => {
     // Listen for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
     
-    // Simple search setup
-    const setupSimpleSearch = () => {
-      const searchInput = document.getElementById('simple-search') as HTMLInputElement;
-      
-      if (!searchInput) return;
-      
-      // Real-time search as user types
-      searchInput.addEventListener('input', (e) => {
-        const query = (e.target as HTMLInputElement).value;
-        
-        console.log('🔍 Searching for:', query);
-        
-        // Trigger search event immediately
-        const searchEvent = new CustomEvent('productSearch', { 
-          detail: { query: query.trim() } 
-        });
-        window.dispatchEvent(searchEvent);
-      });
-    };
-    
-    // Setup simple search after component mounts
-    setTimeout(setupSimpleSearch, 100);
-    
     return () => {
       window.removeEventListener('cartUpdated', updateCartCount);
     };

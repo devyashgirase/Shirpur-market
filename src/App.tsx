@@ -8,7 +8,6 @@ import "@/components/ui/animations.css";
 import "@/styles/razorpay-fix.css";
 
 import { useEffect } from "react";
-import { startNotificationDemo } from "@/lib/testNotifications";
 import { SupabaseVerification } from "@/lib/supabaseVerification";
 import DeliveryBackground from "@/components/DeliveryBackground";
 import OTPLogin from "./pages/OTPLogin";
@@ -51,9 +50,6 @@ import NotFound from "./pages/NotFound";
 
 const App = () => {
   useEffect(() => {
-    // Start notification demo for testing
-    startNotificationDemo();
-    
     // Verify Supabase setup in development
     if (import.meta.env.DEV) {
       setTimeout(() => {

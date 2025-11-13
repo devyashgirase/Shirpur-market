@@ -49,8 +49,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     const loadAdminData = async () => {
       try {
-        // Load products
-        const products = await AdminDataService.getAdminProducts();
+        // Load products directly from Supabase
+        const { supabaseApi } = await import('@/lib/supabase');
+        const products = await supabaseApi.getProducts();
         setAdminProducts(products);
         
         // Load orders directly from Supabase
@@ -102,30 +103,7 @@ const AdminDashboard = () => {
       }
     };
     
-    // Listen for new order events
-    const handleNewOrder = () => {
-      console.log('🔔 New order detected, refreshing admin dashboard...');
-      loadAdminData();
-    };
-    
-    window.addEventListener('orderCreated', handleNewOrder);
-    window.addEventListener('newOrderAlert', handleNewOrder);
-    window.addEventListener('orderStatusUpdated', handleNewOrder);
-    
     loadAdminData();
-    
-    // Real-time refresh every 10 seconds
-    const interval = setInterval(() => {
-      loadAdminData();
-      setLastUpdateTime(new Date().toLocaleTimeString());
-    }, 10000);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('orderCreated', handleNewOrder);
-      window.removeEventListener('newOrderAlert', handleNewOrder);
-      window.removeEventListener('orderStatusUpdated', handleNewOrder);
-    };
   }, []);
 
   if (loading) {

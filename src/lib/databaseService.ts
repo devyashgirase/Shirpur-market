@@ -6,30 +6,9 @@ export class DatabaseService {
     try {
       return await supabaseApi.getProducts();
     } catch (error) {
-      console.warn('Database connection failed, using fallback data:', error);
-      return this.getFallbackProducts();
+      console.error('Database connection failed:', error);
+      return [];
     }
-  }
-
-  static getFallbackProducts() {
-    return [
-      {
-        id: 1,
-        name: 'Demo Product 1',
-        price: 100,
-        category: 'Demo Category',
-        stockQuantity: 50,
-        isActive: true
-      },
-      {
-        id: 2,
-        name: 'Demo Product 2',
-        price: 75,
-        category: 'Demo Category',
-        stockQuantity: 5,
-        isActive: true
-      }
-    ];
   }
 
   static async addProduct(product: any) {
@@ -49,43 +28,9 @@ export class DatabaseService {
     try {
       return await supabaseApi.getOrders();
     } catch (error) {
-      console.warn('Database connection failed, using fallback data:', error);
-      return this.getFallbackOrders();
+      console.error('Database connection failed:', error);
+      return [];
     }
-  }
-
-  static getFallbackOrders() {
-    return [
-      {
-        id: 1,
-        orderId: 'ORD-001',
-        customerName: 'Demo Customer',
-        customerPhone: '+91 9876543210',
-        total: 250,
-        status: 'delivered',
-        paymentStatus: 'paid',
-        createdAt: new Date().toISOString(),
-        deliveryAddress: 'Demo Address, Shirpur',
-        items: [
-          { name: 'Demo Product 1', quantity: 2, price: 100 },
-          { name: 'Demo Product 2', quantity: 1, price: 50 }
-        ]
-      },
-      {
-        id: 2,
-        orderId: 'ORD-002',
-        customerName: 'Test User',
-        customerPhone: '+91 8765432109',
-        total: 180,
-        status: 'out_for_delivery',
-        paymentStatus: 'paid',
-        createdAt: new Date(Date.now() - 3600000).toISOString(),
-        deliveryAddress: 'Test Address, Shirpur',
-        items: [
-          { name: 'Test Product', quantity: 3, price: 60 }
-        ]
-      }
-    ];
   }
 
   static async createOrder(order: any) {
@@ -96,17 +41,7 @@ export class DatabaseService {
       return result;
     } catch (error) {
       console.error('❌ DatabaseService: Order creation failed:', error);
-      
-      // For now, don't throw error to prevent payment flow interruption
-      // Return a mock success response
-      const mockOrder = {
-        id: Date.now(),
-        ...order,
-        created_at: new Date().toISOString()
-      };
-      
-      console.log('⚠️ DatabaseService: Returning mock order due to error:', mockOrder);
-      return mockOrder;
+      throw error;
     }
   }
 

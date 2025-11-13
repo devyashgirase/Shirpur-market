@@ -1,4 +1,4 @@
-import { apiService } from './apiService';
+// Auth service using only localStorage - no external dependencies
 
 export interface User {
   id: number;

@@ -14,47 +14,53 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       setIsLoading(true);
       
-      // Check for delivery agent authentication
-      if (allowedRoles.includes('delivery')) {
-        const isDeliveryAuthenticated = await deliveryAuthService.isAuthenticated();
+      try {
+        // Check for delivery agent authentication
+        if (allowedRoles.includes('delivery')) {
+          const isDeliveryAuthenticated = deliveryAuthService.isAuthenticated();
+          
+          if (isDeliveryAuthenticated) {
+            setIsAuthorized(true);
+            setIsLoading(false);
+            return;
+          }
+        }
         
-        if (isDeliveryAuthenticated) {
-          setIsAuthorized(true);
+        // Check for regular OTP authentication
+        const session = authService.getCurrentSession();
+        
+        if (!session || !authService.isLoggedIn()) {
+          navigate('/', { replace: true });
           setIsLoading(false);
           return;
         }
-      }
-      
-      // Check for regular OTP authentication
-      const session = authService.getCurrentSession();
-      
-      if (!session || !authService.isLoggedIn()) {
-        navigate('/', { replace: true });
-        setIsLoading(false);
-        return;
-      }
 
-      if (!allowedRoles.includes(session.role)) {
-        navigate('/', { replace: true });
-        setIsLoading(false);
-        return;
-      }
+        if (!allowedRoles.includes(session.role)) {
+          navigate('/', { replace: true });
+          setIsLoading(false);
+          return;
+        }
 
-      if (!session.isFirstLoginComplete) {
+        if (!session.isFirstLoginComplete) {
+          navigate('/', { replace: true });
+          setIsLoading(false);
+          return;
+        }
+        
+        setIsAuthorized(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
         navigate('/', { replace: true });
         setIsLoading(false);
-        return;
       }
-      
-      setIsAuthorized(true);
-      setIsLoading(false);
     };
     
     checkAuth();
-  }, [navigate, allowedRoles]);
+  }, []);
 
   if (isLoading) {
     return (
