@@ -213,6 +213,15 @@ export const supabaseApi = {
       console.error('Failed to create delivery agent:', error);
       return null;
     }
+  },
+
+  async createCustomer(customerData: any) {
+    try {
+      return await api.post('customers', customerData);
+    } catch (error) {
+      console.error('Failed to create customer:', error);
+      return null;
+    }
   }
 };
 
