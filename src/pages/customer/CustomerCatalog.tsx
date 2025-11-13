@@ -92,54 +92,11 @@ const CustomerCatalog = () => {
       }
     };
     
-    realTimeDataService.startRealTimeUpdates();
-    
-    const handleProductUpdate = (updatedProducts: any[]) => {
-      const formattedProducts = (updatedProducts || []).map(p => {
-        if (!p) return null;
-        const category = p.category || p.category_id || 'general';
-        return {
-          id: String(p.id || Date.now()),
-          name: String(p.name || 'Unknown Product'),
-          description: String(p.description || ''),
-          price: parseFloat(p.price || 0),
-          image_url: p.image_url || p.imageUrl || '/placeholder.svg',
-          category_id: String(category).toLowerCase().replace(/\s+/g, '-'),
-          stock_qty: parseInt(p.stock_quantity || p.stockQuantity || 0),
-          is_active: p.is_available !== undefined ? p.is_available : (p.is_active !== undefined ? p.is_active : p.isActive),
-          sku: `SKU${p.id || Date.now()}`,
-          unit: 'kg',
-          is_age_restricted: false
-        };
-      }).filter(Boolean);
-      setProducts(formattedProducts.filter(p => p.is_active));
-    };
-    
-    realTimeDataService.subscribe('products', handleProductUpdate);
-    
-    // Listen for admin product updates
-    const handleAdminProductUpdate = (event: CustomEvent) => {
-      console.log('Products updated from admin:', event.detail);
-      handleProductUpdate(event.detail);
-    };
-    
-    // Listen for search events from layout
-    const handleSearchEvent = (event: CustomEvent) => {
-      const query = event.detail?.query || '';
-      console.log('🔍 Search event received:', query);
-      setSearchQuery(query);
-    };
-    
-    window.addEventListener('productsUpdated', handleAdminProductUpdate as EventListener);
-    window.addEventListener('productSearch', handleSearchEvent as EventListener);
-    window.addEventListener('voiceSearch', handleSearchEvent as EventListener);
+    // REMOVED: All real-time services and event listeners that provide extra data
     loadCustomerProducts();
     
     return () => {
-      realTimeDataService.unsubscribe('products', handleProductUpdate);
-      window.removeEventListener('productsUpdated', handleAdminProductUpdate as EventListener);
-      window.removeEventListener('productSearch', handleSearchEvent as EventListener);
-      window.removeEventListener('voiceSearch', handleSearchEvent as EventListener);
+      // REMOVED: All cleanup for real-time services
     };
   }, []);
 
@@ -202,41 +159,9 @@ const CustomerCatalog = () => {
   // State for carousel items
   const [carouselItems, setCarouselItems] = useState<any[]>([]);
   
-  // Load carousel items from localStorage
+  // NO carousel items from localStorage
   const loadCarouselItems = async () => {
-    try {
-      const saved = localStorage.getItem('carouselItems');
-      if (saved) {
-        const allItems = JSON.parse(saved);
-        
-        // Filter only active items
-        const activeItems = allItems
-          .filter((item: any) => item.isActive === true)
-          .sort((a: any, b: any) => a.order - b.order);
-        
-        const formattedItems = activeItems.map((item: any) => ({
-          id: item.productId.toString(),
-          name: item.title,
-          description: item.description,
-          price: item.price,
-          image_url: item.imageUrl,
-          category_id: 'featured',
-          stock_qty: 100,
-          is_active: true,
-          sku: `SKU${item.productId}`,
-          unit: 'kg',
-          is_age_restricted: false
-        }));
-        
-        setCarouselItems(formattedItems);
-        console.log('✅ Customer carousel loaded - Active items only:', formattedItems.length);
-      } else {
-        setCarouselItems([]);
-      }
-    } catch (error) {
-      console.error('Error loading carousel items:', error);
-      setCarouselItems([]);
-    }
+    setCarouselItems([]); // Always empty
   };
   
   // Listen for carousel updates from admin
@@ -259,10 +184,7 @@ const CustomerCatalog = () => {
   const [popularProducts, setPopularProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    if (products.length > 0) {
-      const personalized = personalizationService.getPersonalizedProducts(products, 8);
-      setPopularProducts(personalized);
-    }
+    setPopularProducts([]); // No personalized products
   }, [products]);
 
   if (loading) {
