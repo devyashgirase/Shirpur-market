@@ -39,24 +39,33 @@ export class CustomerDataService {
     }
   }
 
-  // Get products from Supabase or return empty
+  // FORCE: Get products ONLY from Supabase database
   static async getAvailableProducts(): Promise<ApiProduct[]> {
-    try {
-      const products = await supabaseApi.getProducts();
-      return products.map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.description || '',
-        price: Number(p.price || 0),
-        imageUrl: p.image_url || '/placeholder.svg',
-        category: p.category,
-        stockQuantity: Number(p.stock_quantity || 0),
-        isActive: Boolean(p.is_available)
-      }));
-    } catch (error) {
-      console.error('Supabase connection failed:', error);
-      return []; // Return empty array if Supabase fails
+    console.log('🔥 CustomerDataService: FORCE clearing all cache and getting Supabase data...');
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    const products = await supabaseApi.getProducts();
+    console.log('🔥 CustomerDataService: Raw Supabase products:', products);
+    
+    if (!products || products.length === 0) {
+      console.log('🔥 CustomerDataService: Supabase returned EMPTY - showing 0 products');
+      return [];
     }
+    
+    const mapped = products.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description || '',
+      price: Number(p.price || 0),
+      imageUrl: p.image_url || '/placeholder.svg',
+      category: p.category,
+      stockQuantity: Number(p.stock_quantity || 0),
+      isActive: Boolean(p.is_available)
+    }));
+    
+    console.log('🔥 CustomerDataService: Final mapped products:', mapped.length);
+    return mapped;
   }
 
   // Search products

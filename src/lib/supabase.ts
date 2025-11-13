@@ -4,13 +4,29 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
-// Simple REST API wrapper
+// FORCE CLEAR ALL CACHE ON EVERY REQUEST
+const clearAllCache = () => {
+  localStorage.clear();
+  sessionStorage.clear();
+  if ('caches' in window) {
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    });
+  }
+};
+
+// Direct Supabase REST API - NO CACHE
 const api = {
   async request(endpoint: string, options: RequestInit = {}) {
+    clearAllCache(); // Clear all cache before every request
+    
     if (!SUPABASE_URL || !SUPABASE_KEY) {
-      throw new Error('Supabase not configured');
+      console.error('❌ Supabase not configured');
+      return [];
     }
 
+    console.log(`🔥 DIRECT Supabase request: ${endpoint}`);
+    
     const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
       ...options,
       headers: {
@@ -18,16 +34,22 @@ const api = {
         'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         ...options.headers
       }
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`API Error: ${response.status} - ${error}`);
+      console.error(`❌ Supabase API Error: ${response.status} - ${error}`);
+      return [];
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`🔥 DIRECT Supabase response:`, data);
+    return data;
   },
 
   async post(table: string, data: any) {
@@ -72,14 +94,11 @@ export const supabaseApi = {
   },
 
   async getOrders() {
-    try {
-      const orders = await api.get('orders', 'order=created_at.desc');
-      console.log('✅ Orders loaded from Supabase:', orders.length);
-      return orders;
-    } catch (error) {
-      console.error('❌ Failed to load orders from Supabase:', error);
-      return []; // Return empty array instead of throwing
-    }
+    console.log('🔥 FORCE: Getting orders ONLY from Supabase database...');
+    const orders = await api.get('orders', 'order=created_at.desc');
+    console.log('🔥 DIRECT Supabase orders count:', orders.length);
+    console.log('🔥 DIRECT Supabase orders data:', orders);
+    return orders || [];
   },
 
   async updateOrderStatus(orderId: string, status: string, agentId?: string) {
@@ -95,14 +114,11 @@ export const supabaseApi = {
   },
 
   async getProducts() {
-    try {
-      const products = await api.get('products');
-      console.log('✅ Products loaded from Supabase:', products.length);
-      return products;
-    } catch (error) {
-      console.error('❌ Failed to load products from Supabase:', error);
-      return []; // Return empty array instead of throwing
-    }
+    console.log('🔥 FORCE: Getting products ONLY from Supabase database...');
+    const products = await api.get('products');
+    console.log('🔥 DIRECT Supabase products count:', products.length);
+    console.log('🔥 DIRECT Supabase products data:', products);
+    return products || [];
   },
 
   // Cart functions
