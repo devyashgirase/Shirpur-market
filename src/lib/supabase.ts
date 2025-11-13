@@ -67,7 +67,7 @@ export const supabaseApi = {
       return result[0] || result;
     } catch (error) {
       console.error('❌ Supabase order creation failed:', error);
-      throw new Error('Order creation failed. Please check Supabase connection.');
+      return null; // Return null instead of throwing
     }
   },
 
@@ -78,7 +78,7 @@ export const supabaseApi = {
       return orders;
     } catch (error) {
       console.error('❌ Failed to load orders from Supabase:', error);
-      throw new Error('Orders not available. Please check Supabase connection.');
+      return []; // Return empty array instead of throwing
     }
   },
 
@@ -101,7 +101,7 @@ export const supabaseApi = {
       return products;
     } catch (error) {
       console.error('❌ Failed to load products from Supabase:', error);
-      throw new Error('Products not available. Please check Supabase connection.');
+      return []; // Return empty array instead of throwing
     }
   },
 
@@ -202,7 +202,7 @@ export const supabaseApi = {
       return agents.filter(agent => agent.is_active !== false);
     } catch (error) {
       console.error('❌ Failed to load delivery agents from Supabase:', error);
-      throw new Error('Delivery agents not available. Please check Supabase connection.');
+      return []; // Return empty array instead of throwing
     }
   },
 

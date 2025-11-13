@@ -12,41 +12,51 @@ export interface ApiProduct {
 }
 
 export class CustomerDataService {
-  // Get customer orders from Supabase only
+  // Get customer orders from Supabase or return empty
   static async getCustomerOrders() {
-    const customerPhone = localStorage.getItem('customerPhone');
-    if (!customerPhone) return [];
-    
-    const allOrders = await supabaseApi.getOrders();
-    return allOrders
-      .filter(order => order.customer_phone === customerPhone)
-      .map(order => ({
-        id: order.id,
-        orderId: order.id,
-        status: order.order_status,
-        total: order.total_amount,
-        items: JSON.parse(order.items || '[]'),
-        createdAt: order.created_at,
-        deliveryAddress: order.customer_address,
-        customerName: order.customer_name,
-        customerPhone: order.customer_phone,
-        paymentStatus: order.payment_status
-      }));
+    try {
+      const customerPhone = localStorage.getItem('customerPhone');
+      if (!customerPhone) return [];
+      
+      const allOrders = await supabaseApi.getOrders();
+      return allOrders
+        .filter(order => order.customer_phone === customerPhone)
+        .map(order => ({
+          id: order.id,
+          orderId: order.id,
+          status: order.order_status,
+          total: order.total_amount,
+          items: JSON.parse(order.items || '[]'),
+          createdAt: order.created_at,
+          deliveryAddress: order.customer_address,
+          customerName: order.customer_name,
+          customerPhone: order.customer_phone,
+          paymentStatus: order.payment_status
+        }));
+    } catch (error) {
+      console.error('Supabase connection failed:', error);
+      return []; // Return empty array if Supabase fails
+    }
   }
 
-  // Get products ONLY from Supabase
+  // Get products from Supabase or return empty
   static async getAvailableProducts(): Promise<ApiProduct[]> {
-    const products = await supabaseApi.getProducts();
-    return products.map(p => ({
-      id: p.id,
-      name: p.name,
-      description: p.description || '',
-      price: Number(p.price || 0),
-      imageUrl: p.image_url || '/placeholder.svg',
-      category: p.category,
-      stockQuantity: Number(p.stock_quantity || 0),
-      isActive: Boolean(p.is_available)
-    }));
+    try {
+      const products = await supabaseApi.getProducts();
+      return products.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || '',
+        price: Number(p.price || 0),
+        imageUrl: p.image_url || '/placeholder.svg',
+        category: p.category,
+        stockQuantity: Number(p.stock_quantity || 0),
+        isActive: Boolean(p.is_available)
+      }));
+    } catch (error) {
+      console.error('Supabase connection failed:', error);
+      return []; // Return empty array if Supabase fails
+    }
   }
 
   // Search products
