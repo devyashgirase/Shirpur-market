@@ -49,13 +49,12 @@ const AdminDashboard = () => {
   useEffect(() => {
     const loadAdminData = async () => {
       try {
-        // Load products directly from Supabase
+        // Load data directly from Supabase
         const { supabaseApi } = await import('@/lib/supabase');
         const products = await supabaseApi.getProducts();
         setAdminProducts(products);
         
-        // Load orders directly from Supabase
-        const { supabaseApi } = await import('@/lib/supabase');
+        // Load orders from Supabase
         const dbOrders = await supabaseApi.getOrders();
         console.log('📊 Raw orders from Supabase:', dbOrders);
         
