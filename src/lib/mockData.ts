@@ -1,7 +1,5 @@
 // Database-only data service - No hardcoded data
-// Direct Supabase integration - no mock data
-import { cartService } from './cartService';
-import { personalizationService } from './personalizationService';
+// Direct Supabase only
 
 export interface Product {
   id: string;
@@ -17,31 +15,23 @@ export interface Product {
   is_age_restricted: boolean;
 }
 
+// Direct Supabase only
 export const getProductsFromStorage = async (): Promise<Product[]> => {
-  try {
-    const { supabaseApi } = await import('./supabase');
-    const products = await supabaseApi.getProducts();
-    console.log('🔍 getProductsFromStorage: Raw Supabase products:', products);
-    
-    return products
-      .filter(p => p && p.id && p.name && p.is_available === true)
-      .map(p => ({
-        id: String(p.id),
-        name: String(p.name),
-        description: String(p.description || ''),
-        price: Number(p.price || 0),
-        image_url: p.image_url || '/placeholder.svg',
-        category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
-        stock_qty: Number(p.stock_quantity || 0),
-        is_active: Boolean(p.is_available),
-        sku: `SKU${p.id}`,
-        unit: 'kg',
-        is_age_restricted: false
-      }));
-  } catch (error) {
-    console.error('Failed to fetch products from Supabase:', error);
-    return [];
-  }
+  const { supabaseApi } = await import('./supabase');
+  const products = await supabaseApi.getProducts();
+  return products.map(p => ({
+    id: String(p.id),
+    name: String(p.name),
+    description: String(p.description || ''),
+    price: Number(p.price || 0),
+    image_url: p.image_url || '/placeholder.svg',
+    category_id: String(p.category || 'general').toLowerCase().replace(/\s+/g, '-'),
+    stock_qty: Number(p.stock_quantity || 0),
+    is_active: Boolean(p.is_available),
+    sku: `SKU${p.id}`,
+    unit: 'kg',
+    is_age_restricted: false
+  }));
 };
 
 export const getDynamicCategories = async () => {
@@ -74,61 +64,17 @@ export const getDynamicCategories = async () => {
 
 // No mock data - all data from Supabase database only
 
-// Database-based cart functions
+// Cart functions using Supabase
 export const getCartFromStorage = async () => {
-  return await cartService.getCartItems();
-};
-
-export const getCartTotal = async () => {
-  return await cartService.getCartTotal();
+  const { supabaseApi } = await import('./supabase');
+  const userPhone = localStorage.getItem('customerPhone') || 'guest';
+  return await supabaseApi.getCart(userPhone);
 };
 
 export const addToCart = async (product: Product, quantity: number) => {
-  const success = await cartService.addToCart(product.id, quantity);
-  if (success) {
-    await personalizationService.trackAddToCart(product);
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-  }
-  return success;
-};
-
-export const updateCartQuantity = async (productId: string, newQuantity: number) => {
-  const success = await cartService.updateCartQuantity(productId, newQuantity);
-  if (success) {
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-  }
-  return success;
-};
-
-export const removeFromCart = async (productId: string) => {
-  const success = await cartService.removeFromCart(productId);
-  if (success) {
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-  }
-  return success;
-};
-
-export const clearCart = async () => {
-  const success = await cartService.clearCart();
-  if (success) {
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-  }
-  return success;
-};
-
-export const saveLastOrder = (orderData: any) => {
-  localStorage.setItem('lastOrder', JSON.stringify({
-    ...orderData,
-    timestamp: Date.now()
-  }));
-};
-
-export const getLastOrder = () => {
-  const lastOrder = localStorage.getItem('lastOrder');
-  return lastOrder ? JSON.parse(lastOrder) : null;
-};
-
-export const updateProductStock = (productId: string, quantityUsed: number): Product[] => {
-  // This should update stock in database via API
-  return [];
+  const { supabaseApi } = await import('./supabase');
+  const userPhone = localStorage.getItem('customerPhone') || 'guest';
+  await supabaseApi.addToCart(userPhone, product.id, quantity);
+  window.dispatchEvent(new CustomEvent('cartUpdated'));
+  return true;
 };
