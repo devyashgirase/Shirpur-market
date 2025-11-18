@@ -28,6 +28,8 @@ const api = {
 
     console.log(`🔥 DIRECT Supabase request: ${endpoint}`);
     
+    console.log('🔑 Using API Key:', SUPABASE_KEY.substring(0, 20) + '...');
+    
     const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
       ...options,
       headers: {
