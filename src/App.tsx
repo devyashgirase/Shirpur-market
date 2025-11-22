@@ -9,12 +9,14 @@ import "@/styles/razorpay-fix.css";
 
 import { useEffect } from "react";
 import { SupabaseVerification } from "@/lib/supabaseVerification";
+import { sessionManager } from "@/lib/sessionManager";
 import DeliveryBackground from "@/components/DeliveryBackground";
 import OTPLogin from "./pages/OTPLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
+import HomePage from "./pages/HomePage";
 import CustomerLayout from "./pages/customer/CustomerLayout";
-import CustomerCatalog from "./pages/customer/CustomerCatalog";
+import CustomerCatalog from "./pages/customer/CustomerCatalogSwiggy";
 import CustomerCart from "./pages/customer/CustomerCart";
 import CustomerOrders from "./pages/customer/CustomerOrders";
 import CustomerOrderDetails from "./pages/customer/CustomerOrderDetails";
@@ -50,12 +52,24 @@ import NotFound from "./pages/NotFound";
 
 const App = () => {
   useEffect(() => {
+    // Initialize session validation on app start
+    sessionManager.validateSession();
+    
+    // Auto-refresh token every 30 minutes
+    const refreshInterval = setInterval(() => {
+      if (sessionManager.isLoggedIn()) {
+        sessionManager.refreshToken();
+      }
+    }, 30 * 60 * 1000); // 30 minutes
+    
     // Verify Supabase setup in development
     if (import.meta.env.DEV) {
       setTimeout(() => {
         SupabaseVerification.verifyProductionReadiness();
       }, 3000);
     }
+    
+    return () => clearInterval(refreshInterval);
   }, []);
 
   return (
@@ -67,18 +81,14 @@ const App = () => {
           <Sonner />
         <BrowserRouter>
         <Routes>
-          <Route path="/" element={<OTPLogin />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<Index />} />
           <Route path="/login" element={<OTPLogin />} />
           <Route path="/delivery/login" element={<DeliveryLogin />} />
           <Route path="/tracking-demo" element={<TrackingDemo />} />
           
           {/* Customer Routes */}
-          <Route path="/customer" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerLayout />
-            </ProtectedRoute>
-          }>
+          <Route path="/customer" element={<CustomerLayout />}>
             <Route index element={<CustomerCatalog />} />
             <Route path="cart" element={<CustomerCart />} />
             <Route path="orders" element={<CustomerOrders />} />

@@ -7,16 +7,16 @@ import { useToast } from "@/hooks/use-toast";
 import { orderManagementService, Order } from "@/lib/orderManagementService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
 import { useNavigate } from "react-router-dom";
-// i18n disabled
+import { t } from "@/lib/i18n";
 
 const DeliveryOutForDelivery = () => {
   const [outForDeliveryOrders, setOutForDeliveryOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
   const [currentAgent, setCurrentAgent] = useState<any>(null);
+  const [, forceUpdate] = useState({});
   const { toast } = useToast();
   const navigate = useNavigate();
-  const t = (key: string) => key;
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -37,11 +37,18 @@ const DeliveryOutForDelivery = () => {
       loadOutForDeliveryOrders();
     };
     
+    // Language change listener
+    const handleLanguageChange = () => {
+      forceUpdate({});
+    };
+    
     window.addEventListener('orderOutForDelivery', handleOrderOutForDelivery);
+    window.addEventListener('languageChanged', handleLanguageChange);
     
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('orderOutForDelivery', handleOrderOutForDelivery);
+      window.removeEventListener('languageChanged', handleLanguageChange);
     };
   }, []);
   

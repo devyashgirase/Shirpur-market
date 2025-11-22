@@ -6,7 +6,7 @@ import { Bell, MapPin, Package, Clock, CheckCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { orderManagementService, Order } from "@/lib/orderManagementService";
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
-// i18n disabled
+import { t } from "@/lib/i18n";
 
 
 
@@ -14,8 +14,8 @@ const DeliveryNotifications = () => {
   const [newOrders, setNewOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
+  const [, forceUpdate] = useState({});
   const { toast } = useToast();
-  const t = (key: string) => key;
 
   useEffect(() => {
     loadNewOrders();
@@ -25,8 +25,16 @@ const DeliveryNotifications = () => {
       loadNewOrders();
     }, 5000); // Poll every 5 seconds
     
+    // Language change listener
+    const handleLanguageChange = () => {
+      forceUpdate({});
+    };
+    
+    window.addEventListener('languageChanged', handleLanguageChange);
+    
     return () => {
       clearInterval(pollInterval);
+      window.removeEventListener('languageChanged', handleLanguageChange);
     };
   }, []);
   

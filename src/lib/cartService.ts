@@ -7,7 +7,8 @@ export interface CartItem {
     id: string;
     name: string;
     price: number;
-    image_url: string;
+    image_url?: string;
+    imageUrl?: string;
     stock_qty: number;
   };
   quantity: number;
@@ -16,10 +17,45 @@ export interface CartItem {
 class CartService {
   private async getCurrentUserPhone(): Promise<string | null> {
     try {
+      // First try to get from current user session
       const user = authService.getCurrentUser();
-      return user?.phone || 'guest';
+      if (user?.phone) {
+        // Transfer guest cart to logged-in user
+        await this.transferGuestCartToUser(user.phone);
+        localStorage.setItem('customerPhone', user.phone);
+        return user.phone;
+      }
+      
+      // Fallback to customerPhone in localStorage
+      const customerPhone = localStorage.getItem('customerPhone');
+      if (customerPhone && customerPhone !== 'guest') {
+        return customerPhone;
+      }
+      
+      return 'guest';
     } catch (error) {
       return 'guest';
+    }
+  }
+
+  private async transferGuestCartToUser(userPhone: string): Promise<void> {
+    try {
+      // Get guest cart items
+      const guestCart = await supabaseApi.getCart('guest');
+      const guestItems = Array.isArray(guestCart) ? guestCart : guestCart?.items || [];
+      
+      if (guestItems.length > 0) {
+        // Transfer each item to user cart
+        for (const item of guestItems) {
+          await supabaseApi.addToCart(userPhone, item.product.id, item.quantity);
+        }
+        
+        // Clear guest cart
+        await supabaseApi.clearCart('guest');
+        console.log('✅ Guest cart transferred to user:', userPhone);
+      }
+    } catch (error) {
+      console.error('Failed to transfer guest cart:', error);
     }
   }
 

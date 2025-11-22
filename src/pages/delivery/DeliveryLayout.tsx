@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Truck, List, ArrowLeft, Menu, Navigation, MapPin, Bell, User, Package } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { t } from "@/lib/i18n";
 import { orderManagementService } from "@/lib/orderManagementService";
 
@@ -14,6 +15,7 @@ const DeliveryLayout = () => {
 
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
+  const [, forceUpdate] = useState({});
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -45,9 +47,19 @@ const DeliveryLayout = () => {
       }
     };
 
+    // Language change listener
+    const handleLanguageChange = () => {
+      forceUpdate({});
+    };
+
     loadCounts();
     const interval = setInterval(loadCounts, 5000);
-    return () => clearInterval(interval);
+    window.addEventListener('languageChanged', handleLanguageChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('languageChanged', handleLanguageChange);
+    };
   }, []);
 
   const handleBackNavigation = () => {
@@ -84,7 +96,10 @@ const DeliveryLayout = () => {
                 <h1 className="text-lg font-bold">{t('delivery.tasks')}</h1>
               </div>
             </div>
-            <RealTimeNotifications userType="delivery" />
+            <div className="flex items-center space-x-2">
+              <LanguageSwitcher />
+              <RealTimeNotifications userType="delivery" />
+            </div>
           </div>
         </div>
       </header>
@@ -107,6 +122,7 @@ const DeliveryLayout = () => {
             </div>
             
             <div className="flex items-center space-x-6">
+              <LanguageSwitcher />
               <RealTimeNotifications userType="delivery" />
               <nav className="flex items-center space-x-2">
                 {navItems.map((item) => (

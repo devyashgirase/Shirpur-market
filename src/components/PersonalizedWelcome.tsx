@@ -4,15 +4,15 @@ import { ShoppingBag, Shield, Truck, Star, Package, MapPin } from "lucide-react"
 import { authService } from "@/lib/authService";
 
 const PersonalizedWelcome = () => {
-  const session = authService.getCurrentSession();
+  const currentUser = authService.getCurrentUser();
   
-  if (!session) return null;
+  if (!currentUser) return null;
 
   const getWelcomeContent = () => {
-    switch (session.role) {
+    switch (currentUser.role) {
       case 'customer':
         return {
-          title: `Welcome back, ${session.name || 'Customer'}!`,
+          title: `Welcome back, ${currentUser.name || 'Customer'}!`,
           subtitle: "Discover fresh products and great deals",
           icon: <ShoppingBag className="w-8 h-8 text-blue-600" />,
           bgGradient: "from-blue-500 to-purple-600",
@@ -30,7 +30,7 @@ const PersonalizedWelcome = () => {
       
       case 'admin':
         return {
-          title: `Admin Dashboard - ${session.name || 'Administrator'}`,
+          title: `Admin Dashboard - ${currentUser.name || 'Administrator'}`,
           subtitle: "Manage your delivery system efficiently",
           icon: <Shield className="w-8 h-8 text-purple-600" />,
           bgGradient: "from-purple-500 to-pink-600",
@@ -48,7 +48,7 @@ const PersonalizedWelcome = () => {
       
       case 'delivery':
         return {
-          title: `Hello, ${session.name || 'Delivery Partner'}!`,
+          title: `Hello, ${currentUser.name || 'Delivery Partner'}!`,
           subtitle: "Ready to deliver happiness today?",
           icon: <Truck className="w-8 h-8 text-green-600" />,
           bgGradient: "from-green-500 to-teal-600",
@@ -87,14 +87,14 @@ const PersonalizedWelcome = () => {
             
             {/* Role Badge */}
             <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-              {session.role.charAt(0).toUpperCase() + session.role.slice(1)} Account
+              {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)} Account
             </Badge>
           </div>
           
           {/* Phone Display */}
           <div className="text-right">
             <p className="text-white/80 text-xs">Logged in as</p>
-            <p className="font-mono text-sm">+91 {session.phone}</p>
+            <p className="font-mono text-sm">+91 {currentUser.phone}</p>
           </div>
         </div>
       </div>

@@ -50,27 +50,27 @@ const DeliveryLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-green-600 relative flex items-center justify-center p-4">
-      
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/60"></div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-xl"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-yellow-300 rounded-full blur-lg"></div>
+        <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-red-300 rounded-full blur-2xl"></div>
+      </div>
 
-      {/* Login Card */}
-      <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm shadow-2xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <div className="text-center">
-              <Truck className="w-8 h-8 text-white mx-auto mb-1" />
-              <div className="text-xs font-bold text-white leading-none">SD</div>
-            </div>
+      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <Card className="w-full max-w-md bg-white shadow-2xl border-0">
+        <CardHeader className="text-center pb-6">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+            <Truck className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-800">Shirpur Delivery Agent</CardTitle>
-          <p className="text-gray-600">Enter your credentials to access delivery dashboard</p>
+          <CardTitle className="text-2xl font-bold text-gray-800">Delivery Partner Login</CardTitle>
+          <p className="text-gray-600">Enter your credentials to start delivering</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Agent ID</label>
+              <label className="text-sm font-medium text-gray-700">Agent ID</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -78,14 +78,14 @@ const DeliveryLogin = () => {
                   placeholder="Enter your agent ID"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500"
                   required
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium">Password</label>
+              <label className="text-sm font-medium text-gray-700">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -93,7 +93,7 @@ const DeliveryLogin = () => {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500"
                   required
                 />
               </div>
@@ -101,18 +101,18 @@ const DeliveryLogin = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold rounded-lg shadow-lg"
               disabled={loading}
             >
-              {loading ? 'Logging in...' : 'Login to Shirpur Delivery'}
+              {loading ? 'Logging in...' : 'Login to Dashboard'}
             </Button>
           </form>
           
           {/* Demo Credentials */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-xs font-semibold text-blue-800 mb-2">📝 Demo Credentials (for testing):</p>
-            <div className="text-xs text-blue-700 space-y-1">
-              <p><strong>User ID:</strong> DA123456</p>
+          <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <p className="text-sm font-semibold text-orange-800 mb-3">🚚 Demo Credentials:</p>
+            <div className="text-sm text-orange-700 space-y-1 mb-3">
+              <p><strong>Agent ID:</strong> DA123456</p>
               <p><strong>Password:</strong> delivery123</p>
             </div>
             <button 
@@ -121,7 +121,7 @@ const DeliveryLogin = () => {
                 setUserId('DA123456');
                 setPassword('delivery123');
               }}
-              className="mt-2 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+              className="w-full text-sm bg-orange-500 text-white px-3 py-2 rounded-lg hover:bg-orange-600 transition-colors"
             >
               Use Demo Credentials
             </button>
@@ -133,6 +133,7 @@ const DeliveryLogin = () => {
       {/* YASH Technologies Branding */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
         <YashBranding variant="compact" className="text-white/80" />
+      </div>
       </div>
     </div>
   );

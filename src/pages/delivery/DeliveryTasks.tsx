@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Navigation, Truck, Star, TrendingUp, Package, CheckCircle, Headphones } from "lucide-react";
+import { MapPin, DollarSign, Navigation, Truck, Star, TrendingUp, Package, CheckCircle } from "lucide-react";
 import { DeliveryDataService } from "@/lib/deliveryDataService";
 import { DeliveryOrderService, DeliveryOrder } from "@/lib/deliveryOrderService";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,6 @@ import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryC
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
 import { supabaseApi } from "@/lib/supabase";
 import { t } from "@/lib/i18n";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const DeliveryTasks = () => {
   const navigate = useNavigate();
@@ -23,6 +22,7 @@ const DeliveryTasks = () => {
   const [agentId, setAgentId] = useState<string | null>(null);
   const [currentLocationName, setCurrentLocationName] = useState('Getting location...');
   const [weeklyEarnings, setWeeklyEarnings] = useState(0);
+  const [, forceUpdate] = useState({});
   const [metrics, setMetrics] = useState({
     activeTasks: 0,
     availableOrders: 0,
@@ -63,7 +63,17 @@ const DeliveryTasks = () => {
       }
     };
     
+    // Language change listener
+    const handleLanguageChange = () => {
+      forceUpdate({});
+    };
+    
     loadDeliveryData();
+    window.addEventListener('languageChanged', handleLanguageChange);
+    
+    return () => {
+      window.removeEventListener('languageChanged', handleLanguageChange);
+    };
   }, [navigate, agentId]);
 
   const handleAcceptDelivery = async (orderId: string) => {
@@ -89,57 +99,7 @@ const DeliveryTasks = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-      <div className="bg-gradient-to-r from-blue-600 to-orange-600 text-white p-4 sm:p-6 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Truck className="h-8 w-8" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">{t('delivery.tasks')}</h1>
-              <p className="text-blue-100 mt-1">{t('delivery.manageDeliveries')}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <LanguageSwitcher />
-            <Button 
-              variant="outline" 
-              className="bg-green-500/20 text-white border-green-300/30 hover:bg-green-500/30"
-              onClick={() => {
-                alert('📚 Help: Contact admin for any delivery issues, payment problems, or technical support.');
-              }}
-            >
-              <Headphones className="w-4 h-4 mr-2" />
-              {t('delivery.support')}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-              onClick={async () => {
-                if (!agentId) return;
-                const orders = await DeliveryOrderService.getDeliveryOrders();
-                setDeliveryOrders(orders);
-                alert(`✅ Refreshed! Found ${orders.length} total orders`);
-              }}
-            >
-              🔄 {t('delivery.refresh')}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="bg-red-500/20 text-white border-red-300/30 hover:bg-red-500/30"
-              onClick={() => {
-                deliveryAuthService.logout();
-                navigate('/delivery/login');
-              }}
-            >
-              {t('delivery.logout')}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
         <PersonalizedWelcome />
         
         <Card className="mb-6">
@@ -206,7 +166,9 @@ const DeliveryTasks = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-orange-100 text-sm font-medium">{t('delivery.performance')}</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">⭐⭐⭐⭐⭐</p>
+                  <div className="flex items-center mt-1">
+                    {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />)}
+                  </div>
                 </div>
                 <TrendingUp className="h-8 w-8 text-orange-200" />
               </div>
@@ -217,7 +179,8 @@ const DeliveryTasks = () => {
         {/* Ready for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">📦 {t('delivery.readyForDelivery')}</h2>
+            <Package className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-bold text-gray-800">{t('delivery.readyForDelivery')}</h2>
             <Badge variant="secondary" className="bg-blue-100 text-blue-700">
               {deliveryOrders.filter(order => order.order_status === 'ready_for_delivery').length}
             </Badge>
@@ -239,7 +202,10 @@ const DeliveryTasks = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
-                        <Badge className="bg-blue-500 text-white mt-1">📦 {t('delivery.readyForDelivery')}</Badge>
+                        <Badge className="bg-blue-500 text-white mt-1">
+                          <Package className="w-3 h-3 mr-1" />
+                          {t('delivery.readyForDelivery')}
+                        </Badge>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-blue-600">₹{order.total_amount}</p>
@@ -286,7 +252,8 @@ const DeliveryTasks = () => {
         {/* Out for Delivery Orders Section */}
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-800">🚚 {t('delivery.ordersOutForDelivery')}</h2>
+            <Truck className="w-5 h-5 text-orange-600" />
+            <h2 className="text-xl font-bold text-gray-800">{t('delivery.ordersOutForDelivery')}</h2>
             <Badge variant="secondary" className="bg-orange-100 text-orange-700">
               {deliveryOrders.filter(order => order.order_status === 'out_for_delivery').length}
             </Badge>
@@ -357,7 +324,6 @@ const DeliveryTasks = () => {
           )}
         </div>
       </div>
-    </div>
   );
 };
 

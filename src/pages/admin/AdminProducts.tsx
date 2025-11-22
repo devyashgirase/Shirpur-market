@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Plus, Upload, X, Search } from "lucide-react";
+import { ProductCardSkeleton } from "@/components/LoadingSkeleton";
 import { AdminDataService } from "@/lib/adminDataService";
 import { apiService } from "@/lib/apiService";
 import { unifiedDB } from "@/lib/database";
@@ -232,12 +233,11 @@ const AdminProducts = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-4 md:py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-lg text-gray-600">Loading products from database...</p>
-          </div>
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );

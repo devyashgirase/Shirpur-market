@@ -226,4 +226,34 @@ export class DataGenerator {
     };
   }
 
+  // Initialize default delivery agents
+  static async initializeDefaultAgents() {
+    try {
+      const { supabaseApi } = await import('./supabase');
+      
+      const defaultAgents = [
+        {
+          name: 'Demo Agent',
+          phone: '9876543210',
+          email: 'demo@delivery.com',
+          is_active: true
+        },
+        {
+          name: 'Rahul Sharma',
+          phone: '9876543211',
+          email: 'rahul@delivery.com',
+          is_active: true
+        }
+      ];
+
+      for (const agent of defaultAgents) {
+        await supabaseApi.createDeliveryAgent(agent);
+      }
+      
+      console.log('✅ Default delivery agents initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize default agents:', error);
+    }
+  }
+
 }

@@ -3,78 +3,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Package, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
-import { customerOrderService, type CustomerOrder } from "@/lib/customerOrderService";
-import { authService } from "@/lib/authService";
+import { CustomerDataService } from "@/lib/customerDataService";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const CustomerOrders = () => {
-  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const initializeOrders = async () => {
-      const user = authService.getCurrentUser();
-      if (user?.phone) {
-        customerOrderService.setCurrentUser(user.phone);
-        await loadCustomerOrders();
-        
-        // Subscribe to real-time updates
-        const unsubscribe = customerOrderService.subscribeToOrderUpdates((updatedOrders) => {
-          setOrders(updatedOrders);
-        });
-        
-        return unsubscribe;
-      }
-    };
-    
-    // Listen for real-time status updates from admin
-    const handleStatusUpdate = (event: any) => {
-      const { orderId, newStatus } = event.detail;
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.order_id === orderId 
-            ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
-            : order
-        )
-      );
-      
-      // Show notification
-      toast({
-        title: "Order Status Updated!",
-        description: `Your order is now ${newStatus.replace('_', ' ')}`
-      });
-    };
-    
-    // Listen for tracking enablement
-    const handleTrackingEnabled = (event: any) => {
-      const { orderId } = event.detail;
-      toast({
-        title: "🚚 Out for Delivery!",
-        description: "Your order is on the way. Click 'Track Live' to see real-time location."
-      });
-    };
-    
-    window.addEventListener('orderStatusChanged', handleStatusUpdate);
-    window.addEventListener('enableTracking', handleTrackingEnabled);
-    
-    const cleanup = initializeOrders();
-    return () => {
-      cleanup.then(fn => fn && fn());
-      window.removeEventListener('orderStatusChanged', handleStatusUpdate);
-      window.removeEventListener('enableTracking', handleTrackingEnabled);
-    };
-  }, [toast]);
+    loadOrders();
+  }, []);
 
-  const loadCustomerOrders = async () => {
+  const loadOrders = async () => {
     try {
+      console.log('🔄 Loading orders...');
       setLoading(true);
-      const customerOrders = await customerOrderService.getMyOrders();
+      const customerOrders = await CustomerDataService.getCustomerOrders();
+      console.log('📦 Orders loaded:', customerOrders);
       setOrders(customerOrders);
     } catch (error) {
-      console.error('Failed to load orders:', error);
+      console.error('Error loading orders:', error);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -125,26 +76,25 @@ const CustomerOrders = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  const handleViewDetails = (order: CustomerOrder) => {
-    // Store order data for details page
+  const handleViewDetails = (order: any) => {
     localStorage.setItem('selectedOrderDetails', JSON.stringify({
-      id: order.order_id,
-      orderId: order.order_id,
-      status: order.order_status,
+      id: order.id,
+      orderId: order.orderId,
+      status: order.status,
       items: order.items,
-      total: order.total_amount,
-      customerName: order.customer_name,
-      customerPhone: order.customer_phone,
-      customerAddress: order.customer_address,
-      deliveryAddress: order.customer_address,
-      createdAt: order.created_at,
-      paymentStatus: order.payment_status
+      total: order.total,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      customerAddress: order.deliveryAddress,
+      deliveryAddress: order.deliveryAddress,
+      createdAt: order.createdAt,
+      paymentStatus: order.paymentStatus
     }));
-    navigate(`/customer/order-details/${order.order_id}`);
+    navigate(`/customer/order-details/${order.orderId}`);
   };
 
-  const handleTrackOrder = (order: CustomerOrder) => {
-    navigate(`/customer/track?orderId=${order.order_id}`);
+  const handleTrackOrder = (order: any) => {
+    navigate(`/customer/track?orderId=${order.orderId}`);
   };
 
   return (
@@ -156,22 +106,22 @@ const CustomerOrders = () => {
 
       <div className="space-y-4 md:space-y-6">
         {loading ? (
-          <div className="text-center py-8 md:py-12">
-            <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-base md:text-lg text-gray-600">Loading your orders from Supabase...</p>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading your orders...</p>
           </div>
         ) : orders.length > 0 ? orders.map((order) => (
           <Card key={order.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.order_id}</CardTitle>
-                <Badge variant={getStatusVariant(order.order_status)} className="flex items-center gap-1">
-                  {getStatusIcon(order.order_status)}
-                  {formatStatus(order.order_status)}
+                <CardTitle className="text-base md:text-lg truncate pr-2">Order #{order.orderId}</CardTitle>
+                <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
+                  {getStatusIcon(order.status)}
+                  {formatStatus(order.status)}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Placed on {formatDate(order.created_at)}
+                Placed on {formatDate(order.createdAt)}
               </p>
             </CardHeader>
             
@@ -180,13 +130,13 @@ const CustomerOrders = () => {
                 <div>
                   <p className="font-semibold">Delivery Address</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.customer_address}
+                    {order.deliveryAddress}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">₹{order.total_amount}</p>
+                  <p className="text-2xl font-bold text-primary">₹{order.total}</p>
                   <p className="text-sm text-muted-foreground">
-                    Payment: {order.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
+                    Payment: {order.paymentStatus === 'paid' ? '✓ Paid' : 'Pending'}
                   </p>
                 </div>
               </div>
@@ -210,12 +160,12 @@ const CustomerOrders = () => {
                 <Button variant="outline" size="sm" onClick={() => handleViewDetails(order)}>
                   View Details
                 </Button>
-                {order.order_status === 'out_for_delivery' && (
+                {order.status === 'out_for_delivery' && (
                   <Button variant="outline" size="sm" onClick={() => handleTrackOrder(order)} className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
                     🚚 Track Live
                   </Button>
                 )}
-                {order.order_status === 'delivered' && (
+                {order.status === 'delivered' && (
                   <Button variant="outline" size="sm">
                     Reorder
                   </Button>
@@ -230,7 +180,7 @@ const CustomerOrders = () => {
             <p className="text-muted-foreground mb-6">
               Start shopping to see your orders here
             </p>
-            <Button className="bg-gradient-primary">
+            <Button onClick={() => navigate('/customer')} className="bg-gradient-primary">
               Browse Products
             </Button>
           </div>

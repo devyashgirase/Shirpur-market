@@ -71,10 +71,33 @@ const translations = {
       earnings: "Earnings",
       incentiveBonus: "Incentive Bonus",
       totalEarnings: "Total Earnings",
-      customerDetails: "Customer Details"
+      customerDetails: "Customer Details",
+      newOrders: "New Orders",
+      reject: "Reject",
+      deliveryAddress: "Delivery Address",
+      addressNotAvailable: "Address not available",
+      liveGpsTracking: "Live GPS Tracking",
+      locationBeingTracked: "Your location is being tracked",
+      orderItemsNotAvailable: "Order items not available",
+      startDelivery: "Start Delivery",
+      alreadyAssigned: "Already Assigned"
     },
     common: {
       status: "Status"
+    },
+    nav: {
+      home: "Home",
+      track: "Track",
+      notifications: "Notifications",
+      orders: "Orders",
+      profile: "Profile"
+    },
+    profile: {
+      title: "Profile",
+      changeLanguage: "Change Language",
+      editProfile: "Edit Profile",
+      logout: "Logout",
+      language: "Language"
     }
   },
   hi: {
@@ -148,10 +171,33 @@ const translations = {
       earnings: "कमाई",
       incentiveBonus: "प्रोत्साहन बोनस",
       totalEarnings: "कुल कमाई",
-      customerDetails: "ग्राहक विवरण"
+      customerDetails: "ग्राहक विवरण",
+      newOrders: "नए ऑर्डर",
+      reject: "अस्वीकार करें",
+      deliveryAddress: "डिलीवरी पता",
+      addressNotAvailable: "पता उपलब्ध नहीं",
+      liveGpsTracking: "लाइव GPS ट्रैकिंग",
+      locationBeingTracked: "आपका स्थान ट्रैक किया जा रहा है",
+      orderItemsNotAvailable: "ऑर्डर आइटम उपलब्ध नहीं",
+      startDelivery: "डिलीवरी शुरू करें",
+      alreadyAssigned: "पहले से असाइन किया गया"
     },
     common: {
       status: "स्थिति"
+    },
+    nav: {
+      home: "होम",
+      track: "ट्रैक",
+      notifications: "सूचनाएं",
+      orders: "ऑर्डर",
+      profile: "प्रोफाइल"
+    },
+    profile: {
+      title: "प्रोफाइल",
+      changeLanguage: "भाषा बदलें",
+      editProfile: "प्रोफाइल संपादित करें",
+      logout: "लॉगआउट",
+      language: "भाषा"
     }
   },
   mr: {
@@ -225,10 +271,33 @@ const translations = {
       earnings: "कमाई",
       incentiveBonus: "प्रोत्साहन बोनस",
       totalEarnings: "एकूण कमाई",
-      customerDetails: "ग्राहक तपशील"
+      customerDetails: "ग्राहक तपशील",
+      newOrders: "नवीन ऑर्डर",
+      reject: "नकार द्या",
+      deliveryAddress: "डिलिव्हरी पत्ता",
+      addressNotAvailable: "पत्ता उपलब्ध नाही",
+      liveGpsTracking: "लाइव्ह GPS ट्रॅकिंग",
+      locationBeingTracked: "तुमचे स्थान ट्रॅक केले जात आहे",
+      orderItemsNotAvailable: "ऑर्डर आयटम उपलब्ध नाहीत",
+      startDelivery: "डिलिव्हरी सुरू करा",
+      alreadyAssigned: "आधीच असाइन केलेले"
     },
     common: {
       status: "स्थिती"
+    },
+    nav: {
+      home: "होम",
+      track: "ट्रॅक",
+      notifications: "सूचना",
+      orders: "ऑर्डर",
+      profile: "प्रोफाइल"
+    },
+    profile: {
+      title: "प्रोफाइल",
+      changeLanguage: "भाषा बदला",
+      editProfile: "प्रोफाइल संपादित करा",
+      logout: "लॉगआउट",
+      language: "भाषा"
     }
   }
 };

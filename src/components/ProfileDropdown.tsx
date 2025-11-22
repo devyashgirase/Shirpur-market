@@ -10,10 +10,10 @@ import { authService } from "@/lib/authService";
 const ProfileDropdown = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const session = authService.getCurrentSession();
+  const currentUser = authService.getCurrentUser();
 
   const getUserInfo = () => {
-    if (!session) {
+    if (!currentUser) {
       return {
         name: 'Guest User',
         phone: '',
@@ -23,39 +23,39 @@ const ProfileDropdown = () => {
       };
     }
 
-    const initials = session.name 
-      ? session.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-      : session.phone.slice(-2);
+    const initials = currentUser.name 
+      ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+      : currentUser.phone.slice(-2);
 
-    switch (session.role) {
+    switch (currentUser.role) {
       case 'customer':
         return {
-          name: session.name || 'Customer',
-          phone: session.phone,
+          name: currentUser.name || 'Customer',
+          phone: currentUser.phone,
           role: 'Customer',
           icon: <ShoppingBag className="w-4 h-4" />,
           initials
         };
       case 'admin':
         return {
-          name: session.name || 'Admin',
-          phone: session.phone,
+          name: currentUser.name || 'Admin',
+          phone: currentUser.phone,
           role: 'Administrator',
           icon: <Shield className="w-4 h-4" />,
           initials
         };
       case 'delivery':
         return {
-          name: session.name || 'Delivery Partner',
-          phone: session.phone,
+          name: currentUser.name || 'Delivery Partner',
+          phone: currentUser.phone,
           role: 'Delivery Partner',
           icon: <Truck className="w-4 h-4" />,
           initials
         };
       default:
         return {
-          name: session.name || 'User',
-          phone: session.phone,
+          name: currentUser.name || 'User',
+          phone: currentUser.phone,
           role: 'User',
           icon: <User className="w-4 h-4" />,
           initials
@@ -64,7 +64,7 @@ const ProfileDropdown = () => {
   };
 
   const handleLogout = () => {
-    authService.clearSession();
+    authService.logout();
     
     toast({
       title: "Logged out successfully",

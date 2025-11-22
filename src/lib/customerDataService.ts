@@ -15,8 +15,12 @@ export class CustomerDataService {
   // Get customer orders from Supabase or return empty
   static async getCustomerOrders() {
     try {
-      const customerPhone = localStorage.getItem('customerPhone');
-      if (!customerPhone) return [];
+      // Get customer phone from current user session or localStorage
+      const { authService } = await import('./authService');
+      const currentUser = authService.getCurrentUser();
+      const customerPhone = currentUser?.phone || localStorage.getItem('customerPhone');
+      
+      if (!customerPhone || customerPhone === 'guest') return [];
       
       const allOrders = await supabaseApi.getOrders();
       return allOrders
@@ -24,14 +28,14 @@ export class CustomerDataService {
         .map(order => ({
           id: order.id,
           orderId: order.id,
-          status: order.order_status,
+          status: order.order_status || order.status || 'confirmed',
           total: order.total_amount,
           items: JSON.parse(order.items || '[]'),
           createdAt: order.created_at,
-          deliveryAddress: order.customer_address,
+          deliveryAddress: order.delivery_address,
           customerName: order.customer_name,
           customerPhone: order.customer_phone,
-          paymentStatus: order.payment_status
+          paymentStatus: order.payment_status || 'completed'
         }));
     } catch (error) {
       console.error('Supabase connection failed:', error);
@@ -42,8 +46,19 @@ export class CustomerDataService {
   // FORCE: Get products ONLY from Supabase database
   static async getAvailableProducts(): Promise<ApiProduct[]> {
     console.log('🔥 CustomerDataService: FORCE clearing all cache and getting Supabase data...');
+    
+    // Preserve user session and customer data while clearing cache
+    const userSession = localStorage.getItem('userSession');
+    const customerPhone = localStorage.getItem('customerPhone');
+    const users = localStorage.getItem('users');
+    
     localStorage.clear();
     sessionStorage.clear();
+    
+    // Restore preserved data
+    if (userSession) localStorage.setItem('userSession', userSession);
+    if (customerPhone) localStorage.setItem('customerPhone', customerPhone);
+    if (users) localStorage.setItem('users', users);
     
     const products = await supabaseApi.getProducts();
     console.log('🔥 CustomerDataService: Raw Supabase products:', products);

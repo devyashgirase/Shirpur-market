@@ -78,21 +78,22 @@ export const supabaseApi = {
   async createOrder(orderData: any) {
     try {
       const result = await api.post('orders', {
-        order_id: `ORD-${Date.now()}`,
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
-        customer_address: orderData.customer_address,
-        items: JSON.stringify(orderData.items),
         total_amount: Number(orderData.total_amount),
-        payment_status: orderData.payment_status || 'paid',
-        order_status: 'confirmed'
+        delivery_address: orderData.customer_address || orderData.delivery_address,
+        items: JSON.stringify(orderData.items || []),
+        status: 'confirmed',
+        order_status: 'confirmed',
+        payment_status: orderData.payment_status || 'completed',
+        payment_method: 'razorpay'
       });
       
       console.log('✅ Order saved to Supabase:', result);
       return result[0] || result;
     } catch (error) {
       console.error('❌ Supabase order creation failed:', error);
-      return null; // Return null instead of throwing
+      return null;
     }
   },
 
@@ -293,6 +294,117 @@ export const supabaseApi = {
     } catch (error) {
       console.error('❌ Failed to load customers from Supabase:', error);
       return [];
+    }
+  },
+
+  async saveCustomerAddress(customerPhone: string, addressData: any) {
+    try {
+      const result = await api.post('customer_addresses', {
+        customer_phone: customerPhone,
+        name: addressData.name,
+        phone: addressData.phone || customerPhone,
+        address: addressData.address,
+        landmark: addressData.landmark,
+        city: addressData.city,
+        state: addressData.state,
+        pincode: addressData.pincode,
+        coordinates: addressData.coordinates ? JSON.stringify(addressData.coordinates) : null,
+        address_type: addressData.type || 'other',
+        is_default: addressData.isDefault || false
+      });
+      console.log('✅ Customer address saved:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to save customer address:', error);
+      return null;
+    }
+  },
+
+  async getCustomerAddresses(customerPhone: string) {
+    try {
+      const addresses = await api.get('customer_addresses', `customer_phone=eq.${customerPhone}&order=is_default.desc,created_at.desc`);
+      return addresses?.map((addr: any) => ({
+        id: addr.id,
+        name: addr.name,
+        phone: addr.phone,
+        address: addr.address,
+        landmark: addr.landmark,
+        city: addr.city,
+        state: addr.state,
+        pincode: addr.pincode,
+        coordinates: addr.coordinates ? JSON.parse(addr.coordinates) : null,
+        type: addr.address_type,
+        isDefault: addr.is_default
+      })) || [];
+    } catch (error) {
+      console.error('❌ Failed to get customer addresses:', error);
+      return [];
+    }
+  },
+
+  async getOrdersByDeliveryAgent(agentId: string) {
+    try {
+      const orders = await api.get('orders', `delivery_agent_id=eq.${agentId}&order=created_at.desc`);
+      return orders || [];
+    } catch (error) {
+      console.error('❌ Failed to get delivery agent orders:', error);
+      return [];
+    }
+  },
+
+  async createDeliverySession(sessionData: any) {
+    try {
+      return await api.post('delivery_sessions', sessionData);
+    } catch (error) {
+      console.error('Failed to create delivery session:', error);
+      return null;
+    }
+  },
+
+  async getActiveDeliverySession() {
+    try {
+      const sessions = await api.get('delivery_sessions', 'is_active=eq.true&order=login_time.desc&limit=1');
+      return sessions?.[0] || null;
+    } catch (error) {
+      console.error('Failed to get active delivery session:', error);
+      return null;
+    }
+  },
+
+  async endDeliverySession() {
+    try {
+      return await api.patch('delivery_sessions', { is_active: false }, 'is_active=eq.true');
+    } catch (error) {
+      console.error('Failed to end delivery session:', error);
+      return null;
+    }
+  },
+
+  async updateDeliveryAgent(agentId: number, updates: any) {
+    try {
+      return await api.patch('delivery_agents', updates, `id=eq.${agentId}`);
+    } catch (error) {
+      console.error('Failed to update delivery agent:', error);
+      return null;
+    }
+  },
+
+  async updateAgentLocation(agentId: string, lat: number, lng: number, orderId?: string) {
+    try {
+      const updateData: any = {
+        current_lat: lat,
+        current_lng: lng,
+        last_location_update: new Date().toISOString()
+      };
+      
+      if (orderId) {
+        updateData.current_order_id = orderId;
+      }
+      
+      return await api.patch('delivery_agents', updateData, `user_id=eq.${agentId}`);
+    } catch (error) {
+      console.error('Failed to update agent location:', error);
+      return null;
     }
   }
 };

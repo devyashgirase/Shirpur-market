@@ -1,5 +1,5 @@
 // Customer Order Service - Direct Supabase connection
-import { supabase } from './directSupabase';
+import { supabaseApi } from './supabase';
 
 export interface CustomerOrder {
   id: string;
@@ -29,19 +29,22 @@ class CustomerOrderService {
   }
 
   async getMyOrders(): Promise<CustomerOrder[]> {
-    if (!this.currentUserPhone) return [];
-    
     try {
-      const { supabaseApi } = await import('@/lib/supabase');
-      const allOrders = await supabaseApi.getOrders();
-      
-      // Filter orders for current user
-      const userOrders = allOrders.filter((order: any) => 
-        order.customer_phone === this.currentUserPhone
-      );
-      
-      console.log('📦 Found orders for user:', userOrders.length);
-      return userOrders;
+      const { CustomerDataService } = await import('@/lib/customerDataService');
+      const orders = await CustomerDataService.getCustomerOrders();
+      console.log('📦 Found orders for user:', orders.length);
+      return orders.map((order: any) => ({
+        id: order.id,
+        order_id: order.orderId || order.id,
+        customer_name: order.customerName,
+        customer_phone: order.customerPhone,
+        customer_address: order.deliveryAddress,
+        items: order.items,
+        total_amount: order.total,
+        order_status: order.status,
+        payment_status: order.paymentStatus,
+        created_at: order.createdAt
+      }));
     } catch (error) {
       console.error('Failed to fetch customer orders:', error);
       return [];
@@ -50,15 +53,9 @@ class CustomerOrderService {
 
   async getOrderById(orderId: string): Promise<CustomerOrder | null> {
     try {
-      if (!supabase) return null;
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('order_id', orderId)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      const allOrders = await supabaseApi.getOrders();
+      const order = allOrders.find((o: any) => o.id === orderId || o.order_id === orderId);
+      return order || null;
     } catch (error) {
       console.error('Failed to get order by ID:', error);
       return null;
@@ -66,19 +63,12 @@ class CustomerOrderService {
   }
 
   subscribeToOrderUpdates(callback: (orders: CustomerOrder[]) => void) {
-    if (!supabase) return () => {};
-    
-    const subscription = supabase
-      .channel('customer-orders')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          this.getMyOrders().then(callback);
-        }
-      )
-      .subscribe();
+    // Polling-based updates since we're using REST API
+    const interval = setInterval(() => {
+      this.getMyOrders().then(callback);
+    }, 5000); // Poll every 5 seconds
 
-    return () => subscription.unsubscribe();
+    return () => clearInterval(interval);
   }
 }
 

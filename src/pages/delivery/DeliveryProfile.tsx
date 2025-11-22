@@ -16,7 +16,8 @@ const DeliveryProfile = () => {
   const currentLang = getLanguage();
   const changeLanguage = (lang: 'en' | 'hi' | 'mr') => {
     setLanguage(lang);
-    window.location.reload();
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
+    window.location.reload(); // Keep reload for profile page as it has complex state
   };
 
   useEffect(() => {
@@ -192,9 +193,9 @@ const DeliveryProfile = () => {
             <CardContent className="p-6">
               <div className="space-y-3">
                 {[
-                  { code: 'en' as Language, name: 'English', native: 'English' },
-                  { code: 'hi' as Language, name: 'Hindi', native: 'हिंदी' },
-                  { code: 'mr' as Language, name: 'Marathi', native: 'मराठी' }
+                  { code: 'en' as 'en' | 'hi' | 'mr', name: 'English', native: 'English' },
+                  { code: 'hi' as 'en' | 'hi' | 'mr', name: 'Hindi', native: 'हिंदी' },
+                  { code: 'mr' as 'en' | 'hi' | 'mr', name: 'Marathi', native: 'मराठी' }
                 ].map((lang) => (
                   <Button
                     key={lang.code}

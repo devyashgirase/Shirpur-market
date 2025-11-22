@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselDots } from "@/components/ui/carousel";
-import { Plus, Minus, ShoppingCart, Package, Star, Heart, Zap, TrendingUp } from "lucide-react";
+import { Plus, Minus, ShoppingCart, Package, Star, Heart, Zap, TrendingUp, Truck, MapPin, ChevronDown, Search } from "lucide-react";
 import { type Product } from "@/lib/mockData";
 import { cartService } from "@/lib/cartService";
 import { CustomerDataService } from "@/lib/customerDataService";
@@ -17,9 +17,11 @@ import { RealTimeLocation } from "@/components/RealTimeLocation";
 
 import ProductSearch from "@/components/ProductSearch";
 import AttractiveLoader from "@/components/AttractiveLoader";
+import { ProductCardSkeleton } from "@/components/LoadingSkeleton";
 import PersonalizedRecommendations from "@/components/PersonalizedRecommendations";
 import PanCornerCarousel from "@/components/PanCornerCarousel";
 import "@/styles/carousel.css";
+import "@/styles/swiggy-homepage.css";
 
 const CustomerCatalog = () => {
   const { toast } = useToast();
@@ -185,7 +187,17 @@ const CustomerCatalog = () => {
   }, [products]);
 
   if (loading) {
-    return <AttractiveLoader type="customer" message="Loading fresh products..." />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (products.length === 0) {
@@ -201,8 +213,95 @@ const CustomerCatalog = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen bg-white">
+      {/* Swiggy-style Header */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-gray-800">Shirpur Delivery</span>
+              </div>
+              <div className="hidden md:flex items-center text-gray-600">
+                <MapPin className="w-4 h-4 mr-1" />
+                <span className="text-sm">Other - Shirpur, Maharashtra</span>
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-6 text-gray-700">
+                <a href="#" className="hover:text-orange-500 transition-colors">Shirpur Corporate</a>
+                <div className="flex items-center space-x-1 hover:text-orange-500 transition-colors cursor-pointer">
+                  <Search className="w-4 h-4" />
+                  <span>Search</span>
+                </div>
+                <div className="flex items-center space-x-1 hover:text-orange-500 transition-colors cursor-pointer">
+                  <span>Offers</span>
+                  <Badge className="bg-orange-500 text-white text-xs px-1">NEW</Badge>
+                </div>
+                <span className="hover:text-orange-500 transition-colors cursor-pointer">Help</span>
+                <span className="hover:text-orange-500 transition-colors cursor-pointer">Sign In</span>
+              </div>
+              <div className="flex items-center space-x-1 hover:text-orange-500 transition-colors cursor-pointer">
+                <ShoppingCart className="w-5 h-5" />
+                <span className="font-medium">Cart</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
       
+      {/* What's on your mind Section */}
+      <section className="bg-white py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">What's on your mind?</h2>
+            <div className="flex gap-2">
+              <button className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                <span className="text-gray-600">←</span>
+              </button>
+              <button className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                <span className="text-gray-600">→</span>
+              </button>
+            </div>
+          </div>
+          <div className="flex overflow-x-auto gap-8 pb-4 scrollbar-hide">
+            {[
+              { name: 'Pizzas', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029856/PC_Creative%20refresh/3D_bau/banners_new/Pizza.png' },
+              { name: 'Biryani', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1675667625/PC_Creative%20refresh/Biryani_2.png' },
+              { name: 'North Indian', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029845/PC_Creative%20refresh/3D_bau/banners_new/Noodles.png' },
+              { name: 'Burgers', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029845/PC_Creative%20refresh/3D_bau/banners_new/Burger.png' },
+              { name: 'Chinese', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029848/PC_Creative%20refresh/3D_bau/banners_new/Chinese.png' },
+              { name: 'Dosa', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029853/PC_Creative%20refresh/3D_bau/banners_new/Dosa.png' }
+            ].map((item, index) => (
+              <div key={index} className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
+                <div className="w-24 h-24 rounded-full overflow-hidden mb-2">
+                  <img 
+                    src={item.image} 
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = `data:image/svg+xml;base64,${btoa(`
+                        <svg width="96" height="96" xmlns="http://www.w3.org/2000/svg">
+                          <rect width="96" height="96" fill="#f3f4f6"/>
+                          <text x="48" y="55" text-anchor="middle" font-size="32">🍽️</text>
+                        </svg>
+                      `)}`;
+                    }}
+                  />
+                </div>
+                <p className="text-base font-medium text-gray-700 text-center whitespace-nowrap">{item.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <div className="w-full">
         <div className="w-full">
           

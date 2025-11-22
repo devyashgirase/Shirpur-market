@@ -14,7 +14,8 @@ const LanguageSwitcher = () => {
   const handleLanguageChange = (langCode: 'en' | 'hi' | 'mr') => {
     setLanguage(langCode);
     setCurrentLang(langCode);
-    window.location.reload(); // Simple reload to apply changes
+    // Force re-render by dispatching custom event
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: langCode }));
   };
 
   return (

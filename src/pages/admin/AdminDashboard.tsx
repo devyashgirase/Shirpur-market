@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DatabaseService, isSupabaseEnabled } from "@/lib/databaseService";
 import RealTimeIndicator from "@/components/RealTimeIndicator";
 import AttractiveLoader from "@/components/AttractiveLoader";
+import { DashboardCardSkeleton, OrderCardSkeleton } from "@/components/LoadingSkeleton";
 
 const AdminDashboard = () => {
   const [adminOrders, setAdminOrders] = useState([]);
@@ -106,7 +107,22 @@ const AdminDashboard = () => {
   }, []);
 
   if (loading) {
-    return <AttractiveLoader type="admin" message="Loading admin dashboard..." />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="p-4 sm:p-6 space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <DashboardCardSkeleton key={i} />
+            ))}
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <OrderCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

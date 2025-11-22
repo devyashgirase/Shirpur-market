@@ -8,6 +8,8 @@ import { cartService, type CartItem } from "@/lib/cartService";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import AddressForm, { type AddressData } from "@/components/AddressForm";
+import ShirpurAddressSelector from "@/components/ShirpurAddressSelector";
+import QuickAuthModal from "@/components/QuickAuthModal";
 import OrderSuccessModal from "@/components/OrderSuccessModal";
 import { createOrderInSupabase } from "@/lib/orderCreationService";
 import { authService } from "@/lib/authService";
@@ -37,6 +39,8 @@ const CustomerCart = () => {
   };
   
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
+  const [showQuickAuth, setShowQuickAuth] = useState(false);
   const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastOrderId, setLastOrderId] = useState('');
@@ -110,20 +114,66 @@ const CustomerCart = () => {
       return;
     }
     
-    setShowAddressForm(true);
+    // Check multiple sources for user authentication
+    const currentUser = authService.getCurrentUser();
+    const customerPhone = localStorage.getItem('customerPhone');
+    const userSession = localStorage.getItem('userSession');
+    
+    console.log('🔍 Auth check:', { currentUser, customerPhone, userSession });
+    
+    // User is authenticated if any of these conditions are true
+    const isAuthenticated = currentUser?.phone || 
+                           (customerPhone && customerPhone !== 'guest' && !customerPhone.startsWith('guest_')) ||
+                           (userSession && JSON.parse(userSession)?.phone && !JSON.parse(userSession).isGuest);
+    
+    if (!isAuthenticated) {
+      console.log('🔍 User not authenticated, showing Quick Auth');
+      setShowQuickAuth(true);
+      return;
+    }
+    
+    console.log('🔍 User authenticated, proceeding to address selection');
+    setShowAddressSelector(true);
+  };
+
+  const handleAuthSuccess = () => {
+    console.log('🎉 Auth success, closing Quick Auth and opening address selector');
+    setShowQuickAuth(false);
+    
+    // Small delay to ensure state updates properly
+    setTimeout(() => {
+      setShowAddressSelector(true);
+    }, 100);
   };
 
   const handleAddressSubmit = async (addressData: AddressData) => {
     setCustomerAddress(addressData);
     
+    // Verify user is still logged in
     const currentUser = authService.getCurrentUser();
+    console.log('🔍 User session during address submit:', currentUser);
+    
     if (!currentUser?.phone) {
       toast({
-        title: "Authentication Required",
-        description: "Please login to place an order",
+        title: "Session Lost",
+        description: "Please login again to continue",
         variant: "destructive"
       });
+      setShowAddressForm(false);
+      navigate('/login');
       return;
+    }
+    
+    const customerPhone = currentUser.phone;
+    
+    // Save address to database
+    try {
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.saveCustomerAddress(customerPhone, addressData);
+      console.log('✅ Address saved to database');
+    } catch (error) {
+      console.error('❌ Failed to save address:', error);
+      // Continue with order even if address save fails
     }
     
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
@@ -189,6 +239,9 @@ const CustomerCart = () => {
         payment_status: 'paid',
         payment_id: paymentResponse.razorpay_payment_id
       };
+      
+      // Store customer phone in localStorage for future use
+      localStorage.setItem('customerPhone', customerPhone);
 
       const { supabaseApi } = await import('@/lib/supabase');
       await supabaseApi.createOrder(orderData);
@@ -259,8 +312,16 @@ const CustomerCart = () => {
               <Card key={item.product.id}>
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
-                      <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <img 
+                        src={item.product.image_url || item.product.imageUrl || '/placeholder.svg'} 
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder.svg';
+                        }}
+                      />
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -362,6 +423,20 @@ const CustomerCart = () => {
         </div>
       </div>
 
+      {/* Quick Auth Modal */}
+      <QuickAuthModal
+        isOpen={showQuickAuth}
+        onClose={() => setShowQuickAuth(false)}
+        onSuccess={handleAuthSuccess}
+      />
+      
+      {/* Shirpur Address Selector */}
+      <ShirpurAddressSelector
+        isOpen={showAddressSelector}
+        onClose={() => setShowAddressSelector(false)}
+        onAddressSelect={handleAddressSubmit}
+      />
+      
       {/* Address Form */}
       <AddressForm
         isOpen={showAddressForm}
