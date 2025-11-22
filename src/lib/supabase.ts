@@ -124,6 +124,48 @@ export const supabaseApi = {
     return products || [];
   },
 
+  async createProduct(productData: any) {
+    try {
+      const result = await api.post('products', {
+        name: productData.name,
+        description: productData.description || '',
+        price: Number(productData.price),
+        category: productData.category,
+        image_url: productData.imageUrl || productData.image_url || '/placeholder.svg',
+        stock_quantity: Number(productData.stockQuantity || productData.stock_quantity || 0),
+        is_available: Boolean(productData.isActive !== false)
+      });
+      
+      console.log('✅ Product created in Supabase:', result);
+      return result[0] || result;
+    } catch (error) {
+      console.error('❌ Supabase product creation failed:', error);
+      return null;
+    }
+  },
+
+  async updateProduct(id: number, updates: any) {
+    try {
+      const updateData: any = {};
+      if (updates.name) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.price !== undefined) updateData.price = Number(updates.price);
+      if (updates.category) updateData.category = updates.category;
+      if (updates.imageUrl || updates.image_url) updateData.image_url = updates.imageUrl || updates.image_url;
+      if (updates.stockQuantity !== undefined || updates.stock_quantity !== undefined) {
+        updateData.stock_quantity = Number(updates.stockQuantity || updates.stock_quantity);
+      }
+      if (updates.isActive !== undefined) updateData.is_available = Boolean(updates.isActive);
+      
+      const result = await api.patch('products', updateData, `id=eq.${id}`);
+      console.log('✅ Product updated in Supabase:', result);
+      return result[0] || result;
+    } catch (error) {
+      console.error('❌ Supabase product update failed:', error);
+      return null;
+    }
+  },
+
   // Cart functions
   async getCart(userPhone: string) {
     try {
@@ -240,6 +282,17 @@ export const supabaseApi = {
     } catch (error) {
       console.error('Failed to create customer:', error);
       return null;
+    }
+  },
+
+  async getCustomers() {
+    try {
+      const customers = await api.get('customers');
+      console.log('✅ Customers loaded from Supabase:', customers.length);
+      return customers || [];
+    } catch (error) {
+      console.error('❌ Failed to load customers from Supabase:', error);
+      return [];
     }
   }
 };
