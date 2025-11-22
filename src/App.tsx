@@ -13,6 +13,7 @@ import { sessionManager } from "@/lib/sessionManager";
 import DeliveryBackground from "@/components/DeliveryBackground";
 import OTPLogin from "./pages/OTPLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminSessionCheck from "./components/AdminSessionCheck";
 import Index from "./pages/Index";
 import HomePage from "./pages/HomePage";
 import CustomerLayout from "./pages/customer/CustomerLayout";
@@ -97,11 +98,7 @@ const App = () => {
           </Route>
           
           {/* Admin Routes */}
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
+          <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />

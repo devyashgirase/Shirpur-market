@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { AdminOrderService, AdminOrder } from '../../lib/adminOrderService';
 import { TableRowSkeleton, DashboardCardSkeleton } from '../../components/LoadingSkeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Package, User, DollarSign, Truck } from 'lucide-react';
 
 const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [adminProducts, setAdminProducts] = useState([]);
 
   useEffect(() => {
     loadOrders();
     loadStats();
+    loadProducts();
 
     // Subscribe to real-time updates
     const subscription = AdminOrderService.subscribeToOrderUpdates((updatedOrders) => {
@@ -21,6 +29,16 @@ const AdminOrders: React.FC = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const loadProducts = async () => {
+    try {
+      const { supabaseApi } = await import('@/lib/supabase');
+      const products = await supabaseApi.getProducts();
+      setAdminProducts(products);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    }
+  };
 
   const loadOrders = async () => {
     setLoading(true);
@@ -35,7 +53,8 @@ const AdminOrders: React.FC = () => {
   };
 
   const handleViewDetails = (order: AdminOrder) => {
-    alert(`Order Details:\n\nID: ${order.id}\nCustomer: ${order.customer_name}\nPhone: ${order.customer_phone}\nAddress: ${order.customer_address}\nItems: ${order.items.map((item: any) => `${item.name} x${item.quantity}`).join(', ')}\nTotal: ₹${order.total_amount}\nStatus: ${order.order_status}\nPayment: ${order.payment_status}\nDate: ${new Date(order.created_at).toLocaleString()}`);
+    setSelectedOrder(order);
+    setShowOrderModal(true);
   };
 
   const handleTrackOrder = (orderId: string) => {
@@ -221,7 +240,7 @@ const AdminOrders: React.FC = () => {
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    #{order.id.slice(-8)}
+                    #{String(order.id).slice(-8)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>

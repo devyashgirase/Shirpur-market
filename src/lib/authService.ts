@@ -63,7 +63,17 @@ class AuthService {
   }
 
   logout() {
+    const currentUser = this.getCurrentUser();
     sessionManager.destroySession();
+    
+    // Clear simple session flags
+    if (currentUser?.role === 'admin') {
+      localStorage.removeItem('isAdminLoggedIn');
+      localStorage.removeItem('adminPhone');
+    } else if (currentUser?.role === 'customer') {
+      localStorage.removeItem('isCustomerLoggedIn');
+      localStorage.removeItem('customerPhone');
+    }
   }
 
   getCurrentUser(): User | null {
@@ -123,6 +133,20 @@ class AuthService {
     } catch (error) {
       return { success: false, message: 'Failed to complete setup' };
     }
+  }
+
+  // Get current session (needed for ProtectedRoute compatibility)
+  getCurrentSession(): any {
+    const user = this.getCurrentUser();
+    if (user) {
+      return {
+        role: user.role,
+        isFirstLoginComplete: user.is_first_login_complete !== false,
+        phone: user.phone,
+        name: user.name
+      };
+    }
+    return null;
   }
 }
 

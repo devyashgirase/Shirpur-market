@@ -29,6 +29,56 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           }
         }
         
+        // Check for persistent admin session first
+        if (allowedRoles.includes('admin')) {
+          const adminSession = localStorage.getItem('adminSession');
+          if (adminSession) {
+            try {
+              const adminData = JSON.parse(adminSession);
+              // Restore admin session
+              const adminUser = {
+                id: Date.now().toString(),
+                phone: adminData.phone,
+                name: adminData.name || 'Admin',
+                role: 'admin' as const,
+                is_first_login_complete: true
+              };
+              authService.saveUser(adminUser);
+              authService.storeSession(adminUser);
+              setIsAuthorized(true);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              localStorage.removeItem('adminSession');
+            }
+          }
+        }
+        
+        // Check for persistent customer session
+        if (allowedRoles.includes('customer')) {
+          const customerSession = localStorage.getItem('customerSession');
+          if (customerSession) {
+            try {
+              const customerData = JSON.parse(customerSession);
+              // Restore customer session
+              const customerUser = {
+                id: Date.now().toString(),
+                phone: customerData.phone,
+                name: customerData.name || 'Customer',
+                role: 'customer' as const,
+                is_first_login_complete: true
+              };
+              authService.saveUser(customerUser);
+              authService.storeSession(customerUser);
+              setIsAuthorized(true);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              localStorage.removeItem('customerSession');
+            }
+          }
+        }
+        
         // Check for regular OTP authentication
         const session = authService.getCurrentSession();
         

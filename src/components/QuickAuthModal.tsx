@@ -227,17 +227,7 @@ const QuickAuthModal = ({ isOpen, onClose, onSuccess }: QuickAuthModalProps) => 
                 {isLoading ? "Verifying..." : "Verify & Continue"}
               </Button>
               
-              <Button 
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setShowOtpInput(false);
-                  setOtp('');
-                }}
-              >
-                Change Phone Number
-              </Button>
+
             </form>
           )}
         </div>

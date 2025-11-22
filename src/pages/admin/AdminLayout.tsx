@@ -4,7 +4,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BarChart3, Package, ShoppingCart, ArrowLeft, MapPin, Truck, Menu, Settings, Brain } from "lucide-react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import RealTimeNotifications from "@/components/RealTimeNotifications";
-
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();

@@ -20,15 +20,17 @@ class CartService {
       // First try to get from current user session
       const user = authService.getCurrentUser();
       if (user?.phone) {
-        // Transfer guest cart to logged-in user
-        await this.transferGuestCartToUser(user.phone);
+        // Only transfer if not already done
+        if (!this.transferExecuted) {
+          await this.transferGuestCartToUser(user.phone);
+        }
         localStorage.setItem('customerPhone', user.phone);
         return user.phone;
       }
       
       // Fallback to customerPhone in localStorage
       const customerPhone = localStorage.getItem('customerPhone');
-      if (customerPhone && customerPhone !== 'guest') {
+      if (customerPhone && customerPhone !== 'guest' && !customerPhone.startsWith('guest_')) {
         return customerPhone;
       }
       
@@ -38,24 +40,44 @@ class CartService {
     }
   }
 
+  private transferExecuted = false;
+  
   private async transferGuestCartToUser(userPhone: string): Promise<void> {
+    // Prevent multiple transfers
+    if (this.transferExecuted) return;
+    
     try {
       // Get guest cart items
       const guestCart = await supabaseApi.getCart('guest');
       const guestItems = Array.isArray(guestCart) ? guestCart : guestCart?.items || [];
       
       if (guestItems.length > 0) {
-        // Transfer each item to user cart
+        console.log('🔄 Transferring guest cart to user:', userPhone, guestItems.length, 'items');
+        
+        // Get existing user cart to merge
+        const userCart = await supabaseApi.getCart(userPhone);
+        const userItems = Array.isArray(userCart) ? userCart : userCart?.items || [];
+        
+        // Transfer each item to user cart (merge with existing)
         for (const item of guestItems) {
-          await supabaseApi.addToCart(userPhone, item.product.id, item.quantity);
+          const existingItem = userItems.find(ui => ui.product.id === item.product.id);
+          if (existingItem) {
+            // Update quantity if item already exists
+            await supabaseApi.updateCartQuantity(userPhone, item.product.id, existingItem.quantity + item.quantity);
+          } else {
+            // Add new item
+            await supabaseApi.addToCart(userPhone, item.product.id, item.quantity);
+          }
         }
         
-        // Clear guest cart
+        // Only clear guest cart after successful transfer
         await supabaseApi.clearCart('guest');
-        console.log('✅ Guest cart transferred to user:', userPhone);
+        this.transferExecuted = true;
+        console.log('✅ Guest cart transferred successfully to user:', userPhone);
       }
     } catch (error) {
       console.error('Failed to transfer guest cart:', error);
+      // Don't clear guest cart if transfer failed
     }
   }
 

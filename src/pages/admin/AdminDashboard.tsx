@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
 import { 
   BarChart3, 
@@ -46,6 +47,8 @@ const AdminDashboard = () => {
   });
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [recentOrders, setRecentOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
   useEffect(() => {
     const loadAdminData = async () => {
@@ -59,18 +62,31 @@ const AdminDashboard = () => {
         const dbOrders = await supabaseApi.getOrders();
         console.log('📊 Raw orders from Supabase:', dbOrders);
         
-        const formattedOrders = dbOrders.map(order => ({
-          orderId: order.id,
-          customerName: order.customer_name || 'Customer',
-          customerPhone: order.customer_phone || '',
-          deliveryAddress: order.customer_address || '',
-          total: order.total_amount || 0,
-          status: order.order_status || 'placed',
-          paymentStatus: order.payment_status || 'pending',
-          createdAt: order.created_at || new Date().toISOString(),
-          itemCount: order.items?.length || 0,
-          items: order.items || []
-        }));
+        const formattedOrders = dbOrders.map(order => {
+          let items = [];
+          try {
+            if (typeof order.items === 'string') {
+              items = JSON.parse(order.items);
+            } else if (Array.isArray(order.items)) {
+              items = order.items;
+            }
+          } catch (e) {
+            items = [];
+          }
+          
+          return {
+            orderId: order.id,
+            customerName: order.customer_name || 'Customer',
+            customerPhone: order.customer_phone || '',
+            deliveryAddress: order.customer_address || order.delivery_address || '',
+            total: order.total_amount || 0,
+            status: order.order_status || order.status || 'placed',
+            paymentStatus: order.payment_status || 'pending',
+            createdAt: order.created_at || new Date().toISOString(),
+            itemCount: items.length || 0,
+            items: items
+          };
+        });
         
         console.log('📊 Formatted orders for display:', formattedOrders);
         setRecentOrders(formattedOrders);
@@ -244,7 +260,11 @@ const AdminDashboard = () => {
                 recentOrders.map((order) => (
                   <div 
                     key={order.orderId} 
-                    className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg hover:shadow-md transition-all duration-300 space-y-3 border border-blue-200"
+                    className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg hover:shadow-md transition-all duration-300 space-y-3 border border-blue-200 cursor-pointer"
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setShowOrderModal(true);
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -252,7 +272,7 @@ const AdminDashboard = () => {
                           <ShoppingCart className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-800">#{order.orderId.slice(-8)}</p>
+                          <p className="font-bold text-gray-800">#{String(order.orderId).slice(-8)}</p>
                           <p className="text-sm text-gray-600">{order.customerName}</p>
                           <p className="text-xs text-gray-500">{order.customerPhone}</p>
                           <p className="text-xs text-blue-600 font-medium">
@@ -314,6 +334,165 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Details Modal */}
+      <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-blue-500" />
+              Order Details - #{selectedOrder ? String(selectedOrder.orderId).slice(-8) : 'Loading'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Customer Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Customer Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Name</p>
+                      <p className="font-semibold">{selectedOrder.customerName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Phone</p>
+                      <p className="font-semibold">{selectedOrder.customerPhone}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Delivery Address</p>
+                    <p className="font-semibold">{selectedOrder.deliveryAddress}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Items */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Order Items ({selectedOrder.itemCount})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 ? (
+                      selectedOrder.items.map((item, index) => {
+                        console.log('Order item data:', item); // Debug log
+                        
+                        // Get product image from products list if not in item
+                        const getProductImage = () => {
+                          if (item.image_url || item.imageUrl || item.image || item.product_image) {
+                            return item.image_url || item.imageUrl || item.image || item.product_image;
+                          }
+                          
+                          // Try to find product in adminProducts
+                          const product = adminProducts.find(p => 
+                            p.name === (item.product_name || item.name) || 
+                            p.id.toString() === item.product_id?.toString()
+                          );
+                          
+                          return product?.image_url || 'https://via.placeholder.com/48x48?text=📦';
+                        };
+                        
+                        return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden relative">
+                              <img 
+                                src={getProductImage()} 
+                                alt={item.product_name || item.name || 'Product'}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = 'https://via.placeholder.com/48x48?text=📦';
+                                  target.onerror = null;
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <p className="font-semibold">{item.product_name || item.name || 'Product'}</p>
+                              <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</p>
+                            <p className="text-sm text-gray-600">₹{item.price} each</p>
+                          </div>
+                        </div>
+                      );
+                      })
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No items found</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment & Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Payment Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>Total Amount:</span>
+                      <span className="font-bold text-green-600">₹{selectedOrder.total}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Payment Status:</span>
+                      <Badge className={selectedOrder.paymentStatus === 'paid' ? 'bg-green-500' : 'bg-orange-500'}>
+                        {selectedOrder.paymentStatus}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Order Date:</span>
+                      <span>{new Date(selectedOrder.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Delivery Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>Current Status:</span>
+                      <Badge className={`${
+                        selectedOrder.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        selectedOrder.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
+                        selectedOrder.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedOrder.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Order Time:</span>
+                      <span>{new Date(selectedOrder.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
