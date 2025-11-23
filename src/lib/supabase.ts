@@ -78,16 +78,16 @@ export const supabaseApi = {
   async createOrder(orderData: any) {
     try {
       const orderPayload = {
-        order_id: orderData.order_id,
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
         total_amount: Number(orderData.total_amount),
-        customer_address: orderData.customer_address || orderData.delivery_address,
-        items: JSON.stringify(orderData.items || []),
-        order_status: orderData.order_status || 'confirmed',
-        payment_status: orderData.payment_status || 'completed',
-        payment_id: orderData.payment_id,
-        payment_method: 'razorpay'
+        delivery_address: orderData.customer_address || orderData.delivery_address || 'Address not provided',
+        items: orderData.items || [],
+        status: 'confirmed',
+        order_status: 'confirmed',
+        payment_status: 'completed',
+        razorpay_payment_id: orderData.payment_id,
+        delivery_fee: 4.99
       };
       
       console.log('📦 Creating order with payload:', orderPayload);
