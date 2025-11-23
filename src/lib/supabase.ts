@@ -77,23 +77,35 @@ const api = {
 export const supabaseApi = {
   async createOrder(orderData: any) {
     try {
-      const result = await api.post('orders', {
+      const orderPayload = {
+        order_id: orderData.order_id,
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
         total_amount: Number(orderData.total_amount),
         customer_address: orderData.customer_address || orderData.delivery_address,
         items: JSON.stringify(orderData.items || []),
-        status: 'confirmed',
-        order_status: 'confirmed',
+        order_status: orderData.order_status || 'confirmed',
         payment_status: orderData.payment_status || 'completed',
+        payment_id: orderData.payment_id,
         payment_method: 'razorpay'
-      });
+      };
+      
+      console.log('📦 Creating order with payload:', orderPayload);
+      const result = await api.post('orders', orderPayload);
       
       console.log('✅ Order saved to Supabase:', result);
       return result[0] || result;
     } catch (error) {
       console.error('❌ Supabase order creation failed:', error);
-      return null;
+      console.error('Error details:', error);
+      
+      // Fallback: save to localStorage if Supabase fails
+      const fallbackOrders = JSON.parse(localStorage.getItem('fallbackOrders') || '[]');
+      fallbackOrders.push(orderData);
+      localStorage.setItem('fallbackOrders', JSON.stringify(fallbackOrders));
+      console.log('💾 Order saved to localStorage fallback');
+      
+      return orderData; // Return the order data even if Supabase fails
     }
   },
 

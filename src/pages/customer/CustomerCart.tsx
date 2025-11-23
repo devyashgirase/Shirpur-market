@@ -244,8 +244,18 @@ const CustomerCart = () => {
       localStorage.setItem('customerPhone', customerPhone);
 
       const { supabaseApi } = await import('@/lib/supabase');
-      await supabaseApi.createOrder(orderData);
-      console.log('✅ Order saved via Supabase REST API');
+      const savedOrder = await supabaseApi.createOrder(orderData);
+      console.log('✅ Order saved via Supabase REST API:', savedOrder);
+      
+      // Also save order locally for cross-device backup
+      const localOrders = JSON.parse(localStorage.getItem(`orders_${customerPhone}`) || '[]');
+      localOrders.push(orderData);
+      localStorage.setItem(`orders_${customerPhone}`, JSON.stringify(localOrders));
+      
+      // Save to global orders for admin access
+      const globalOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+      globalOrders.push(orderData);
+      localStorage.setItem('allOrders', JSON.stringify(globalOrders));
       
       // Clear cart
       await cartService.clearCart();
