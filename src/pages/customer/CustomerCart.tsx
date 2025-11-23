@@ -430,11 +430,12 @@ const CustomerCart = () => {
         onSuccess={handleAuthSuccess}
       />
       
-      {/* Shirpur Address Selector */}
+      {/* Address Selector with Home Page Location */}
       <ShirpurAddressSelector
         isOpen={showAddressSelector}
         onClose={() => setShowAddressSelector(false)}
         onAddressSelect={handleAddressSubmit}
+        homePageLocation={localStorage.getItem('currentLocation')}
       />
       
       {/* Address Form */}

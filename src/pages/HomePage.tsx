@@ -107,44 +107,73 @@ const HomePage = () => {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Reverse geocoding to get address
+          // Enhanced reverse geocoding for detailed addresses
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=19&addressdetails=1&extratags=1`,
             {
               headers: {
-                'User-Agent': 'Shirpur-Delivery-App/1.0'
+                'User-Agent': 'Delivery-App/1.0'
               }
             }
           );
           
           const data = await response.json();
           
-          if (data && data.display_name) {
-            // Format address
-            const addressParts = [];
-            if (data.address?.house_number) addressParts.push(data.address.house_number);
-            if (data.address?.road) addressParts.push(data.address.road);
-            if (data.address?.neighbourhood) addressParts.push(data.address.neighbourhood);
-            if (data.address?.suburb) addressParts.push(data.address.suburb);
-            if (data.address?.city || data.address?.town) {
-              addressParts.push(data.address.city || data.address.town);
+          if (data && data.address) {
+            const addr = data.address;
+            const parts = [];
+            
+            // Building/Shop details
+            if (addr.house_number) parts.push(`${addr.house_number}`);
+            if (addr.shop) parts.push(`${addr.shop}`);
+            if (addr.building) parts.push(`${addr.building}`);
+            if (addr.amenity) parts.push(`${addr.amenity}`);
+            
+            // Street details
+            if (addr.road) parts.push(addr.road);
+            if (addr.neighbourhood) parts.push(addr.neighbourhood);
+            if (addr.suburb) parts.push(addr.suburb);
+            
+            // Area details
+            if (addr.city || addr.town || addr.village) {
+              parts.push(addr.city || addr.town || addr.village);
+            }
+            if (addr.state) parts.push(addr.state);
+            if (addr.postcode) parts.push(addr.postcode);
+            
+            let detailedAddress = parts.length > 0 ? parts.join(', ') : data.display_name;
+            
+            // If no building details, try to get street/road info
+            if (!addr.house_number && !addr.shop && !addr.building && !addr.amenity && addr.road) {
+              // Use road name if available
+              const roadParts = [];
+              if (addr.road) roadParts.push(addr.road);
+              if (addr.neighbourhood || addr.suburb) roadParts.push(addr.neighbourhood || addr.suburb);
+              
+              if (roadParts.length > 0) {
+                detailedAddress = roadParts.join(', ') + ', ' + (addr.city || addr.town || addr.village || '') + ', ' + (addr.state || '') + ', ' + (addr.postcode || '');
+              }
             }
             
-            const formattedAddress = addressParts.length > 0 
-              ? addressParts.join(', ') 
-              : data.display_name.split(',').slice(0, 3).join(', ');
-            
-            setLocation(formattedAddress);
+            setLocation(detailedAddress);
             setShowLocationDropdown(false);
+            
+            localStorage.setItem('currentLocation', detailedAddress);
+            localStorage.setItem('currentCoordinates', JSON.stringify({ lat: latitude, lng: longitude }));
             
             toast({
               title: "Location detected!",
               description: "Your current location has been set",
             });
           }
+          
+
         } catch (error) {
           console.error('Reverse geocoding failed:', error);
-          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          const fallbackAddress = `Location ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          setLocation(fallbackAddress);
+          localStorage.setItem('currentLocation', fallbackAddress);
+          localStorage.setItem('currentCoordinates', JSON.stringify({ lat: latitude, lng: longitude }));
           toast({
             title: "Location set",
             description: "Coordinates saved, address lookup failed",

@@ -7,6 +7,7 @@ import { TrackingDashboard } from '@/components/TrackingDashboard';
 import { deliveryCoordinationService } from '@/lib/deliveryCoordinationService';
 import { EnhancedTrackingService } from '@/lib/enhancedTrackingService';
 import DeliveryOTPVerification from '@/components/DeliveryOTPVerification';
+import { LocationService } from '@/lib/locationService';
 
 const DeliveryTracking = () => {
   const [currentOrder, setCurrentOrder] = useState<any>(null);
@@ -28,9 +29,14 @@ const DeliveryTracking = () => {
     return R * c;
   };
   
-  // Simple location display without external API
+  // Enhanced location display with detailed address
   const reverseGeocode = async (lat: number, lng: number) => {
-    setAgentLocationName(`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    try {
+      const address = await LocationService.reverseGeocode(lat, lng);
+      setAgentLocationName(`📍 ${address}`);
+    } catch (error) {
+      setAgentLocationName(`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    }
   };
 
   useEffect(() => {

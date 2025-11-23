@@ -15,7 +15,7 @@ interface SessionData {
 class SessionManager {
   private currentSession: SessionData | null = null;
   private readonly SESSION_KEY = 'userSession';
-  private readonly TOKEN_EXPIRY_HOURS = 24;
+  private readonly TOKEN_EXPIRY_HOURS = 720; // 30 days
 
   constructor() {
     this.loadSession();
@@ -39,6 +39,14 @@ class SessionManager {
       localStorage.setItem(this.SESSION_KEY, JSON.stringify(this.currentSession));
       localStorage.setItem('customerPhone', this.currentSession.user.phone);
       localStorage.setItem('isLoggedIn', 'true');
+      
+      // Set role-specific flags
+      if (this.currentSession.user.role === 'customer') {
+        localStorage.setItem('isCustomerLoggedIn', 'true');
+      } else if (this.currentSession.user.role === 'admin') {
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        localStorage.setItem('adminPhone', this.currentSession.user.phone);
+      }
     }
   }
 
@@ -47,6 +55,9 @@ class SessionManager {
     localStorage.removeItem(this.SESSION_KEY);
     localStorage.removeItem('customerPhone');
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('isCustomerLoggedIn');
+    localStorage.removeItem('isAdminLoggedIn');
+    localStorage.removeItem('adminPhone');
   }
 
   private generateToken(): string {

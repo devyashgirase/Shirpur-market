@@ -16,9 +16,10 @@ interface ShirpurAddressSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onAddressSelect: (address: AddressData) => void;
+  homePageLocation?: string | null;
 }
 
-const ShirpurAddressSelector = ({ isOpen, onClose, onAddressSelect }: ShirpurAddressSelectorProps) => {
+const ShirpurAddressSelector = ({ isOpen, onClose, onAddressSelect, homePageLocation }: ShirpurAddressSelectorProps) => {
   const { toast } = useToast();
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -125,6 +126,52 @@ const ShirpurAddressSelector = ({ isOpen, onClose, onAddressSelect }: ShirpurAdd
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Home Page Location */}
+            {homePageLocation && (
+              <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-green-200 bg-green-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <MapPin className="w-5 h-5 text-green-600" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-gray-800">Current Location</h3>
+                          <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">From Home</span>
+                        </div>
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                          {homePageLocation}
+                        </p>
+                        <div className="flex items-center mt-2 text-xs text-gray-500">
+                          <Clock className="w-3 h-3 mr-1" />
+                          15 MINS
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const coordinates = localStorage.getItem('currentCoordinates');
+                        const coords = coordinates ? JSON.parse(coordinates) : null;
+                        onAddressSelect({
+                          name: 'Current Location',
+                          phone: localStorage.getItem('customerPhone') || '',
+                          address: homePageLocation,
+                          landmark: '',
+                          city: '',
+                          state: '',
+                          pincode: '',
+                          coordinates: coords
+                        });
+                        onClose();
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 text-sm font-medium"
+                    >
+                      DELIVER HERE
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2].map((i) => (
