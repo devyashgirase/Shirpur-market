@@ -65,32 +65,46 @@ const ShirpurAddressSelector = ({ isOpen, onClose, onAddressSelect, homePageLoca
 
   const handleAddressFormSubmit = async (addressData: AddressData) => {
     try {
-      const newAddress: SavedAddress = {
-        ...addressData,
-        id: `addr_${Date.now()}`,
-        type: 'other'
-      };
-
-      // Save to database or localStorage
       const customerPhone = localStorage.getItem('customerPhone');
-      if (customerPhone) {
-        const { supabaseApi } = await import('@/lib/supabase');
-        await supabaseApi.saveCustomerAddress(customerPhone, addressData);
-      } else {
-        const existingAddresses = localStorage.getItem('savedAddresses');
-        const addresses = existingAddresses ? JSON.parse(existingAddresses) : [];
-        addresses.push(newAddress);
-        localStorage.setItem('savedAddresses', JSON.stringify(addresses));
+      
+      // Check for duplicate addresses
+      const existingAddresses = customerPhone 
+        ? await (async () => {
+            const { supabaseApi } = await import('@/lib/supabase');
+            return await supabaseApi.getCustomerAddresses(customerPhone);
+          })()
+        : JSON.parse(localStorage.getItem('savedAddresses') || '[]');
+      
+      const isDuplicate = existingAddresses.some((addr: any) => 
+        addr.address === addressData.address && addr.pincode === addressData.pincode
+      );
+      
+      if (!isDuplicate) {
+        const newAddress: SavedAddress = {
+          ...addressData,
+          id: `addr_${Date.now()}`,
+          type: 'other'
+        };
+
+        // Save to database or localStorage
+        if (customerPhone) {
+          const { supabaseApi } = await import('@/lib/supabase');
+          await supabaseApi.saveCustomerAddress(customerPhone, addressData);
+        } else {
+          const addresses = [...existingAddresses, newAddress];
+          localStorage.setItem('savedAddresses', JSON.stringify(addresses));
+        }
+        
+        toast({
+          title: "Address Saved",
+          description: "Your address has been saved successfully",
+        });
       }
 
       setShowAddressForm(false);
       onAddressSelect(addressData);
       onClose();
       
-      toast({
-        title: "Address Saved",
-        description: "Your address has been saved successfully",
-      });
     } catch (error) {
       console.error('Failed to save address:', error);
       toast({
