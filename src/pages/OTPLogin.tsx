@@ -171,6 +171,12 @@ const OTPLogin = () => {
         // Simple customer session flags
         localStorage.setItem('isCustomerLoggedIn', 'true');
         localStorage.setItem('customerPhone', user.phone);
+        localStorage.setItem('userSession', JSON.stringify({
+          phone: user.phone,
+          name: user.name || 'Customer',
+          role: 'customer',
+          loginTime: new Date().toISOString()
+        }));
         console.log('✅ Customer session created with simple flags');
         
         welcome = {

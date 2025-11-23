@@ -27,12 +27,13 @@ export class DeliveryOrderService {
       console.log('📦 Total orders found:', allOrders.length);
       console.log('🚚 Delivery orders found:', deliveryOrders.length);
       console.log('🚚 Delivery order statuses:', deliveryOrders.map(o => ({ id: o.id, status: o.order_status })));
+      console.log('🏠 Customer addresses:', deliveryOrders.map(o => ({ id: o.id, customer_address: o.customer_address, delivery_address: o.delivery_address })));
       
       return deliveryOrders.map((order: any) => ({
         id: order.id || order.order_id,
         customer_name: order.customer_name,
         customer_phone: order.customer_phone,
-        customer_address: order.customer_address,
+        customer_address: order.customer_address || order.delivery_address,
         items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [],
         total_amount: Number(order.total_amount),
         order_status: order.order_status,

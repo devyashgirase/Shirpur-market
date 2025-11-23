@@ -78,6 +78,15 @@ const AdminOrders: React.FC = () => {
     const success = await AdminOrderService.updateOrderStatusWithNotification(orderId, newStatus);
     if (success) {
       console.log('Order status updated successfully');
+      
+      // Generate OTP when status changes to ready_for_delivery
+      if (newStatus === 'ready_for_delivery') {
+        const deliveryOTP = Math.floor(1000 + Math.random() * 9000).toString();
+        localStorage.setItem(`delivery_otp_${orderId}`, deliveryOTP);
+        const customerPhone = orders.find(o => o.id === orderId)?.customer_phone;
+        alert(`📱 Order ready for delivery! OTP sent to customer ${customerPhone}: ${deliveryOTP}`);
+      }
+      
       // Manually update the order in state
       setOrders(prevOrders => 
         prevOrders.map(order => 

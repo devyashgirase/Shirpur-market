@@ -16,7 +16,9 @@ export class DeliveryDataService {
       if (agentUserId) {
         // Get orders specific to this delivery agent from Supabase
         const { supabaseApi } = await import('./supabase');
-        const agentOrders = await supabaseApi.getOrdersByDeliveryAgent(agentUserId);
+        // Convert string agentUserId to integer if needed, or skip if not numeric
+        const numericAgentId = parseInt(agentUserId);
+        const agentOrders = isNaN(numericAgentId) ? [] : await supabaseApi.getOrdersByDeliveryAgent(numericAgentId);
         console.log(`📦 Agent ${agentUserId} specific orders:`, agentOrders.length);
         
         // Convert Supabase orders to the expected format

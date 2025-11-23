@@ -37,17 +37,22 @@ const DeliveryTracking = () => {
     // Load current order from localStorage
     const order = JSON.parse(localStorage.getItem('currentOrder') || '{}');
     console.log('📦 Current order loaded:', order);
+    console.log('🏠 Customer address fields:', {
+      customer_address: order.customer_address,
+      delivery_address: order.delivery_address,
+      customerAddress: order.customerAddress
+    });
     
     if (order.orderId) {
       // Ensure proper structure with real customer data
       const orderData = {
         orderId: order.orderId,
         customerAddress: {
-          name: order.customerAddress?.name || order.customer_name || '',
-          address: order.customerAddress?.address || order.customer_address || order.delivery_address || '',
-          phone: order.customerAddress?.phone || order.customer_phone || ''
+          name: order.customer_name || order.customerAddress?.name || '',
+          address: order.customer_address || order.customerAddress?.address || order.delivery_address || '',
+          phone: order.customer_phone || order.customerAddress?.phone || ''
         },
-        total: order.total || order.total_amount || 0,
+        total: order.total_amount || order.total || 0,
         items: order.items || []
       };
       

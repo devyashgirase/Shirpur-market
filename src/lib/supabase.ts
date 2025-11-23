@@ -81,7 +81,7 @@ export const supabaseApi = {
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
         total_amount: Number(orderData.total_amount),
-        delivery_address: orderData.customer_address || orderData.delivery_address,
+        customer_address: orderData.customer_address || orderData.delivery_address,
         items: JSON.stringify(orderData.items || []),
         status: 'confirmed',
         order_status: 'confirmed',
@@ -107,10 +107,13 @@ export const supabaseApi = {
 
   async updateOrderStatus(orderId: string, status: string, agentId?: string) {
     try {
+      console.log('📝 Updating order status:', { orderId, status, agentId });
       const updateData: any = { order_status: status };
-      if (agentId) updateData.delivery_agent_id = agentId;
+      if (agentId) updateData.delivery_agent_id = parseInt(agentId);
       
-      return await api.patch('orders', updateData, `id=eq.${orderId}`);
+      const result = await api.patch('orders', updateData, `id=eq.${orderId}`);
+      console.log('✅ Order status updated:', result);
+      return result;
     } catch (error) {
       console.error('Order update failed:', error);
       return false;

@@ -18,6 +18,17 @@ const CustomerCatalogSwiggy = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // Check if coming from home page and preserve any existing cart context
+    const homePageContext = localStorage.getItem('homePageContext');
+    if (homePageContext) {
+      localStorage.removeItem('homePageContext');
+      // Ensure cart is properly initialized for guest users
+      const customerPhone = localStorage.getItem('customerPhone');
+      if (!customerPhone) {
+        localStorage.setItem('customerPhone', 'guest');
+      }
+    }
+    
     const loadCustomerProducts = async () => {
       try {
         setLoading(true);

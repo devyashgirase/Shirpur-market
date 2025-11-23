@@ -103,24 +103,53 @@ const QuickAuthModal = ({ isOpen, onClose, onSuccess }: QuickAuthModalProps) => 
         authService.saveUser(user);
         authService.storeSession(user);
         
+        // Get existing cart items before changing user
+        const { cartService } = await import('@/lib/cartService');
+        const existingCartItems = await cartService.getCartItems();
+        console.log('🛒 Preserving cart items:', existingCartItems.length);
+        
+        // Store cart items temporarily in localStorage
+        if (existingCartItems.length > 0) {
+          localStorage.setItem('tempCartItems', JSON.stringify(existingCartItems));
+        }
+        
         // Set customer phone for cart and orders
         localStorage.setItem('customerPhone', phone);
+        localStorage.setItem('isCustomerLoggedIn', 'true');
+        localStorage.setItem('userSession', JSON.stringify({
+          phone: phone,
+          name: user.name || 'Customer',
+          role: 'customer',
+          loginTime: new Date().toISOString(),
+          expiryTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+        }));
         
-        // Force cart reload to trigger transfer
-        const { cartService } = await import('@/lib/cartService');
-        await cartService.getCartItems(); // This will trigger transfer
+        // Restore cart items from temporary storage
+        const tempCartItems = localStorage.getItem('tempCartItems');
+        if (tempCartItems) {
+          const itemsToRestore = JSON.parse(tempCartItems);
+          
+          // Add each item to new user's cart
+          for (const item of itemsToRestore) {
+            await cartService.addToCart(item.product.id, item.quantity);
+          }
+          
+          // Clear temporary storage
+          localStorage.removeItem('tempCartItems');
+          console.log('✅ Cart items restored for user:', phone);
+        }
         
         // Trigger cart update event
         window.dispatchEvent(new CustomEvent('cartUpdated'));
         
-        // Small delay to ensure cart is updated
+        // Additional update after delay
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('cartUpdated'));
-        }, 500);
+        }, 300);
         
         toast({
           title: "Login Successful",
-          description: "Welcome! Proceeding to checkout...",
+          description: "Welcome! You're now logged in.",
         });
         onSuccess();
       } else {

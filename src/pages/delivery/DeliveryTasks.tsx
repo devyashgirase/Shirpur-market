@@ -12,6 +12,7 @@ import { deliveryCoordinationService, type OrderLocation } from "@/lib/deliveryC
 import { deliveryAuthService } from "@/lib/deliveryAuthService";
 import { supabaseApi } from "@/lib/supabase";
 import { t } from "@/lib/i18n";
+import DeliveryVerification from "@/components/DeliveryVerification";
 
 const DeliveryTasks = () => {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ const DeliveryTasks = () => {
     completionRate: 95,
     completedOrders: 0
   });
+  const [showVerification, setShowVerification] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -48,6 +51,12 @@ const DeliveryTasks = () => {
       
       try {
         const outForDeliveryOrders = await DeliveryOrderService.getDeliveryOrders();
+        console.log('🏠 Order addresses debug:', outForDeliveryOrders.map(o => ({
+          id: o.id,
+          customer_address: o.customer_address,
+          customer_name: o.customer_name,
+          customer_phone: o.customer_phone
+        })));
         setDeliveryOrders(outForDeliveryOrders);
         
         const tasks = await DeliveryDataService.getAvailableDeliveries(agentId);
@@ -80,10 +89,24 @@ const DeliveryTasks = () => {
     if (!agentId) return;
     
     try {
-      await supabaseApi.updateOrderStatus(parseInt(orderId), 'out_for_delivery', agentId);
-      const success = deliveryCoordinationService.acceptOrder(agentId, orderId);
+      console.log('🚚 Accepting order:', orderId, 'by agent:', agentId);
+      const result = await supabaseApi.updateOrderStatus(orderId, 'out_for_delivery', agentId);
+      console.log('📝 Order status update result:', result);
       
-      if (success) {
+      if (result && result.length > 0) {
+        // Refresh the orders list
+        const updatedOrders = await DeliveryOrderService.getDeliveryOrders();
+        setDeliveryOrders(updatedOrders);
+        
+        // Update metrics
+        const newMetrics = {
+          ...metrics,
+          activeTasks: metrics.activeTasks + 1,
+          availableOrders: Math.max(0, metrics.availableOrders - 1)
+        };
+        setMetrics(newMetrics);
+        
+        alert('✅ Order accepted successfully!');
         navigate('/delivery/tracking');
       } else {
         alert('❌ Failed to accept order. Please try again.');
@@ -201,7 +224,7 @@ const DeliveryTasks = () => {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
+                        <h3 className="text-lg font-bold text-gray-800">Order #{String(order.id).slice(-8)}</h3>
                         <Badge className="bg-blue-500 text-white mt-1">
                           <Package className="w-3 h-3 mr-1" />
                           {t('delivery.readyForDelivery')}
@@ -274,11 +297,34 @@ const DeliveryTasks = () => {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-lg font-bold text-gray-800">Order #{order.id.slice(-8)}</h3>
+                        <h3 className="text-lg font-bold text-gray-800">Order #{String(order.id).slice(-8)}</h3>
                         <Badge className="bg-orange-500 text-white mt-1">{t('delivery.outForDelivery')}</Badge>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-orange-600">₹{order.total_amount}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-lg mb-3 border border-gray-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin className="w-5 h-5 text-red-500" />
+                        <span className="font-bold text-gray-800">📋 {t('delivery.customerDetails')}</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">{t('delivery.name')}</span>
+                          <span className="font-semibold text-gray-800">{order.customer_name}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">{t('delivery.address')}</span>
+                          <span className="text-sm text-gray-700 flex-1">{order.customer_address || order.delivery_address || 'Address not available'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">{t('delivery.phone')}</span>
+                          <a href={`tel:${order.customer_phone}`} className="text-sm font-medium text-blue-600 hover:underline">
+                            📞 {order.customer_phone}
+                          </a>
+                        </div>
                       </div>
                     </div>
                     
@@ -294,6 +340,7 @@ const DeliveryTasks = () => {
                             total_amount: order.total_amount,
                             items: order.items
                           };
+                          console.log('🚚 Storing order data for tracking:', orderData);
                           localStorage.setItem('currentOrder', JSON.stringify(orderData));
                           navigate('/delivery/tracking');
                         }}
@@ -303,14 +350,9 @@ const DeliveryTasks = () => {
                       </Button>
                       <Button 
                         className="bg-green-500 hover:bg-green-600 text-white"
-                        onClick={async () => {
-                          const success = await DeliveryOrderService.markAsDelivered(order.id);
-                          if (success) {
-                            setDeliveryOrders(prev => prev.filter(o => o.id !== order.id));
-                            alert('✅ Order delivered!');
-                          } else {
-                            alert('❌ Failed to update order status');
-                          }
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowVerification(true);
                         }}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -323,6 +365,40 @@ const DeliveryTasks = () => {
             </div>
           )}
         </div>
+        
+        {/* Delivery Verification Modal */}
+        {showVerification && selectedOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <DeliveryVerification
+              orderId={selectedOrder.id}
+              customerPhone={selectedOrder.customer_phone}
+              onVerificationSuccess={async () => {
+                const success = await DeliveryOrderService.markAsDelivered(selectedOrder.id);
+                if (success) {
+                  setDeliveryOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+                  
+                  const newMetrics = {
+                    ...metrics,
+                    activeTasks: Math.max(0, metrics.activeTasks - 1),
+                    completedOrders: metrics.completedOrders + 1,
+                    todaysEarnings: metrics.todaysEarnings + selectedOrder.total_amount
+                  };
+                  setMetrics(newMetrics);
+                  
+                  setShowVerification(false);
+                  setSelectedOrder(null);
+                  alert('✅ Order delivered successfully!');
+                } else {
+                  alert('❌ Failed to update order status');
+                }
+              }}
+              onCancel={() => {
+                setShowVerification(false);
+                setSelectedOrder(null);
+              }}
+            />
+          </div>
+        )}
       </div>
   );
 };

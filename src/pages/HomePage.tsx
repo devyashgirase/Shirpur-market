@@ -5,12 +5,14 @@ import { MapPin, Search, ChevronDown, Truck, Clock, Star, Shield, Navigation, Lo
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import "@/styles/swiggy-homepage.css";
+import QuickAuthModal from "@/components/QuickAuthModal";
 
 const HomePage = () => {
   const [location, setLocation] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -37,6 +39,46 @@ const HomePage = () => {
   };
 
   const handleFoodDelivery = () => {
+    // Check multiple session indicators
+    const isLoggedIn = localStorage.getItem('isCustomerLoggedIn');
+    const customerPhone = localStorage.getItem('customerPhone');
+    const userSession = localStorage.getItem('userSession');
+    
+    console.log('🔍 Session check:', { isLoggedIn, customerPhone, userSession });
+    
+    // Check session expiry
+    let sessionValid = false;
+    if (userSession) {
+      try {
+        const sessionData = JSON.parse(userSession);
+        const now = new Date().getTime();
+        const expiry = new Date(sessionData.expiryTime || 0).getTime();
+        sessionValid = now < expiry;
+        if (!sessionValid) {
+          // Clear expired session
+          localStorage.removeItem('userSession');
+          localStorage.removeItem('isCustomerLoggedIn');
+          localStorage.removeItem('customerPhone');
+        }
+      } catch (e) {
+        sessionValid = false;
+      }
+    }
+    
+    // If any valid session exists, allow access
+    if (sessionValid || 
+        (isLoggedIn === 'true' && customerPhone && customerPhone !== 'guest' && customerPhone.length === 10)) {
+      console.log('✅ User already logged in, navigating to customer page');
+      navigate('/customer');
+    } else {
+      console.log('❌ User not logged in, showing auth modal');
+      setShowAuthModal(true);
+    }
+  };
+  
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    // After successful login, navigate to customer page
     navigate('/customer');
   };
 
@@ -162,25 +204,40 @@ const HomePage = () => {
           <span className="text-lg md:text-2xl font-bold text-white">Shirpur Delivery</span>
         </div>
         
-        <nav className="flex items-center space-x-2 md:space-x-4 text-white">
+        <nav className="flex items-center space-x-1 md:space-x-2 text-white">
+          {/* Mobile: Show compact buttons */}
+          <div className="flex lg:hidden items-center space-x-1">
+            <Button 
+              onClick={() => navigate('/delivery/login')}
+              className="bg-white text-orange-500 hover:bg-orange-50 transition-all duration-200 rounded-full px-2 py-1 text-xs whitespace-nowrap font-medium"
+            >
+              Partner
+            </Button>
+            <Button 
+              className="bg-white text-orange-500 hover:bg-orange-50 transition-all duration-200 rounded-full px-2 py-1 text-xs whitespace-nowrap font-medium"
+            >
+              App ↗
+            </Button>
+          </div>
+          
+          {/* Desktop: Show full buttons */}
           <div className="hidden lg:flex items-center space-x-4">
             <Button 
               onClick={() => navigate('/delivery/login')}
-              variant="outline" 
-              className="border-white text-white hover:bg-white hover:text-orange-500 rounded-full px-4 py-2 text-sm whitespace-nowrap"
+              className="bg-white text-orange-500 hover:bg-orange-50 transition-all duration-200 rounded-full px-4 py-2 text-sm whitespace-nowrap font-medium"
             >
               Delivery Partner With Us
             </Button>
             <Button 
-              variant="outline" 
-              className="border-white text-white hover:bg-white hover:text-orange-500 rounded-full px-4 py-2 text-sm whitespace-nowrap"
+              className="bg-white text-orange-500 hover:bg-orange-50 transition-all duration-200 rounded-full px-4 py-2 text-sm whitespace-nowrap font-medium"
             >
               Get the App ↗
             </Button>
           </div>
+          
           <Button 
             onClick={handleGetStarted}
-            className="bg-white text-orange-500 hover:bg-orange-50 rounded-full px-4 md:px-6 py-2 text-sm md:text-base font-semibold whitespace-nowrap"
+            className="bg-white text-orange-500 hover:bg-orange-50 transition-all duration-200 rounded-full px-3 md:px-6 py-2 text-sm md:text-base font-semibold whitespace-nowrap ml-2"
           >
             Sign In
           </Button>
@@ -292,11 +349,11 @@ const HomePage = () => {
           {/* Food Delivery */}
           <div 
             onClick={handleFoodDelivery}
-            className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer hover:bg-orange-50"
+            className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer hover:bg-orange-50 group"
           >
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">FOOD DELIVERY</h3>
-            <p className="text-gray-600 mb-4">FROM RESTAURANTS</p>
-            <p className="text-orange-500 font-bold text-lg mb-6">UPTO 60% OFF</p>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-orange-600 transition-colors duration-200">FOOD DELIVERY</h3>
+            <p className="text-gray-600 mb-4 group-hover:text-gray-700 transition-colors duration-200">FROM RESTAURANTS</p>
+            <p className="text-orange-500 font-bold text-lg mb-6 group-hover:text-orange-600 transition-colors duration-200">UPTO 60% OFF</p>
             <div className="mt-auto">
               <div className="w-full h-32 bg-gradient-to-br from-orange-100 to-red-100 rounded-lg overflow-hidden relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-red-400/20"></div>
@@ -307,11 +364,11 @@ const HomePage = () => {
           {/* Instamart */}
           <div 
             onClick={handleInstamart}
-            className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer hover:bg-green-50"
+            className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer hover:bg-green-50 group"
           >
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">INSTAMART</h3>
-            <p className="text-gray-600 mb-4">INSTANT GROCERY</p>
-            <p className="text-orange-500 font-bold text-lg mb-6">UPTO 60% OFF</p>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-green-600 transition-colors duration-200">INSTAMART</h3>
+            <p className="text-gray-600 mb-4 group-hover:text-gray-700 transition-colors duration-200">INSTANT GROCERY</p>
+            <p className="text-orange-500 font-bold text-lg mb-6 group-hover:text-green-600 transition-colors duration-200">UPTO 60% OFF</p>
             <div className="mt-auto">
               <div className="w-full h-32 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg overflow-hidden relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-blue-400/20"></div>
@@ -322,11 +379,11 @@ const HomePage = () => {
           {/* Dineout */}
           <div 
             onClick={handleDineout}
-            className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer hover:bg-purple-50"
+            className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer hover:bg-purple-50 group"
           >
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">DINEOUT</h3>
-            <p className="text-gray-600 mb-4">EAT OUT & SAVE MORE</p>
-            <p className="text-orange-500 font-bold text-lg mb-6">UPTO 50% OFF</p>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-purple-600 transition-colors duration-200">DINEOUT</h3>
+            <p className="text-gray-600 mb-4 group-hover:text-gray-700 transition-colors duration-200">EAT OUT & SAVE MORE</p>
+            <p className="text-orange-500 font-bold text-lg mb-6 group-hover:text-purple-600 transition-colors duration-200">UPTO 50% OFF</p>
             <div className="mt-auto">
               <div className="w-full h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg overflow-hidden relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20"></div>
@@ -414,6 +471,13 @@ const HomePage = () => {
           </div>
         </div>
       </footer>
+      
+      {/* Authentication Modal */}
+      <QuickAuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 };
