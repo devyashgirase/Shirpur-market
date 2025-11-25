@@ -13,6 +13,7 @@ import QuickAuthModal from "@/components/QuickAuthModal";
 import OrderSuccessModal from "@/components/OrderSuccessModal";
 import { createOrderInSupabase } from "@/lib/orderCreationService";
 import { authService } from "@/lib/authService";
+import { CustomerDataService } from "@/lib/customerDataService";
 
 // Load Razorpay script
 if (!window.Razorpay && !document.querySelector('script[src*="razorpay"]')) {
@@ -62,10 +63,19 @@ const CustomerCart = () => {
       loadCart();
     };
     
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Reload cart when tab becomes visible again
+        loadCart();
+      }
+    };
+    
     window.addEventListener('cartUpdated', handleCartUpdate);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       window.removeEventListener('cartUpdated', handleCartUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -240,22 +250,11 @@ const CustomerCart = () => {
         payment_id: paymentResponse.razorpay_payment_id
       };
       
-      // Store customer phone in localStorage for future use
-      localStorage.setItem('customerPhone', customerPhone);
+
 
       const { supabaseApi } = await import('@/lib/supabase');
       const savedOrder = await supabaseApi.createOrder(orderData);
       console.log('✅ Order saved via Supabase REST API:', savedOrder);
-      
-      // Also save order locally for cross-device backup
-      const localOrders = JSON.parse(localStorage.getItem(`orders_${customerPhone}`) || '[]');
-      localOrders.push(orderData);
-      localStorage.setItem(`orders_${customerPhone}`, JSON.stringify(localOrders));
-      
-      // Save to global orders for admin access
-      const globalOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-      globalOrders.push(orderData);
-      localStorage.setItem('allOrders', JSON.stringify(globalOrders));
       
       // Clear cart
       await cartService.clearCart();
@@ -283,12 +282,24 @@ const CustomerCart = () => {
   };
 
   const getTotalAmount = () => {
-    const subtotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    if (!Array.isArray(cart)) return 4.99;
+    const subtotal = cart.reduce((total, item) => {
+      if (item && item.product && typeof item.product.price === 'number' && typeof item.quantity === 'number') {
+        return total + (item.product.price * item.quantity);
+      }
+      return total;
+    }, 0);
     return subtotal + 4.99 + (subtotal * 0.08);
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    if (!Array.isArray(cart)) return 0;
+    return cart.reduce((total, item) => {
+      if (item && item.product && typeof item.product.price === 'number' && typeof item.quantity === 'number') {
+        return total + (item.product.price * item.quantity);
+      }
+      return total;
+    }, 0);
   };
 
   if (cart.length === 0) {
@@ -318,14 +329,14 @@ const CustomerCart = () => {
           <h1 className="text-xl md:text-3xl font-bold mb-4 md:mb-6">Shopping Cart</h1>
           
           <div className="space-y-2 md:space-y-4">
-            {Array.isArray(cart) && cart.map((item) => (
-              <Card key={item.product.id}>
+            {Array.isArray(cart) && cart.filter(item => item && item.product).map((item) => (
+              <Card key={item.product?.id || Date.now()}>
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center space-x-4">
                     <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                       <img 
-                        src={item.product.image_url || item.product.imageUrl || '/placeholder.svg'} 
-                        alt={item.product.name}
+                        src={item.product?.image_url || item.product?.imageUrl || '/placeholder.svg'} 
+                        alt={item.product?.name || 'Product'}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
@@ -335,9 +346,9 @@ const CustomerCart = () => {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg">{item.product.name}</h3>
+                      <h3 className="font-semibold text-lg">{item.product?.name || 'Unknown Product'}</h3>
                       <p className="text-lg font-bold text-primary mt-1">
-                        ₹{Number(item.product.price || 0).toFixed(2)}
+                        ₹{Number(item.product?.price || 0).toFixed(2)}
                       </p>
                     </div>
                     
@@ -345,7 +356,7 @@ const CustomerCart = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product?.id || '', item.quantity - 1)}
                         disabled={item.quantity <= 1}
                       >
                         <Minus className="w-4 h-4" />
@@ -354,7 +365,7 @@ const CustomerCart = () => {
                       <Input
                         type="number"
                         value={item.quantity}
-                        onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value) || 1)}
+                        onChange={(e) => updateQuantity(item.product?.id || '', parseInt(e.target.value) || 1)}
                         className="w-20 text-center"
                         min="1"
                       />
@@ -362,7 +373,7 @@ const CustomerCart = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product?.id || '', item.quantity + 1)}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -370,12 +381,12 @@ const CustomerCart = () => {
                     
                     <div className="text-right">
                       <p className="text-lg font-bold">
-                        ₹{(Number(item.product.price || 0) * Number(item.quantity || 0)).toFixed(2)}
+                        ₹{(Number(item.product?.price || 0) * Number(item.quantity || 0)).toFixed(2)}
                       </p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeItem(item.product.id)}
+                        onClick={() => removeItem(item.product?.id || '')}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />

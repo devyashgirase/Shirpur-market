@@ -1,5 +1,6 @@
 import { supabaseApi } from './supabase';
 import { authService } from './authService';
+import { CustomerDataService } from './customerDataService';
 
 export interface CartItem {
   id: number;
@@ -24,6 +25,7 @@ class CartService {
         if (!this.transferExecuted) {
           await this.transferGuestCartToUser(user.phone);
         }
+        // Always ensure customerPhone is set in localStorage
         localStorage.setItem('customerPhone', user.phone);
         return user.phone;
       }
@@ -34,6 +36,10 @@ class CartService {
         return customerPhone;
       }
       
+      // Return guest but ensure it's set in localStorage for consistency
+      if (!customerPhone) {
+        localStorage.setItem('customerPhone', 'guest');
+      }
       return 'guest';
     } catch (error) {
       return 'guest';

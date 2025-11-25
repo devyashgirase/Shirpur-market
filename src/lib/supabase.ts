@@ -182,20 +182,19 @@ export const supabaseApi = {
     }
   },
 
-  // Cart functions
+  // Cart functions - localStorage with proper structure
   async getCart(userPhone: string) {
     try {
       const cart = localStorage.getItem(`cart_${userPhone}`);
       const cartData = cart ? JSON.parse(cart) : [];
       
-      // Ensure cart has items array structure
-      if (Array.isArray(cartData)) {
-        return { items: cartData };
-      }
-      
-      return { items: cartData.items || [] };
+      // Ensure proper cart item structure
+      return Array.isArray(cartData) ? cartData.filter(item => 
+        item && item.product && item.product.id && item.product.name && item.quantity
+      ) : [];
     } catch (error) {
-      return { items: [] };
+      console.error('Cart parsing error:', error);
+      return [];
     }
   },
 
@@ -206,9 +205,31 @@ export const supabaseApi = {
       
       if (!product) throw new Error('Product not found');
       
-      const cartData = await this.getCart(userPhone);
-      const cart = cartData.items || [];
-      const existingItem = cart.find((item: any) => item.product.id.toString() === productId.toString());
+      // Get or create customer
+      let customers = await api.get('customers', `phone=eq.${userPhone}`);
+      let customerId = customers[0]?.id;
+      
+      if (!customerId) {
+        const newCustomer = await api.post('customers', {
+          phone: userPhone,
+          name: 'Customer'
+        });
+        customerId = newCustomer[0]?.id;
+      }
+      
+      // Create or update cart entry in user_carts
+      if (customerId) {
+        const existingCart = await api.get('user_carts', `customer_id=eq.${customerId}`);
+        if (existingCart.length === 0) {
+          await api.post('user_carts', {
+            customer_id: customerId
+          });
+        }
+      }
+      
+      // Maintain localStorage cart
+      const cart = await this.getCart(userPhone);
+      const existingItem = cart.find((item: any) => item.product?.id?.toString() === productId.toString());
       
       if (existingItem) {
         existingItem.quantity += quantity;
@@ -218,16 +239,16 @@ export const supabaseApi = {
           product: {
             id: product.id.toString(),
             name: product.name,
-            price: product.price,
-            image_url: product.image_url || '/placeholder.svg'
+            price: Number(product.price),
+            image_url: product.image_url || '/placeholder.svg',
+            imageUrl: product.image_url || '/placeholder.svg'
           },
-          quantity,
-          added_at: new Date().toISOString()
+          quantity: Number(quantity)
         });
       }
       
       localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
-      return { items: cart };
+      return cart;
     } catch (error) {
       throw error;
     }
@@ -235,8 +256,7 @@ export const supabaseApi = {
 
   async updateCartQuantity(userPhone: string, productId: string, quantity: number) {
     try {
-      const cartData = await this.getCart(userPhone);
-      const cart = cartData.items || [];
+      const cart = await this.getCart(userPhone);
       const itemIndex = cart.findIndex((item: any) => item.product.id.toString() === productId.toString());
       
       if (itemIndex >= 0) {
@@ -244,7 +264,7 @@ export const supabaseApi = {
         localStorage.setItem(`cart_${userPhone}`, JSON.stringify(cart));
       }
       
-      return { items: cart };
+      return cart;
     } catch (error) {
       throw error;
     }
@@ -252,11 +272,10 @@ export const supabaseApi = {
 
   async removeFromCart(userPhone: string, productId: string) {
     try {
-      const cartData = await this.getCart(userPhone);
-      const cart = cartData.items || [];
+      const cart = await this.getCart(userPhone);
       const filteredCart = cart.filter((item: any) => item.product.id.toString() !== productId.toString());
       localStorage.setItem(`cart_${userPhone}`, JSON.stringify(filteredCart));
-      return { items: filteredCart };
+      return filteredCart;
     } catch (error) {
       throw error;
     }
@@ -265,7 +284,7 @@ export const supabaseApi = {
   async clearCart(userPhone: string) {
     try {
       localStorage.removeItem(`cart_${userPhone}`);
-      return { items: [] };
+      return [];
     } catch (error) {
       throw error;
     }

@@ -40,11 +40,24 @@ const ShirpurAddressSelector = ({ isOpen, onClose, onAddressSelect, homePageLoca
         // Load from Supabase
         const { supabaseApi } = await import('@/lib/supabase');
         const addresses = await supabaseApi.getCustomerAddresses(customerPhone);
-        setSavedAddresses(addresses || []);
+        
+        // Remove duplicates based on address and pincode
+        const uniqueAddresses = (addresses || []).filter((addr: any, index: number, arr: any[]) => 
+          arr.findIndex(a => a.address === addr.address && a.pincode === addr.pincode) === index
+        );
+        
+        setSavedAddresses(uniqueAddresses);
       } else {
         // Load from localStorage for guest users
         const localAddresses = localStorage.getItem('savedAddresses');
-        setSavedAddresses(localAddresses ? JSON.parse(localAddresses) : []);
+        const addresses = localAddresses ? JSON.parse(localAddresses) : [];
+        
+        // Remove duplicates
+        const uniqueAddresses = addresses.filter((addr: any, index: number, arr: any[]) => 
+          arr.findIndex(a => a.address === addr.address && a.pincode === addr.pincode) === index
+        );
+        
+        setSavedAddresses(uniqueAddresses);
       }
     } catch (error) {
       console.error('Failed to load addresses:', error);

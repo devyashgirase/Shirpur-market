@@ -30,7 +30,7 @@ export class CustomerDataService {
           orderId: order.id,
           status: order.order_status || order.status || 'confirmed',
           total: order.total_amount,
-          items: JSON.parse(order.items || '[]'),
+          items: typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []),
           createdAt: order.created_at,
           deliveryAddress: order.delivery_address,
           customerName: order.customer_name,
@@ -43,32 +43,16 @@ export class CustomerDataService {
     }
   }
 
-  // FORCE: Get products ONLY from Supabase database
+  // Get products from Supabase database
   static async getAvailableProducts(): Promise<ApiProduct[]> {
-    console.log('🔥 CustomerDataService: FORCE clearing all cache and getting Supabase data...');
-    
-    // Preserve user session and customer data while clearing cache
-    const userSession = localStorage.getItem('userSession');
-    const customerPhone = localStorage.getItem('customerPhone');
-    const users = localStorage.getItem('users');
-    
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Restore preserved data
-    if (userSession) localStorage.setItem('userSession', userSession);
-    if (customerPhone) localStorage.setItem('customerPhone', customerPhone);
-    if (users) localStorage.setItem('users', users);
-    
     const products = await supabaseApi.getProducts();
-    console.log('🔥 CustomerDataService: Raw Supabase products:', products);
+    console.log('📦 CustomerDataService: Products loaded:', products?.length || 0);
     
     if (!products || products.length === 0) {
-      console.log('🔥 CustomerDataService: Supabase returned EMPTY - showing 0 products');
       return [];
     }
     
-    const mapped = products.map(p => ({
+    return products.map(p => ({
       id: p.id,
       name: p.name,
       description: p.description || '',
@@ -78,9 +62,6 @@ export class CustomerDataService {
       stockQuantity: Number(p.stock_quantity || 0),
       isActive: Boolean(p.is_available)
     }));
-    
-    console.log('🔥 CustomerDataService: Final mapped products:', mapped.length);
-    return mapped;
   }
 
   // Search products
@@ -125,7 +106,6 @@ export class CustomerDataService {
   static async saveCustomerProfile(customerData: any) {
     try {
       const customer = await supabaseApi.createCustomer(customerData);
-      localStorage.setItem('customerPhone', customer.phone);
       return customer;
     } catch (error) {
       console.error('Failed to save customer profile:', error);

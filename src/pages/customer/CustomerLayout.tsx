@@ -38,11 +38,20 @@ const CustomerLayout = () => {
 
     updateCartCount();
     
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Update cart count when tab becomes visible
+        updateCartCount();
+      }
+    };
+    
     // Listen for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       window.removeEventListener('cartUpdated', updateCartCount);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
