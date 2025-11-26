@@ -11,6 +11,7 @@ import AddressForm, { type AddressData } from "@/components/AddressForm";
 import ShirpurAddressSelector from "@/components/ShirpurAddressSelector";
 import QuickAuthModal from "@/components/QuickAuthModal";
 import OrderSuccessModal from "@/components/OrderSuccessModal";
+import SuccessAlert from "@/components/SuccessAlert";
 import { createOrderInSupabase } from "@/lib/orderCreationService";
 import { authService } from "@/lib/authService";
 import { CustomerDataService } from "@/lib/customerDataService";
@@ -45,6 +46,8 @@ const CustomerCart = () => {
   const [customerAddress, setCustomerAddress] = useState<AddressData | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastOrderId, setLastOrderId] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const loadCart = async () => {
@@ -86,6 +89,13 @@ const CustomerCart = () => {
         const updatedCart = await cartService.getCartItems();
         setSafeCart(updatedCart);
         window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
+        // Show success alert for quantity updates
+        const item = cart.find(item => item.product?.id === productId);
+        if (item) {
+          setSuccessMessage(`${item.product.name} quantity updated to ${newQuantity}`);
+          setShowSuccess(true);
+        }
       }
     } catch (error) {
       console.error('Failed to update quantity:', error);
@@ -471,6 +481,13 @@ const CustomerCart = () => {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         orderId={lastOrderId}
+      />
+      
+      {/* Success Alert */}
+      <SuccessAlert 
+        isVisible={showSuccess}
+        message={successMessage}
+        onClose={() => setShowSuccess(false)}
       />
     </div>
   );

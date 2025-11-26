@@ -8,6 +8,8 @@ import { cartService } from "@/lib/cartService";
 import { CustomerDataService } from "@/lib/customerDataService";
 import { useToast } from "@/hooks/use-toast";
 import BannerCarousel from "@/components/BannerCarousel";
+import ProductDetailModal from "@/components/ProductDetailModal";
+import SuccessAlert from "@/components/SuccessAlert";
 import "@/styles/swiggy-homepage.css";
 
 const CustomerCatalogSwiggy = () => {
@@ -17,6 +19,10 @@ const CustomerCatalogSwiggy = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     // Check if coming from home page and preserve any existing cart context
@@ -77,6 +83,33 @@ const CustomerCatalogSwiggy = () => {
     
     loadCustomerProducts();
   }, []);
+  
+  useEffect(() => {
+    // Listen for category selection from carousel
+    const handleCategorySelected = (event: CustomEvent) => {
+      console.log('Category selected from carousel:', event.detail);
+      setSelectedCategory(event.detail);
+    };
+    
+    // Listen for product selection from carousel
+    const handleProductSelected = (event: CustomEvent) => {
+      console.log('Product selected from carousel:', event.detail);
+      const productId = event.detail;
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        setSelectedProduct(product);
+        setIsProductModalOpen(true);
+      }
+    };
+    
+    window.addEventListener('categorySelected', handleCategorySelected as EventListener);
+    window.addEventListener('productSelected', handleProductSelected as EventListener);
+    
+    return () => {
+      window.removeEventListener('categorySelected', handleCategorySelected as EventListener);
+      window.removeEventListener('productSelected', handleProductSelected as EventListener);
+    };
+  }, [products]);
 
   const filteredProducts = products.filter(p => {
     if (!p || !p.is_active) return false;
@@ -96,10 +129,8 @@ const CustomerCatalogSwiggy = () => {
       try {
         const success = await cartService.addToCart(product.id, 1);
         if (success) {
-          toast({
-            title: "Added to Cart!",
-            description: `${product.name} has been added to your cart`,
-          });
+          setSuccessMessage(`${product.name} has been added to your cart`);
+          setShowSuccess(true);
           window.dispatchEvent(new CustomEvent('cartUpdated'));
         } else {
           toast({
@@ -166,8 +197,29 @@ const CustomerCatalogSwiggy = () => {
             </div>
           </div>
           <div className="flex overflow-x-auto gap-8 pb-4 scrollbar-hide">
+            {/* All Category */}
+            <div 
+              className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform flex-shrink-0"
+              onClick={() => {
+                setSelectedCategory('all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <div className="w-24 h-24 rounded-full overflow-hidden mb-2 bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                <span className="text-3xl">🍽️</span>
+              </div>
+              <p className="text-base font-medium text-gray-700 text-center whitespace-nowrap">All</p>
+            </div>
+            
             {categories.map((category, index) => (
-              <div key={index} className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
+              <div 
+                key={index} 
+                className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform flex-shrink-0"
+                onClick={() => {
+                  setSelectedCategory(category.id);
+                  document.getElementById(`category-${category.id}`)?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
                 <div className="w-24 h-24 rounded-full overflow-hidden mb-2 bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center">
                   <span className="text-3xl">🍽️</span>
                 </div>
@@ -216,88 +268,185 @@ const CustomerCatalogSwiggy = () => {
             </button>
           </div>
 
-          {/* Restaurant Cards - Admin Products */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                {/* Restaurant Image */}
-                <div className="aspect-[4/3] rounded-t-2xl overflow-hidden relative">
-                  <img 
-                    src={product.image_url || '/placeholder.svg'} 
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = `data:image/svg+xml;base64,${btoa(`
-                        <svg width="320" height="240" xmlns="http://www.w3.org/2000/svg">
-                          <rect width="320" height="240" fill="#f3f4f6"/>
-                          <text x="160" y="125" text-anchor="middle" font-size="48">🍽️</text>
-                        </svg>
-                      `)}`;
-                    }}
-                  />
-                  {/* Offer Badge */}
-                  <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
-                    ITEMS AT ₹{product.price}
+          {/* Show products based on selected category */}
+          {selectedCategory === 'all' ? (
+            /* All Products Grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredProducts.map(product => (
+                <div key={product.id} id={`product-${product.id}`} className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                  {/* Restaurant Image */}
+                  <div className="aspect-[4/3] rounded-t-2xl overflow-hidden relative">
+                    <img 
+                      src={product.image_url || '/placeholder.svg'} 
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = `data:image/svg+xml;base64,${btoa(`
+                          <svg width="320" height="240" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="320" height="240" fill="#f3f4f6"/>
+                            <text x="160" y="125" text-anchor="middle" font-size="48">🍽️</text>
+                          </svg>
+                        `)}`;
+                      }}
+                    />
+                    {/* Offer Badge */}
+                    <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
+                      ITEMS AT ₹{product.price}
+                    </div>
+                    {/* Rating Badge */}
+                    <div className="absolute top-3 right-3 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-current" />
+                      4.{Math.floor(Math.random() * 5) + 1}
+                    </div>
+                    {/* Quick Add Button */}
+                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Button 
+                        onClick={() => handleAddToCart(product)}
+                        size="sm"
+                        className="bg-white text-green-600 hover:bg-green-50 font-bold shadow-lg"
+                      >
+                        ADD
+                      </Button>
+                    </div>
                   </div>
-                  {/* Rating Badge */}
-                  <div className="absolute top-3 right-3 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-current" />
-                    4.{Math.floor(Math.random() * 5) + 1}
-                  </div>
-                  {/* Quick Add Button */}
-                  <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Button 
-                      onClick={() => handleAddToCart(product)}
-                      size="sm"
-                      className="bg-white text-green-600 hover:bg-green-50 font-bold shadow-lg"
-                    >
-                      ADD
-                    </Button>
+                  
+                  {/* Restaurant Info */}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{product.name}</h3>
+                      <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 cursor-pointer transition-colors" />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-green-600 fill-current" />
+                        <span className="text-sm font-medium">4.{Math.floor(Math.random() * 5) + 1}</span>
+                      </div>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-sm text-gray-600">{Math.floor(Math.random() * 20) + 25}-{Math.floor(Math.random() * 20) + 35} mins</span>
+                    </div>
+                    
+                    <p className="text-gray-600 text-sm line-clamp-1 mb-3">
+                      {product.description || `${getCategoryName(product.category_id)}, Indian, Fast Food`}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-gray-800">₹{product.price}</span>
+                        <span className="text-sm text-gray-500">for one</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {product.stock_qty > 0 ? `${product.stock_qty} available` : 'Limited stock'}
+                      </div>
+                    </div>
+                    
+                    {/* Offers */}
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-1 text-orange-600">
+                        <span className="text-xs font-bold">🏷️ OFFERS</span>
+                        <span className="text-xs">20% off up to ₹50</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Restaurant Info */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{product.name}</h3>
-                    <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 cursor-pointer transition-colors" />
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-green-600 fill-current" />
-                      <span className="text-sm font-medium">4.{Math.floor(Math.random() * 5) + 1}</span>
-                    </div>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-sm text-gray-600">{Math.floor(Math.random() * 20) + 25}-{Math.floor(Math.random() * 20) + 35} mins</span>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm line-clamp-1 mb-3">
-                    {product.description || `${getCategoryName(product.category_id)}, Indian, Fast Food`}
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-gray-800">₹{product.price}</span>
-                      <span className="text-sm text-gray-500">for one</span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {product.stock_qty > 0 ? `${product.stock_qty} available` : 'Limited stock'}
-                    </div>
-                  </div>
-                  
-                  {/* Offers */}
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-1 text-orange-600">
-                      <span className="text-xs font-bold">🏷️ OFFERS</span>
-                      <span className="text-xs">20% off up to ₹50</span>
-                    </div>
+              ))}
+            </div>
+          ) : (
+            /* Category Sections */
+            categories.map(category => {
+              const categoryProducts = filteredProducts.filter(p => p.category_id === category.id);
+              if (categoryProducts.length === 0) return null;
+              
+              return (
+                <div key={category.id} id={`category-${category.id}`} className="mb-12">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">{category.name}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {categoryProducts.map(product => (
+                      <div key={product.id} id={`product-${product.id}`} className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                        {/* Restaurant Image */}
+                        <div className="aspect-[4/3] rounded-t-2xl overflow-hidden relative">
+                          <img 
+                            src={product.image_url || '/placeholder.svg'} 
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = `data:image/svg+xml;base64,${btoa(`
+                                <svg width="320" height="240" xmlns="http://www.w3.org/2000/svg">
+                                  <rect width="320" height="240" fill="#f3f4f6"/>
+                                  <text x="160" y="125" text-anchor="middle" font-size="48">🍽️</text>
+                                </svg>
+                              `)}`;
+                            }}
+                          />
+                          {/* Offer Badge */}
+                          <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
+                            ITEMS AT ₹{product.price}
+                          </div>
+                          {/* Rating Badge */}
+                          <div className="absolute top-3 right-3 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-current" />
+                            4.{Math.floor(Math.random() * 5) + 1}
+                          </div>
+                          {/* Quick Add Button */}
+                          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Button 
+                              onClick={() => handleAddToCart(product)}
+                              size="sm"
+                              className="bg-white text-green-600 hover:bg-green-50 font-bold shadow-lg"
+                            >
+                              ADD
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* Restaurant Info */}
+                        <div className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{product.name}</h3>
+                            <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 cursor-pointer transition-colors" />
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 text-green-600 fill-current" />
+                              <span className="text-sm font-medium">4.{Math.floor(Math.random() * 5) + 1}</span>
+                            </div>
+                            <span className="text-gray-400">•</span>
+                            <span className="text-sm text-gray-600">{Math.floor(Math.random() * 20) + 25}-{Math.floor(Math.random() * 20) + 35} mins</span>
+                          </div>
+                          
+                          <p className="text-gray-600 text-sm line-clamp-1 mb-3">
+                            {product.description || `${getCategoryName(product.category_id)}, Indian, Fast Food`}
+                          </p>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-gray-800">₹{product.price}</span>
+                              <span className="text-sm text-gray-500">for one</span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {product.stock_qty > 0 ? `${product.stock_qty} available` : 'Limited stock'}
+                            </div>
+                          </div>
+                          
+                          {/* Offers */}
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="flex items-center gap-1 text-orange-600">
+                              <span className="text-xs font-bold">🏷️ OFFERS</span>
+                              <span className="text-xs">20% off up to ₹50</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              );
+            })
+          )}
+          
           
           {filteredProducts.length === 0 && !loading && (
             <div className="text-center py-12">
@@ -310,6 +459,23 @@ const CustomerCatalogSwiggy = () => {
           )}
         </div>
       </section>
+      
+      {/* Product Detail Modal */}
+      <ProductDetailModal 
+        product={selectedProduct}
+        isOpen={isProductModalOpen}
+        onClose={() => {
+          setIsProductModalOpen(false);
+          setSelectedProduct(null);
+        }}
+      />
+      
+      {/* Success Alert */}
+      <SuccessAlert 
+        isVisible={showSuccess}
+        message={successMessage}
+        onClose={() => setShowSuccess(false)}
+      />
     </div>
   );
 };

@@ -42,7 +42,7 @@ const BannerCarousel = () => {
       setBanners(carouselBanners || []);
     } catch (error) {
       console.error('Failed to load carousel banners:', error);
-      setBanners([]);
+      setBanners([]); // Show default banner on error
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ const BannerCarousel = () => {
 
   if (loading) {
     return (
-      <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden bg-gray-200 animate-pulse">
+      <div className="relative w-full h-56 md:h-72 lg:h-96 overflow-hidden bg-gray-200 animate-pulse">
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-gray-500">Loading banners...</div>
         </div>
@@ -68,7 +68,7 @@ const BannerCarousel = () => {
 
   if (banners.length === 0) {
     return (
-      <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600">
+      <div className="relative w-full h-56 md:h-72 lg:h-96 overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600">
         <div className="w-full h-full flex items-center justify-center text-white">
           <div className="text-center px-4">
             <h2 className="text-2xl md:text-4xl font-bold mb-2">Welcome to Shirpur Delivery</h2>
@@ -80,7 +80,7 @@ const BannerCarousel = () => {
   }
 
   return (
-    <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden mx-auto max-w-full">
+    <div className="relative w-full h-56 md:h-72 lg:h-96 overflow-hidden mx-auto max-w-full">
       {banners.map((banner, index) => (
         <div
           key={banner.id}
@@ -90,13 +90,40 @@ const BannerCarousel = () => {
               : 'opacity-0 transform translate-x-full'
           }`}
         >
-          <div className="w-full h-full relative">
+          <div 
+            className="w-full h-full relative cursor-pointer"
+            onClick={() => {
+              console.log('Banner clicked:', banner.link_url);
+              if (banner.link_url) {
+                if (banner.link_url.startsWith('product:')) {
+                  const productId = banner.link_url.replace('product:', '');
+                  console.log('Opening product modal:', productId);
+                  window.dispatchEvent(new CustomEvent('productSelected', { detail: productId }));
+                } else if (banner.link_url.includes('/product/')) {
+                  const productId = banner.link_url.split('/product/')[1];
+                  console.log('Opening product modal:', productId);
+                  window.dispatchEvent(new CustomEvent('productSelected', { detail: productId }));
+                } else if (banner.link_url.startsWith('category:')) {
+                  const categoryId = banner.link_url.replace('category:', '');
+                  console.log('Setting category:', categoryId);
+                  window.dispatchEvent(new CustomEvent('categorySelected', { detail: categoryId }));
+                  setTimeout(() => {
+                    document.getElementById(`category-${categoryId}`)?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                } else {
+                  console.log('Unknown link format:', banner.link_url);
+                }
+              } else {
+                console.log('No link_url found for banner');
+              }
+            }}
+          >
             {banner.image_url ? (
               <>
                 <img 
                   src={banner.image_url} 
                   alt={banner.title}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/placeholder.svg';
