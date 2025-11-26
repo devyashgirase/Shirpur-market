@@ -440,6 +440,78 @@ export const supabaseApi = {
       console.error('Failed to update agent location:', error);
       return null;
     }
+  },
+
+  // Carousel banner functions
+  async getCarouselBanners() {
+    try {
+      const banners = await api.get('carousel_banners', 'is_active=eq.true&order=display_order.asc');
+      return banners || [];
+    } catch (error) {
+      console.error('Failed to get carousel banners:', error);
+      return [];
+    }
+  },
+
+  async createCarouselBanner(bannerData: any) {
+    try {
+      const result = await api.post('carousel_banners', {
+        title: bannerData.title,
+        description: bannerData.description || null,
+        image_url: bannerData.imageUrl || bannerData.image_url,
+        link_url: bannerData.linkUrl || bannerData.link_url || null,
+        is_active: bannerData.isActive !== false,
+        display_order: Number(bannerData.displayOrder || bannerData.display_order || 0)
+      });
+      console.log('✅ Carousel banner created:', result);
+      return result[0] || result;
+    } catch (error) {
+      console.error('❌ Failed to create carousel banner:', error);
+      return null;
+    }
+  },
+
+  async updateCarouselBanner(id: number, updates: any) {
+    try {
+      const updateData: any = {};
+      if (updates.title) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.imageUrl || updates.image_url) updateData.image_url = updates.imageUrl || updates.image_url;
+      if (updates.linkUrl || updates.link_url) updateData.link_url = updates.linkUrl || updates.link_url;
+      if (updates.isActive !== undefined) updateData.is_active = Boolean(updates.isActive);
+      if (updates.displayOrder !== undefined || updates.display_order !== undefined) {
+        updateData.display_order = Number(updates.displayOrder || updates.display_order);
+      }
+      
+      const result = await api.patch('carousel_banners', updateData, `id=eq.${id}`);
+      console.log('✅ Carousel banner updated:', result);
+      return result[0] || result;
+    } catch (error) {
+      console.error('❌ Failed to update carousel banner:', error);
+      return null;
+    }
+  },
+
+  async deleteCarouselBanner(id: number) {
+    try {
+      const result = await api.patch('carousel_banners', { is_active: false }, `id=eq.${id}`);
+      console.log('✅ Carousel banner deactivated:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to delete carousel banner:', error);
+      return null;
+    }
+  },
+
+  async deleteProduct(id: number) {
+    try {
+      const result = await api.request(`products?id=eq.${id}`, { method: 'DELETE' });
+      console.log('✅ Product deleted from database:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to delete product:', error);
+      return null;
+    }
   }
 };
 

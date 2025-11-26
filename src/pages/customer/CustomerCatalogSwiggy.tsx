@@ -7,6 +7,7 @@ import { type Product } from "@/lib/mockData";
 import { cartService } from "@/lib/cartService";
 import { CustomerDataService } from "@/lib/customerDataService";
 import { useToast } from "@/hooks/use-toast";
+import BannerCarousel from "@/components/BannerCarousel";
 import "@/styles/swiggy-homepage.css";
 
 const CustomerCatalogSwiggy = () => {
@@ -147,6 +148,8 @@ const CustomerCatalogSwiggy = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Full Width Banner Carousel */}
+      <BannerCarousel />
 
       {/* What's on your mind Section */}
       <section className="bg-white py-8">
@@ -163,32 +166,12 @@ const CustomerCatalogSwiggy = () => {
             </div>
           </div>
           <div className="flex overflow-x-auto gap-8 pb-4 scrollbar-hide">
-            {[
-              { name: 'Pizzas', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029856/PC_Creative%20refresh/3D_bau/banners_new/Pizza.png' },
-              { name: 'Biryani', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1675667625/PC_Creative%20refresh/Biryani_2.png' },
-              { name: 'North Indian', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029845/PC_Creative%20refresh/3D_bau/banners_new/Noodles.png' },
-              { name: 'Burgers', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029845/PC_Creative%20refresh/3D_bau/banners_new/Burger.png' },
-              { name: 'Chinese', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029848/PC_Creative%20refresh/3D_bau/banners_new/Chinese.png' },
-              { name: 'Dosa', image: 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_288,h_360/v1674029853/PC_Creative%20refresh/3D_bau/banners_new/Dosa.png' }
-            ].map((item, index) => (
+            {categories.map((category, index) => (
               <div key={index} className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
-                <div className="w-24 h-24 rounded-full overflow-hidden mb-2">
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = `data:image/svg+xml;base64,${btoa(`
-                        <svg width="96" height="96" xmlns="http://www.w3.org/2000/svg">
-                          <rect width="96" height="96" fill="#f3f4f6"/>
-                          <text x="48" y="55" text-anchor="middle" font-size="32">🍽️</text>
-                        </svg>
-                      `)}`;
-                    }}
-                  />
+                <div className="w-24 h-24 rounded-full overflow-hidden mb-2 bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center">
+                  <span className="text-3xl">🍽️</span>
                 </div>
-                <p className="text-base font-medium text-gray-700 text-center whitespace-nowrap">{item.name}</p>
+                <p className="text-base font-medium text-gray-700 text-center whitespace-nowrap">{category.name}</p>
               </div>
             ))}
           </div>

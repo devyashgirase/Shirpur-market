@@ -37,6 +37,30 @@ const AdminCarousel = () => {
 
   const loadCarouselItems = async () => {
     try {
+      // Load from Supabase database first
+      const { supabaseApi } = await import('@/lib/supabase');
+      const banners = await supabaseApi.getCarouselBanners();
+      
+      if (banners && banners.length > 0) {
+        const items = banners.map((banner: any) => ({
+          id: banner.id,
+          productId: 1, // Default product ID
+          productName: banner.title,
+          title: banner.title,
+          description: banner.description || '',
+          imageUrl: banner.image_url,
+          price: 0, // Default price
+          isActive: banner.is_active,
+          order: banner.display_order
+        }));
+        
+        items.sort((a: CarouselItem, b: CarouselItem) => a.order - b.order);
+        setCarouselItems(items);
+        console.log('✅ Admin: Carousel loaded from Supabase:', items.length, 'items');
+        return;
+      }
+      
+      // Fallback to localStorage
       const saved = localStorage.getItem('carouselItems');
       if (saved) {
         const items = JSON.parse(saved);
@@ -89,15 +113,32 @@ const AdminCarousel = () => {
 
   const saveCarouselItems = async (items: CarouselItem[]) => {
     try {
-      // Save to localStorage as primary storage
+      // Save to Supabase database
+      const { supabaseApi } = await import('@/lib/supabase');
+      
+      // Save each item to database
+      for (const item of items) {
+        if (item.id && item.id > 1000000000000) { // New items have timestamp IDs
+          await supabaseApi.createCarouselBanner({
+            title: item.title,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            linkUrl: `/customer/product/${item.productId}`,
+            isActive: item.isActive,
+            displayOrder: item.order
+          });
+        }
+      }
+      
+      // Also save to localStorage as backup
       localStorage.setItem('carouselItems', JSON.stringify(items));
       setCarouselItems(items);
       
       // Trigger event for customer carousel to update
       window.dispatchEvent(new CustomEvent('carouselUpdated', { detail: items }));
       
-      console.log('✅ Carousel saved to localStorage:', items.length, 'items');
-      toast({ title: "Carousel updated successfully", description: "Changes will be visible to customers" });
+      console.log('✅ Carousel saved to Supabase database:', items.length, 'items');
+      toast({ title: "Carousel updated successfully", description: "Changes saved to database and visible to customers" });
     } catch (error) {
       console.error('Error saving carousel items:', error);
       toast({ title: "Error saving carousel items", variant: "destructive" });
@@ -120,10 +161,24 @@ const AdminCarousel = () => {
     setShowForm(false);
   };
 
-  const handleDelete = (id: number) => {
-    const updated = carouselItems.filter(i => i.id !== id);
-    saveCarouselItems(updated);
-    toast({ title: "Carousel item deleted" });
+  const handleDelete = async (id: number) => {
+    try {
+      // Delete from Supabase database
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.deleteCarouselBanner(id);
+      
+      // Update local state
+      const updated = carouselItems.filter(i => i.id !== id);
+      setCarouselItems(updated);
+      
+      // Also update localStorage
+      localStorage.setItem('carouselItems', JSON.stringify(updated));
+      
+      toast({ title: "Carousel item deleted from database" });
+    } catch (error) {
+      console.error('Failed to delete carousel item:', error);
+      toast({ title: "Error deleting carousel item", variant: "destructive" });
+    }
   };
 
   const toggleActive = (id: number) => {

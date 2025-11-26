@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Upload, X, Search } from "lucide-react";
+import { Package, Plus, Upload, X, Search, Trash2 } from "lucide-react";
 import { ProductCardSkeleton } from "@/components/LoadingSkeleton";
 import { AdminDataService } from "@/lib/adminDataService";
 import { apiService } from "@/lib/apiService";
@@ -226,6 +226,45 @@ const AdminProducts = () => {
       toast({
         title: "Database Error",
         description: "Failed to update product status in database.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`);
+    
+    if (!confirmed) return;
+    
+    try {
+      console.log('🗑️ Deleting product from database:', productId);
+      
+      // Delete from Supabase
+      const { supabaseApi } = await import('@/lib/supabase');
+      await supabaseApi.deleteProduct(parseInt(productId));
+      
+      // Update local state
+      const updatedProducts = products.filter(p => p.id !== productId);
+      setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts.filter(product => 
+        !searchQuery.trim() || 
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      ));
+      
+      // Trigger customer catalog refresh
+      window.dispatchEvent(new CustomEvent('productsUpdated', { detail: updatedProducts }));
+      
+      toast({
+        title: "Product Deleted",
+        description: `${productName} has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error('❌ Failed to delete product:', error);
+      toast({
+        title: "Database Error",
+        description: "Failed to delete product from database.",
         variant: "destructive"
       });
     }
@@ -511,6 +550,13 @@ const AdminProducts = () => {
                     className="flex-1"
                   >
                     {product.isActive ? "Disable" : "Enable"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteProduct(product.id, product.name)}
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
