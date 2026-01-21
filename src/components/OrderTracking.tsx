@@ -9,6 +9,7 @@ interface OrderTrackingProps {
   orderId: string;
   isOpen: boolean;
   onClose: () => void;
+  userType?: 'customer' | 'admin';
 }
 
 interface DeliveryAgent {
@@ -29,10 +30,11 @@ interface Order {
 }
 
 // Simple map component without external dependencies
-const SimpleMap = ({ customerLocation, agentLocation, deliveryAgent }: {
+const SimpleMap = ({ customerLocation, agentLocation, deliveryAgent, userType = 'customer' }: {
   customerLocation: [number, number];
   agentLocation?: [number, number];
   deliveryAgent?: DeliveryAgent;
+  userType?: 'customer' | 'admin';
 }) => {
   const distance = agentLocation ? 
     Math.sqrt(
@@ -41,74 +43,120 @@ const SimpleMap = ({ customerLocation, agentLocation, deliveryAgent }: {
     ) * 111 : 0; // Rough km conversion
 
   return (
-    <div className="relative bg-gradient-to-br from-blue-50 to-green-50 rounded-lg overflow-hidden h-96 flex items-center justify-center">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
-          {Array.from({ length: 64 }).map((_, i) => (
-            <div key={i} className="border border-gray-300"></div>
+    <div className="relative bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden h-96 border-2 border-gray-200">
+      {/* Background grid pattern */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="grid grid-cols-10 grid-rows-10 h-full w-full">
+          {Array.from({ length: 100 }).map((_, i) => (
+            <div key={i} className="border border-gray-400"></div>
           ))}
         </div>
       </div>
       
+      {/* Map Title */}
+      <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md z-10">
+        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-blue-500" />
+          {userType === 'admin' ? 'Admin Live Tracking' : 'Live Tracking'}
+        </h3>
+      </div>
+      
+      {/* Admin-only coordinates display */}
+      {userType === 'admin' && (
+        <div className="absolute top-4 right-4 bg-white px-3 py-2 rounded-lg shadow-md z-10 text-xs">
+          <div className="font-medium text-gray-800 mb-1">📍 Coordinates</div>
+          <div className="text-gray-600">
+            <div>Customer: {customerLocation[0].toFixed(4)}, {customerLocation[1].toFixed(4)}</div>
+            {agentLocation && (
+              <div>Agent: {agentLocation[0].toFixed(4)}, {agentLocation[1].toFixed(4)}</div>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Customer Location */}
-      <div className="absolute top-1/4 left-1/3 transform -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute top-1/4 left-1/3 transform -translate-x-1/2 -translate-y-1/2 z-20">
         <div className="relative">
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold animate-pulse">
+          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl shadow-lg animate-pulse border-4 border-white">
             🏠
           </div>
-          <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow text-xs whitespace-nowrap">
-            Your Location
+          <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow text-xs font-medium whitespace-nowrap">
+            {userType === 'admin' ? 'Customer Location' : 'Your Location'}
           </div>
+          {/* Ripple effect */}
+          <div className="absolute inset-0 w-12 h-12 bg-blue-400 rounded-full animate-ping opacity-30"></div>
         </div>
       </div>
       
       {/* Delivery Agent Location */}
       {agentLocation && (
-        <div className="absolute top-3/4 right-1/3 transform translate-x-1/2 -translate-y-1/2">
+        <div className="absolute top-3/4 right-1/4 transform translate-x-1/2 -translate-y-1/2 z-20">
           <div className="relative">
-            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold animate-bounce">
+            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xl shadow-lg animate-bounce border-4 border-white">
               🚚
             </div>
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow text-xs whitespace-nowrap">
-              {deliveryAgent?.name}
+            <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-3 py-1 rounded-full shadow text-xs font-medium whitespace-nowrap">
+              {deliveryAgent?.name || 'Delivery Partner'}
             </div>
+            {/* Movement indicator */}
+            <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
           </div>
         </div>
       )}
       
       {/* Route Line */}
       {agentLocation && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
           <defs>
-            <pattern id="dashed" patternUnits="userSpaceOnUse" width="10" height="2">
-              <rect width="5" height="2" fill="#3B82F6" />
-              <rect x="5" width="5" height="2" fill="transparent" />
+            <pattern id="dashed-line" patternUnits="userSpaceOnUse" width="20" height="4">
+              <rect width="10" height="4" fill="#3B82F6" />
+              <rect x="10" width="10" height="4" fill="transparent" />
             </pattern>
           </defs>
           <line 
             x1="33%" y1="25%" 
-            x2="67%" y2="75%" 
-            stroke="url(#dashed)" 
-            strokeWidth="3"
+            x2="75%" y2="75%" 
+            stroke="url(#dashed-line)" 
+            strokeWidth="4"
+            className="animate-pulse"
+          />
+          {/* Arrow indicator */}
+          <polygon 
+            points="70,290 80,285 80,295" 
+            fill="#3B82F6" 
             className="animate-pulse"
           />
         </svg>
       )}
       
-      {/* Distance Info */}
-      {agentLocation && (
-        <div className="absolute bottom-4 left-4 bg-white px-3 py-2 rounded-lg shadow">
+      {/* Distance and ETA Info */}
+      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+        <div className="bg-white px-4 py-2 rounded-lg shadow-md">
           <div className="text-sm font-medium text-gray-800">
-            Distance: ~{distance.toFixed(1)} km
+            📍 Distance: ~{distance.toFixed(1)} km
           </div>
         </div>
-      )}
+        
+        {agentLocation && (
+          <div className="bg-green-500 text-white px-4 py-2 rounded-lg shadow-md">
+            <div className="text-sm font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              ETA: {Math.max(1, Math.round(distance * 2))} min
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Live indicator */}
+      <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
+        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+        LIVE
+      </div>
     </div>
   );
 };
 
-const OrderTracking = ({ orderId, isOpen, onClose }: OrderTrackingProps) => {
+const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: OrderTrackingProps) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [deliveryAgent, setDeliveryAgent] = useState<DeliveryAgent | null>(null);
   const [customerLocation, setCustomerLocation] = useState<[number, number] | null>(null);
@@ -145,25 +193,28 @@ const OrderTracking = ({ orderId, isOpen, onClose }: OrderTrackingProps) => {
         const customerCoords = await geocodeAddress(currentOrder.customer_address);
         setCustomerLocation(customerCoords);
         
-        // Get delivery agent if assigned
-        if (currentOrder.delivery_agent_id) {
-          const agents = await supabaseApi.getDeliveryAgents();
-          const agent = agents.find(a => a.id === currentOrder.delivery_agent_id);
+        // For demo: Always show a delivery agent if order is trackable
+        if (['ready_for_delivery', 'out_for_delivery'].includes(currentOrder.order_status)) {
+          // Create demo delivery agent
+          const demoAgent: DeliveryAgent = {
+            id: 1,
+            name: 'Rahul Kumar',
+            phone: '+91 98765 43210',
+            current_lat: customerCoords[0] + 0.005, // Slightly offset from customer
+            current_lng: customerCoords[1] + 0.008,
+            last_updated: new Date().toISOString()
+          };
           
-          if (agent && agent.current_lat && agent.current_lng) {
-            setDeliveryAgent(agent);
-            setAgentLocation([agent.current_lat, agent.current_lng]);
-            
-            // Calculate estimated delivery time
-            if (customerCoords) {
-              const distance = calculateDistance(
-                [agent.current_lat, agent.current_lng],
-                customerCoords
-              );
-              const estimatedMinutes = Math.round(distance * 2); // 2 minutes per km
-              setEstimatedTime(`${estimatedMinutes} minutes`);
-            }
-          }
+          setDeliveryAgent(demoAgent);
+          setAgentLocation([demoAgent.current_lat, demoAgent.current_lng]);
+          
+          // Calculate estimated delivery time
+          const distance = calculateDistance(
+            [demoAgent.current_lat, demoAgent.current_lng],
+            customerCoords
+          );
+          const estimatedMinutes = Math.round(distance * 2); // 2 minutes per km
+          setEstimatedTime(`${estimatedMinutes} minutes`);
         }
       }
     } catch (error) {
@@ -176,25 +227,33 @@ const OrderTracking = ({ orderId, isOpen, onClose }: OrderTrackingProps) => {
   const startLocationTracking = () => {
     // Update delivery agent location every 10 seconds
     intervalRef.current = setInterval(async () => {
-      if (order?.delivery_agent_id) {
+      if (deliveryAgent && customerLocation) {
         try {
-          const agents = await supabaseApi.getDeliveryAgents();
-          const agent = agents.find(a => a.id === order.delivery_agent_id);
+          // Simulate agent movement towards customer
+          const currentLat = deliveryAgent.current_lat;
+          const currentLng = deliveryAgent.current_lng;
+          const targetLat = customerLocation[0];
+          const targetLng = customerLocation[1];
           
-          if (agent && agent.current_lat && agent.current_lng) {
-            setDeliveryAgent(agent);
-            setAgentLocation([agent.current_lat, agent.current_lng]);
-            
-            // Update estimated time
-            if (customerLocation) {
-              const distance = calculateDistance(
-                [agent.current_lat, agent.current_lng],
-                customerLocation
-              );
-              const estimatedMinutes = Math.round(distance * 2);
-              setEstimatedTime(`${estimatedMinutes} minutes`);
-            }
-          }
+          // Move agent slightly towards customer
+          const newLat = currentLat + (targetLat - currentLat) * 0.1;
+          const newLng = currentLng + (targetLng - currentLng) * 0.1;
+          
+          const updatedAgent = {
+            ...deliveryAgent,
+            current_lat: newLat,
+            current_lng: newLng,
+            last_updated: new Date().toISOString()
+          };
+          
+          setDeliveryAgent(updatedAgent);
+          setAgentLocation([newLat, newLng]);
+          
+          // Update estimated time
+          const distance = calculateDistance([newLat, newLng], customerLocation);
+          const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+          setEstimatedTime(`${estimatedMinutes} minutes`);
+          
         } catch (error) {
           console.error('Failed to update agent location:', error);
         }
@@ -319,13 +378,13 @@ const OrderTracking = ({ orderId, isOpen, onClose }: OrderTrackingProps) => {
                 </Card>
               )}
 
-              {/* Live Map */}
+      {/* Live Map */}
               {customerLocation && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MapPin className="w-5 h-5" />
-                      Live Tracking
+                      Live Tracking {userType === 'admin' && '- Admin View'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -334,13 +393,14 @@ const OrderTracking = ({ orderId, isOpen, onClose }: OrderTrackingProps) => {
                         customerLocation={customerLocation}
                         agentLocation={agentLocation}
                         deliveryAgent={deliveryAgent}
+                        userType={userType}
                       />
                     </div>
                     
                     <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span>Your Location</span>
+                        <span>Customer Location</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -351,6 +411,55 @@ const OrderTracking = ({ orderId, isOpen, onClose }: OrderTrackingProps) => {
                         <span>Route</span>
                       </div>
                     </div>
+                    
+                    {/* Admin-only detailed info */}
+                    {userType === 'admin' && deliveryAgent && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold mb-3 text-gray-800">📍 Detailed Location Information</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <h5 className="font-medium text-gray-700 mb-2">🏠 Customer Details:</h5>
+                            <div className="space-y-1 text-gray-600">
+                              <p><strong>Address:</strong> {order?.customer_address}</p>
+                              <p><strong>Coordinates:</strong> {customerLocation[0].toFixed(6)}, {customerLocation[1].toFixed(6)}</p>
+                              <p><strong>Area:</strong> Shirpur, Maharashtra</p>
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-gray-700 mb-2">🚚 Delivery Agent Details:</h5>
+                            <div className="space-y-1 text-gray-600">
+                              <p><strong>Name:</strong> {deliveryAgent.name}</p>
+                              <p><strong>Phone:</strong> {deliveryAgent.phone}</p>
+                              <p><strong>Current Location:</strong> {agentLocation?.[0].toFixed(6)}, {agentLocation?.[1].toFixed(6)}</p>
+                              <p><strong>Last Updated:</strong> {new Date(deliveryAgent.last_updated).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Route Information */}
+                        <div className="mt-4 p-3 bg-blue-50 rounded">
+                          <h5 className="font-medium text-blue-800 mb-2">🛣️ Route Information:</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-blue-700">
+                            <div>
+                              <span className="font-medium">Distance:</span><br />
+                              <span>{agentLocation ? calculateDistance(agentLocation, customerLocation).toFixed(2)} km</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">ETA:</span><br />
+                              <span>{estimatedTime}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Speed:</span><br />
+                              <span>~15 km/h</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Status:</span><br />
+                              <span className="text-green-600 font-medium">Moving</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

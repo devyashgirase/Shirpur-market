@@ -65,7 +65,7 @@ const CustomerOrders = () => {
   };
 
   const canTrackOrder = (status: string) => {
-    return ['ready_for_delivery', 'out_for_delivery'].includes(status);
+    return ['confirmed', 'preparing', 'ready_for_delivery', 'out_for_delivery'].includes(status);
   };
 
   const handleTrackOrder = (orderId: string) => {
@@ -169,10 +169,10 @@ const CustomerOrders = () => {
                       size="sm"
                       onClick={() => handleTrackOrder(order.orderId)}
                       disabled={!canTrackOrder(order.status)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                     >
                       <MapPin className="w-4 h-4" />
-                      {canTrackOrder(order.status) ? 'Track Order' : 'Tracking Unavailable'}
+                      {canTrackOrder(order.status) ? 'Track Live' : 'Tracking Unavailable'}
                     </Button>
                     
                     <Button variant="outline" size="sm" className="flex items-center gap-2">
