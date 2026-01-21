@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Phone, MessageCircle, Navigation, Clock, MapPin, Truck, X } from 'lucide-react';
 import { supabaseApi } from '@/lib/supabase';
 import OpenStreetMap from '@/components/OpenStreetMap';
+import GPSDataVerification from '@/components/GPSDataVerification';
 
 interface OrderTrackingProps {
   orderId: string;
@@ -104,31 +105,14 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
   };
   
   const getCustomerLocation = async (order: any): Promise<[number, number]> => {
-    // Try to get real customer GPS location first
-    try {
-      if (navigator.geolocation) {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 60000
-          });
-        });
-        
-        console.log('📍 Using real customer GPS:', position.coords);
-        return [position.coords.latitude, position.coords.longitude];
-      }
-    } catch (error) {
-      console.log('📍 Customer GPS failed, using address geocoding');
-    }
-    
-    // Fallback to address-based location
+    // Get customer location from order address using geocoding
     const address = order.customer_address || order.delivery_address;
     if (address) {
+      console.log('📍 Geocoding customer address:', address);
       return await geocodeAddress(address);
     }
     
-    // Final fallback to Shirpur coordinates
+    // Fallback to Shirpur coordinates
     return [21.3487, 74.8831];
   };
   
@@ -140,28 +124,31 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       console.log('🚚 Available agents:', agents);
       
       if (assignedAgent) {
-        // Check if agent has real GPS coordinates
+        // Use real agent GPS coordinates if available
         const hasRealLocation = assignedAgent.current_lat && assignedAgent.current_lng;
         
-        const agentLat = hasRealLocation ? assignedAgent.current_lat : (customerCoords[0] + 0.005);
-        const agentLng = hasRealLocation ? assignedAgent.current_lng : (customerCoords[1] + 0.008);
-        
-        const agentWithLocation = {
-          ...assignedAgent,
-          current_lat: agentLat,
-          current_lng: agentLng,
-          last_updated: assignedAgent.last_location_update || assignedAgent.last_updated || new Date().toISOString()
-        };
-        
-        setDeliveryAgent(agentWithLocation);
-        setAgentLocation([agentLat, agentLng]);
-        
-        console.log('🚚 Agent location set:', [agentLat, agentLng], hasRealLocation ? '(Real GPS)' : '(Simulated)');
-        
-        // Calculate estimated delivery time
-        const distance = calculateDistance([agentLat, agentLng], customerCoords);
-        const estimatedMinutes = Math.max(1, Math.round(distance * 2));
-        setEstimatedTime(`${estimatedMinutes} minutes`);
+        if (hasRealLocation) {
+          console.log('🛰️ Using real agent GPS coordinates');
+          const agentWithLocation = {
+            ...assignedAgent,
+            current_lat: assignedAgent.current_lat,
+            current_lng: assignedAgent.current_lng,
+            last_updated: assignedAgent.last_location_update || assignedAgent.last_updated || new Date().toISOString()
+          };
+          
+          setDeliveryAgent(agentWithLocation);
+          setAgentLocation([assignedAgent.current_lat, assignedAgent.current_lng]);
+          
+          console.log('🚚 Real agent location set:', [assignedAgent.current_lat, assignedAgent.current_lng]);
+          
+          // Calculate real distance and ETA
+          const distance = calculateDistance([assignedAgent.current_lat, assignedAgent.current_lng], customerCoords);
+          const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+          setEstimatedTime(`${estimatedMinutes} minutes`);
+        } else {
+          console.log('📍 No real GPS, creating demo location near customer');
+          createDemoAgent(customerCoords);
+        }
       } else {
         console.log('🚚 No agent found, creating demo agent');
         createDemoAgent(customerCoords);
@@ -351,6 +338,7 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <GPSDataVerification />
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -455,46 +443,54 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
                     {/* Admin-only detailed info */}
                     {userType === 'admin' && deliveryAgent && (
                       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-semibold mb-3 text-gray-800">📍 Detailed Location Information</h4>
+                        <h4 className="font-semibold mb-3 text-gray-800">📍 Live Tracking Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
-                            <h5 className="font-medium text-gray-700 mb-2">🏠 Customer Details:</h5>
+                            <h5 className="font-medium text-gray-700 mb-2">🏠 Customer Order Address:</h5>
                             <div className="space-y-1 text-gray-600">
                               <p><strong>Address:</strong> {order?.customer_address}</p>
                               <p><strong>Coordinates:</strong> {customerLocation[0].toFixed(6)}, {customerLocation[1].toFixed(6)}</p>
-                              <p><strong>Area:</strong> Shirpur, Maharashtra</p>
+                              <p><strong>Name:</strong> {order?.customer_name}</p>
+                              <p><strong>Phone:</strong> {order?.customer_phone}</p>
                             </div>
                           </div>
                           <div>
-                            <h5 className="font-medium text-gray-700 mb-2">🚚 Delivery Agent Details:</h5>
+                            <h5 className="font-medium text-gray-700 mb-2">🚚 Delivery Agent Live Location:</h5>
                             <div className="space-y-1 text-gray-600">
                               <p><strong>Name:</strong> {deliveryAgent.name}</p>
                               <p><strong>Phone:</strong> {deliveryAgent.phone}</p>
-                              <p><strong>Current Location:</strong> {agentLocation?.[0].toFixed(6)}, {agentLocation?.[1].toFixed(6)}</p>
+                              <p><strong>Current GPS:</strong> {agentLocation?.[0].toFixed(6)}, {agentLocation?.[1].toFixed(6)}</p>
                               <p><strong>Last Updated:</strong> {new Date(deliveryAgent.last_updated).toLocaleString()}</p>
+                              <p><strong>Status:</strong> <span className={`font-medium ${
+                                deliveryAgent.id === 999 ? 'text-orange-600' : 'text-green-600'
+                              }`}>
+                                {deliveryAgent.id === 999 ? '📍 Demo Mode' : '🛰️ Live GPS'}
+                              </span></p>
                             </div>
                           </div>
                         </div>
                         
-                        {/* Route Information */}
+                        {/* Real-time tracking info */}
                         <div className="mt-4 p-3 bg-blue-50 rounded">
-                          <h5 className="font-medium text-blue-800 mb-2">🛣️ Route Information:</h5>
+                          <h5 className="font-medium text-blue-800 mb-2">🛣️ Live Route Tracking:</h5>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-blue-700">
                             <div>
-                              <span className="font-medium">Distance:</span><br />
-                              <span>{agentLocation ? calculateDistance(agentLocation, customerLocation).toFixed(2) : '0'} km</span>
+                              <span className="font-medium">Real Distance:</span><br />
+                              <span>{agentLocation ? calculateDistance(agentLocation, customerLocation).toFixed(3) : '0'} km</span>
                             </div>
                             <div>
-                              <span className="font-medium">ETA:</span><br />
+                              <span className="font-medium">Live ETA:</span><br />
                               <span>{estimatedTime}</span>
                             </div>
                             <div>
-                              <span className="font-medium">Speed:</span><br />
-                              <span>~15 km/h</span>
+                              <span className="font-medium">Tracking:</span><br />
+                              <span className="text-green-600 font-medium">🔴 LIVE</span>
                             </div>
                             <div>
-                              <span className="font-medium">Status:</span><br />
-                              <span className="text-green-600 font-medium">Moving</span>
+                              <span className="font-medium">Data Source:</span><br />
+                              <span className={deliveryAgent.id === 999 ? 'text-orange-600' : 'text-green-600'}>
+                                {deliveryAgent.id === 999 ? 'Simulated' : 'Real GPS'}
+                              </span>
                             </div>
                           </div>
                         </div>

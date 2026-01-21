@@ -46,7 +46,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
       L.marker(customerLocation, { icon: customerIcon })
         .addTo(map)
-        .bindPopup(`<b>${userType === 'admin' ? 'Customer Location' : 'Your Location'}</b><br/>📍 ${customerLocation[0].toFixed(6)}, ${customerLocation[1].toFixed(6)}`);
+        .bindPopup(`<b>${userType === 'admin' ? 'Customer Order Address' : 'Your Delivery Address'}</b><br/>🏠 ${customerLocation[0].toFixed(6)}, ${customerLocation[1].toFixed(6)}<br/>📍 Geocoded from order address`);
 
       // Agent marker if available
       if (agentLocation) {
@@ -61,11 +61,12 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
         const agentMarker = L.marker(agentLocation, { icon: agentIcon }).addTo(map);
         
         let popupContent = `<b>${deliveryAgent?.name || 'Delivery Partner'}</b><br/>`;
-        popupContent += `📍 ${agentLocation[0].toFixed(6)}, ${agentLocation[1].toFixed(6)}<br/>`;
-        popupContent += `${isRealGPS ? '🛰️ Real GPS' : '📍 Demo Mode'}`;
+        popupContent += `📍 Current Location: ${agentLocation[0].toFixed(6)}, ${agentLocation[1].toFixed(6)}<br/>`;
+        popupContent += `${isRealGPS ? '🛰️ Live GPS Tracking' : '📍 Demo Mode'}<br/>`;
+        popupContent += `🔄 Last Update: ${deliveryAgent?.last_updated ? new Date(deliveryAgent.last_updated).toLocaleTimeString() : 'N/A'}`;
         
         if (userType === 'admin' && deliveryAgent?.accuracy) {
-          popupContent += `<br/>📏 Accuracy: ${Math.round(deliveryAgent.accuracy)}m`;
+          popupContent += `<br/>📶 GPS Accuracy: ${Math.round(deliveryAgent.accuracy)}m`;
         }
         
         agentMarker.bindPopup(popupContent);
@@ -136,14 +137,14 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
       {/* Info panel */}
       <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-[1000]">
         <div className="bg-white px-3 py-2 rounded-lg shadow-md text-sm">
-          📍 Distance: {distance.toFixed(2)} km
+          🛣️ Live Distance: {distance.toFixed(3)} km
         </div>
         
         {agentLocation && (
           <div className={`text-white px-3 py-2 rounded-lg shadow-md text-sm ${
             isRealGPS ? 'bg-green-500' : 'bg-orange-500'
           }`}>
-            ⏱️ ETA: {Math.max(1, Math.round(distance * 2))} min
+            ⏱️ Live ETA: {Math.max(1, Math.round(distance * 2))} min
           </div>
         )}
       </div>
@@ -151,12 +152,15 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
       {/* Admin coordinates */}
       {userType === 'admin' && (
         <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md z-[1000] text-xs max-w-xs">
-          <div className="font-medium mb-1">📍 GPS Coordinates</div>
+          <div className="font-medium mb-1">📍 Live GPS Coordinates</div>
           <div className="text-gray-600 space-y-1">
-            <div><strong>Customer:</strong> {customerLocation[0].toFixed(6)}, {customerLocation[1].toFixed(6)}</div>
+            <div><strong>🏠 Order Address:</strong> {customerLocation[0].toFixed(6)}, {customerLocation[1].toFixed(6)}</div>
             {agentLocation && (
-              <div><strong>Agent:</strong> {agentLocation[0].toFixed(6)}, {agentLocation[1].toFixed(6)}</div>
+              <div><strong>🚚 Agent Live:</strong> {agentLocation[0].toFixed(6)}, {agentLocation[1].toFixed(6)}</div>
             )}
+            <div className="text-xs text-blue-600 mt-1">
+              {isRealGPS ? '🛰️ Real-time GPS tracking' : '📍 Simulated tracking'}
+            </div>
           </div>
         </div>
       )}
