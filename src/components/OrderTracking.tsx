@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Phone, MessageCircle, Navigation, Clock, MapPin, Truck, X } from 'lucide-react';
 import { supabaseApi } from '@/lib/supabase';
+import OpenStreetMap from '@/components/OpenStreetMap';
 
 interface OrderTrackingProps {
   orderId: string;
@@ -29,130 +30,20 @@ interface Order {
   estimated_delivery: string;
 }
 
-// Simple map component without external dependencies
-const SimpleMap = ({ customerLocation, agentLocation, deliveryAgent, userType = 'customer' }: {
+// OpenStreetMap container component
+const MapContainer = ({ customerLocation, agentLocation, deliveryAgent, userType = 'customer' }: {
   customerLocation: [number, number];
   agentLocation?: [number, number];
   deliveryAgent?: DeliveryAgent;
   userType?: 'customer' | 'admin';
 }) => {
-  const distance = agentLocation ? 
-    Math.sqrt(
-      Math.pow(agentLocation[0] - customerLocation[0], 2) + 
-      Math.pow(agentLocation[1] - customerLocation[1], 2)
-    ) * 111 : 0; // Rough km conversion
-
   return (
-    <div className="relative bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden h-96 border-2 border-gray-200">
-      {/* Background grid pattern */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="grid grid-cols-10 grid-rows-10 h-full w-full">
-          {Array.from({ length: 100 }).map((_, i) => (
-            <div key={i} className="border border-gray-400"></div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Map Title */}
-      <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md z-10">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-blue-500" />
-          {userType === 'admin' ? 'Admin Live Tracking' : 'Live Tracking'}
-        </h3>
-      </div>
-      
-      {/* Admin-only coordinates display */}
-      {userType === 'admin' && (
-        <div className="absolute top-4 right-4 bg-white px-3 py-2 rounded-lg shadow-md z-10 text-xs">
-          <div className="font-medium text-gray-800 mb-1">📍 Coordinates</div>
-          <div className="text-gray-600">
-            <div>Customer: {customerLocation[0].toFixed(4)}, {customerLocation[1].toFixed(4)}</div>
-            {agentLocation && (
-              <div>Agent: {agentLocation[0].toFixed(4)}, {agentLocation[1].toFixed(4)}</div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Customer Location */}
-      <div className="absolute top-1/4 left-1/3 transform -translate-x-1/2 -translate-y-1/2 z-20">
-        <div className="relative">
-          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl shadow-lg animate-pulse border-4 border-white">
-            🏠
-          </div>
-          <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow text-xs font-medium whitespace-nowrap">
-            {userType === 'admin' ? 'Customer Location' : 'Your Location'}
-          </div>
-          {/* Ripple effect */}
-          <div className="absolute inset-0 w-12 h-12 bg-blue-400 rounded-full animate-ping opacity-30"></div>
-        </div>
-      </div>
-      
-      {/* Delivery Agent Location */}
-      {agentLocation && (
-        <div className="absolute top-3/4 right-1/4 transform translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="relative">
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xl shadow-lg animate-bounce border-4 border-white">
-              🚚
-            </div>
-            <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-3 py-1 rounded-full shadow text-xs font-medium whitespace-nowrap">
-              {deliveryAgent?.name || 'Delivery Partner'}
-            </div>
-            {/* Movement indicator */}
-            <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
-          </div>
-        </div>
-      )}
-      
-      {/* Route Line */}
-      {agentLocation && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-          <defs>
-            <pattern id="dashed-line" patternUnits="userSpaceOnUse" width="20" height="4">
-              <rect width="10" height="4" fill="#3B82F6" />
-              <rect x="10" width="10" height="4" fill="transparent" />
-            </pattern>
-          </defs>
-          <line 
-            x1="33%" y1="25%" 
-            x2="75%" y2="75%" 
-            stroke="url(#dashed-line)" 
-            strokeWidth="4"
-            className="animate-pulse"
-          />
-          {/* Arrow indicator */}
-          <polygon 
-            points="70,290 80,285 80,295" 
-            fill="#3B82F6" 
-            className="animate-pulse"
-          />
-        </svg>
-      )}
-      
-      {/* Distance and ETA Info */}
-      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
-        <div className="bg-white px-4 py-2 rounded-lg shadow-md">
-          <div className="text-sm font-medium text-gray-800">
-            📍 Distance: ~{distance.toFixed(1)} km
-          </div>
-        </div>
-        
-        {agentLocation && (
-          <div className="bg-green-500 text-white px-4 py-2 rounded-lg shadow-md">
-            <div className="text-sm font-medium flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              ETA: {Math.max(1, Math.round(distance * 2))} min
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Live indicator */}
-      <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
-        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-        LIVE
-      </div>
-    </div>
+    <OpenStreetMap 
+      customerLocation={customerLocation}
+      agentLocation={agentLocation}
+      deliveryAgent={deliveryAgent}
+      userType={userType}
+    />
   );
 };
 
@@ -184,63 +75,100 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       
       // Get order details from Supabase
       const orders = await supabaseApi.getOrders();
-      const currentOrder = orders.find(o => o.id === orderId);
+      const currentOrder = orders.find(o => String(o.id) === String(orderId));
       
       if (currentOrder) {
         setOrder(currentOrder);
         console.log('📦 Order loaded:', currentOrder);
         
-        // Get customer location - try real GPS first
-        const customerCoords = await geocodeAddress(currentOrder.customer_address);
+        // Get customer location using real GPS or address
+        const customerCoords = await getCustomerLocation(currentOrder);
         setCustomerLocation(customerCoords);
         console.log('📍 Customer location set:', customerCoords);
         
         // Get real delivery agent from Supabase if assigned
         if (currentOrder.delivery_agent_id) {
-          try {
-            const agents = await supabaseApi.getDeliveryAgents();
-            const assignedAgent = agents.find(a => a.id === currentOrder.delivery_agent_id);
-            console.log('🚚 Looking for agent ID:', currentOrder.delivery_agent_id);
-            console.log('🚚 Available agents:', agents);
-            
-            if (assignedAgent) {
-              // Use real agent location if available, otherwise create realistic location
-              const agentLat = assignedAgent.current_lat || (customerCoords[0] + 0.005);
-              const agentLng = assignedAgent.current_lng || (customerCoords[1] + 0.008);
-              
-              const agentWithLocation = {
-                ...assignedAgent,
-                current_lat: agentLat,
-                current_lng: agentLng,
-                last_updated: assignedAgent.last_updated || new Date().toISOString()
-              };
-              
-              setDeliveryAgent(agentWithLocation);
-              setAgentLocation([agentLat, agentLng]);
-              
-              console.log('🚚 Agent location set:', [agentLat, agentLng]);
-              
-              // Calculate estimated delivery time
-              const distance = calculateDistance([agentLat, agentLng], customerCoords);
-              const estimatedMinutes = Math.round(distance * 2);
-              setEstimatedTime(`${estimatedMinutes} minutes`);
-            } else {
-              console.log('🚚 No agent found, creating demo agent');
-              createDemoAgent(customerCoords);
-            }
-          } catch (error) {
-            console.error('Failed to load delivery agent:', error);
-            createDemoAgent(customerCoords);
-          }
+          await loadDeliveryAgent(currentOrder.delivery_agent_id, customerCoords);
         } else if (['ready_for_delivery', 'out_for_delivery'].includes(currentOrder.order_status)) {
           console.log('🚚 No agent assigned, creating demo agent for trackable order');
           createDemoAgent(customerCoords);
         }
+      } else {
+        console.error('❌ Order not found:', orderId);
       }
     } catch (error) {
       console.error('Failed to load order data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const getCustomerLocation = async (order: any): Promise<[number, number]> => {
+    // Try to get real customer GPS location first
+    try {
+      if (navigator.geolocation) {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 60000
+          });
+        });
+        
+        console.log('📍 Using real customer GPS:', position.coords);
+        return [position.coords.latitude, position.coords.longitude];
+      }
+    } catch (error) {
+      console.log('📍 Customer GPS failed, using address geocoding');
+    }
+    
+    // Fallback to address-based location
+    const address = order.customer_address || order.delivery_address;
+    if (address) {
+      return await geocodeAddress(address);
+    }
+    
+    // Final fallback to Shirpur coordinates
+    return [21.3487, 74.8831];
+  };
+  
+  const loadDeliveryAgent = async (agentId: number, customerCoords: [number, number]) => {
+    try {
+      const agents = await supabaseApi.getDeliveryAgents();
+      const assignedAgent = agents.find(a => a.id === agentId);
+      console.log('🚚 Looking for agent ID:', agentId);
+      console.log('🚚 Available agents:', agents);
+      
+      if (assignedAgent) {
+        // Check if agent has real GPS coordinates
+        const hasRealLocation = assignedAgent.current_lat && assignedAgent.current_lng;
+        
+        const agentLat = hasRealLocation ? assignedAgent.current_lat : (customerCoords[0] + 0.005);
+        const agentLng = hasRealLocation ? assignedAgent.current_lng : (customerCoords[1] + 0.008);
+        
+        const agentWithLocation = {
+          ...assignedAgent,
+          current_lat: agentLat,
+          current_lng: agentLng,
+          last_updated: assignedAgent.last_location_update || assignedAgent.last_updated || new Date().toISOString()
+        };
+        
+        setDeliveryAgent(agentWithLocation);
+        setAgentLocation([agentLat, agentLng]);
+        
+        console.log('🚚 Agent location set:', [agentLat, agentLng], hasRealLocation ? '(Real GPS)' : '(Simulated)');
+        
+        // Calculate estimated delivery time
+        const distance = calculateDistance([agentLat, agentLng], customerCoords);
+        const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+        setEstimatedTime(`${estimatedMinutes} minutes`);
+      } else {
+        console.log('🚚 No agent found, creating demo agent');
+        createDemoAgent(customerCoords);
+      }
+    } catch (error) {
+      console.error('Failed to load delivery agent:', error);
+      createDemoAgent(customerCoords);
     }
   };
   
@@ -260,53 +188,74 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
   };
 
   const startLocationTracking = () => {
-    console.log('🔄 Starting location tracking...');
+    console.log('🔄 Starting real-time location tracking...');
     
-    // Update delivery agent location every 5 seconds for better real-time feel
+    // Listen for real-time location updates from delivery agents
+    const handleLocationUpdate = (event: CustomEvent) => {
+      const { agentId, latitude, longitude, timestamp } = event.detail;
+      console.log('📍 Real-time location update:', { agentId, latitude, longitude });
+      
+      if (deliveryAgent && (agentId === deliveryAgent.id || agentId === deliveryAgent.user_id)) {
+        const updatedAgent = {
+          ...deliveryAgent,
+          current_lat: latitude,
+          current_lng: longitude,
+          last_updated: timestamp
+        };
+        
+        setDeliveryAgent(updatedAgent);
+        setAgentLocation([latitude, longitude]);
+        
+        // Update estimated time based on real location
+        if (customerLocation) {
+          const distance = calculateDistance([latitude, longitude], customerLocation);
+          const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+          setEstimatedTime(`${estimatedMinutes} minutes`);
+        }
+      }
+    };
+    
+    // Listen for location updates
+    window.addEventListener('locationUpdate', handleLocationUpdate as EventListener);
+    
+    // Fetch latest agent location every 3 seconds from database
     intervalRef.current = setInterval(async () => {
       if (order?.delivery_agent_id && order.delivery_agent_id !== 999) {
         try {
-          // Get real-time agent location from Supabase
           const agents = await supabaseApi.getDeliveryAgents();
           const agent = agents.find(a => a.id === order.delivery_agent_id);
           
-          if (agent) {
-            console.log('🔄 Updated agent from Supabase:', agent);
-            
-            // Use real coordinates if available
-            const lat = agent.current_lat || (customerLocation?.[0] || 21.3487) + 0.005;
-            const lng = agent.current_lng || (customerLocation?.[1] || 74.8831) + 0.008;
+          if (agent && (agent.current_lat && agent.current_lng)) {
+            console.log('🔄 Database location update:', agent);
             
             const updatedAgent = {
               ...agent,
-              current_lat: lat,
-              current_lng: lng,
-              last_updated: new Date().toISOString()
+              last_updated: agent.last_location_update || new Date().toISOString()
             };
             
             setDeliveryAgent(updatedAgent);
-            setAgentLocation([lat, lng]);
+            setAgentLocation([agent.current_lat, agent.current_lng]);
             
-            // Update estimated time based on real location
+            // Update estimated time
             if (customerLocation) {
-              const distance = calculateDistance([lat, lng], customerLocation);
+              const distance = calculateDistance([agent.current_lat, agent.current_lng], customerLocation);
               const estimatedMinutes = Math.max(1, Math.round(distance * 2));
               setEstimatedTime(`${estimatedMinutes} minutes`);
             }
           }
         } catch (error) {
-          console.error('Failed to update agent location:', error);
+          console.error('Failed to fetch agent location:', error);
         }
       } else if (deliveryAgent && customerLocation) {
-        // Simulate realistic movement for demo agents
+        // Simulate movement for demo agents only
         const currentLat = deliveryAgent.current_lat;
         const currentLng = deliveryAgent.current_lng;
         const targetLat = customerLocation[0];
         const targetLng = customerLocation[1];
         
-        // Move agent towards customer (10% closer each update)
-        const newLat = currentLat + (targetLat - currentLat) * 0.1;
-        const newLng = currentLng + (targetLng - currentLng) * 0.1;
+        // Move agent towards customer (8% closer each update)
+        const newLat = currentLat + (targetLat - currentLat) * 0.08;
+        const newLng = currentLng + (targetLng - currentLng) * 0.08;
         
         const updatedAgent = {
           ...deliveryAgent,
@@ -318,56 +267,51 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
         setDeliveryAgent(updatedAgent);
         setAgentLocation([newLat, newLng]);
         
-        console.log('🔄 Simulated agent movement:', [newLat, newLng]);
+        console.log('🔄 Demo agent movement:', [newLat, newLng]);
         
         // Update estimated time
         const distance = calculateDistance([newLat, newLng], customerLocation);
         const estimatedMinutes = Math.max(1, Math.round(distance * 2));
         setEstimatedTime(`${estimatedMinutes} minutes`);
       }
-    }, 5000); // Update every 5 seconds
+    }, 3000); // Update every 3 seconds
+    
+    return () => {
+      window.removeEventListener('locationUpdate', handleLocationUpdate as EventListener);
+    };
   };
 
   const geocodeAddress = async (address: string): Promise<[number, number]> => {
     try {
-      // Try to get user's current location first
-      if (navigator.geolocation) {
-        return new Promise((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              console.log('📍 Using real GPS coordinates:', position.coords);
-              resolve([position.coords.latitude, position.coords.longitude]);
-            },
-            (error) => {
-              console.log('📍 GPS failed, using Shirpur coordinates:', error);
-              // Fallback to Shirpur coordinates with variation based on address
-              const baseCoords: [number, number] = [21.3487, 74.8831];
-              const addressHash = address.split('').reduce((a, b) => {
-                a = ((a << 5) - a) + b.charCodeAt(0);
-                return a & a;
-              }, 0);
-              const variation = 0.01;
-              resolve([
-                baseCoords[0] + (addressHash % 1000) / 100000 * variation,
-                baseCoords[1] + (addressHash % 1000) / 100000 * variation
-              ]);
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
-          );
-        });
-      } else {
-        // No geolocation support - use Shirpur coordinates
-        const baseCoords: [number, number] = [21.3487, 74.8831];
-        const variation = 0.01;
-        return [
-          baseCoords[0] + (Math.random() - 0.5) * variation,
-          baseCoords[1] + (Math.random() - 0.5) * variation
-        ];
+      // Try OpenStreetMap Nominatim API for real geocoding
+      const encodedAddress = encodeURIComponent(`${address}, Shirpur, Maharashtra, India`);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          console.log('📍 Geocoded address:', { address, lat, lon });
+          return [lat, lon];
+        }
       }
     } catch (error) {
-      console.error('Geocoding failed:', error);
-      return [21.3487, 74.8831]; // Default Shirpur coordinates
+      console.log('📍 Geocoding API failed, using fallback');
     }
+    
+    // Fallback to Shirpur coordinates with address-based variation
+    const baseCoords: [number, number] = [21.3487, 74.8831];
+    const addressHash = address.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const variation = 0.008; // Smaller variation for more realistic locations
+    
+    return [
+      baseCoords[0] + (addressHash % 1000) / 100000 * variation,
+      baseCoords[1] + (addressHash % 1000) / 100000 * variation
+    ];
   };
 
   const calculateDistance = (point1: [number, number], point2: [number, number]): number => {
@@ -486,14 +430,12 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-96 rounded-lg overflow-hidden">
-                      <SimpleMap 
-                        customerLocation={customerLocation}
-                        agentLocation={agentLocation}
-                        deliveryAgent={deliveryAgent}
-                        userType={userType}
-                      />
-                    </div>
+                    <MapContainer 
+                      customerLocation={customerLocation}
+                      agentLocation={agentLocation}
+                      deliveryAgent={deliveryAgent}
+                      userType={userType}
+                    />
                     
                     <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
                       <div className="flex items-center gap-2">

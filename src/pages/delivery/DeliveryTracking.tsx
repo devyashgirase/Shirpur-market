@@ -118,24 +118,30 @@ const DeliveryTracking = () => {
         return;
       }
       
-      // Start continuous GPS tracking
-      const agentId = localStorage.getItem('deliveryAgentId') || 'agent_001';
+      // Start continuous GPS tracking with enhanced service
+      const agentId = localStorage.getItem('deliveryAgentId') || localStorage.getItem('agentPhone') || 'agent_001';
+      console.log('📍 Starting GPS tracking for agent ID:', agentId);
+      
       const trackingStarted = await LocationService.startTracking(agentId, order.orderId);
       
       if (trackingStarted) {
         console.log('📍 GPS tracking started successfully');
         setAgentLocationName('📍 GPS tracking active');
         
-        // Listen for location updates
+        // Listen for real-time location updates
         const handleLocationUpdate = (event: CustomEvent) => {
-          const { latitude, longitude } = event.detail;
+          const { latitude, longitude, accuracy, timestamp } = event.detail;
           const newLocation = { lat: latitude, lng: longitude };
           
-          setAgentLocation(newLocation);
-          setRoute(prev => [...prev, [latitude, longitude]]);
+          console.log('📍 Real-time location update:', newLocation, 'Accuracy:', accuracy + 'm');
           
-          // Update location name
-          reverseGeocode(latitude, longitude);
+          setAgentLocation(newLocation);
+          setRoute(prev => [...prev.slice(-10), [latitude, longitude]]); // Keep last 10 points
+          
+          // Update location name with reverse geocoding
+          LocationService.reverseGeocode(latitude, longitude).then(address => {
+            setAgentLocationName(`📍 ${address}`);
+          });
           
           // Send real-time update to customers
           if (currentOrder?.orderId) {
@@ -145,13 +151,23 @@ const DeliveryTracking = () => {
                 location: newLocation,
                 agentId: agentId,
                 agentName: 'Delivery Agent',
-                status: 'out_for_delivery'
+                status: 'out_for_delivery',
+                accuracy,
+                timestamp
               }
             }));
           }
         };
         
         window.addEventListener('locationUpdate', handleLocationUpdate as EventListener);
+        
+        // Get initial location
+        const initialLocation = await LocationService.getCurrentLocation();
+        if (initialLocation) {
+          setAgentLocation(initialLocation);
+          const address = await LocationService.reverseGeocode(initialLocation.lat, initialLocation.lng);
+          setAgentLocationName(`📍 ${address}`);
+        }
         
         return () => {
           LocationService.stopTracking();
@@ -329,27 +345,30 @@ const DeliveryTracking = () => {
                   console.log('🚀 Opening Google Maps URL:', mapsUrl);
                   window.open(mapsUrl, '_blank');
                   
-                  // Start continuous GPS tracking
+                  // Start continuous GPS tracking with enhanced updates
                   if (navigator.geolocation) {
-                    const trackingInterval = setInterval(() => {
-                      navigator.geolocation.getCurrentPosition((position) => {
-                        const newLocation = {
-                          lat: position.coords.latitude,
-                          lng: position.coords.longitude
-                        };
-                        
-                        // Update real-time location for customers
+                    const agentId = localStorage.getItem('deliveryAgentId') || localStorage.getItem('agentPhone') || 'current_agent';
+                    
+                    // Start enhanced GPS tracking
+                    LocationService.startTracking(agentId, currentOrder.orderId);
+                    
+                    const trackingInterval = setInterval(async () => {
+                      const currentLocation = await LocationService.getCurrentLocation();
+                      if (currentLocation) {
+                        // Update real-time location for customers with enhanced data
                         window.dispatchEvent(new CustomEvent('trackingStarted', {
                           detail: { 
                             orderId: currentOrder.orderId, 
-                            location: newLocation,
-                            agentId: 'current_agent',
+                            location: currentLocation,
+                            agentId: agentId,
                             agentName: 'Delivery Agent',
-                            status: 'out_for_delivery'
+                            status: 'out_for_delivery',
+                            accuracy: currentLocation.accuracy,
+                            timestamp: new Date().toISOString()
                           }
                         }));
-                      });
-                    }, 10000); // Update every 10 seconds
+                      }
+                    }, 8000); // Update every 8 seconds
                     
                     // Store interval ID to clear later
                     localStorage.setItem('trackingInterval', trackingInterval.toString());

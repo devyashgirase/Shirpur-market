@@ -425,19 +425,48 @@ export const supabaseApi = {
 
   async updateAgentLocation(agentId: string, lat: number, lng: number, orderId?: string) {
     try {
+      console.log('📍 Updating agent location in database:', { agentId, lat, lng, orderId });
+      
       const updateData: any = {
         current_lat: lat,
         current_lng: lng,
-        last_location_update: new Date().toISOString()
+        last_location_update: new Date().toISOString(),
+        is_active: true
       };
       
       if (orderId) {
         updateData.current_order_id = orderId;
       }
       
-      return await api.patch('delivery_agents', updateData, `user_id=eq.${agentId}`);
+      // Try updating by user_id first (for delivery agents logged in)
+      let result = await api.patch('delivery_agents', updateData, `user_id=eq.${agentId}`);
+      
+      // If no rows updated, try by id
+      if (!result || result.length === 0) {
+        result = await api.patch('delivery_agents', updateData, `id=eq.${agentId}`);
+      }
+      
+      // If still no agent found, create a new one
+      if (!result || result.length === 0) {
+        console.log('📍 Creating new delivery agent entry for:', agentId);
+        const newAgent = {
+          user_id: agentId,
+          name: 'Delivery Agent',
+          phone: '+91 98765 43210',
+          current_lat: lat,
+          current_lng: lng,
+          last_location_update: new Date().toISOString(),
+          is_active: true,
+          current_order_id: orderId || null
+        };
+        
+        result = await api.post('delivery_agents', newAgent);
+      }
+      
+      console.log('✅ Agent location updated successfully:', result);
+      return result;
     } catch (error) {
-      console.error('Failed to update agent location:', error);
+      console.error('❌ Failed to update agent location:', error);
       return null;
     }
   },
