@@ -179,15 +179,16 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
     
     // Listen for real-time location updates from delivery agents
     const handleLocationUpdate = (event: CustomEvent) => {
-      const { agentId, latitude, longitude, timestamp } = event.detail;
-      console.log('📍 Real-time location update:', { agentId, latitude, longitude });
+      const { agentId, latitude, longitude, timestamp, isRealGPS } = event.detail;
+      console.log('📍 Real-time location update:', { agentId, latitude, longitude, isRealGPS });
       
-      if (deliveryAgent && (agentId === deliveryAgent.id || agentId === deliveryAgent.user_id)) {
+      if (deliveryAgent && (agentId === deliveryAgent.id || agentId === deliveryAgent.user_id || agentId === 'current_agent')) {
         const updatedAgent = {
           ...deliveryAgent,
           current_lat: latitude,
           current_lng: longitude,
-          last_updated: timestamp
+          last_updated: timestamp,
+          id: isRealGPS ? 'real_gps' : deliveryAgent.id // Mark as real GPS
         };
         
         setDeliveryAgent(updatedAgent);
@@ -202,8 +203,31 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       }
     };
     
-    // Listen for location updates
+    // Listen for trackingStarted events (from delivery agent)
+    const handleTrackingStarted = (event: CustomEvent) => {
+      const { orderId, location, agentId, isRealGPS } = event.detail;
+      console.log('🚀 Tracking started event:', { orderId, location, agentId, isRealGPS });
+      
+      if (orderId === order?.id || orderId === order?.orderId) {
+        const updatedAgent = {
+          id: isRealGPS ? 'real_gps' : 999,
+          name: 'Delivery Agent',
+          phone: '+91 98765 43210',
+          current_lat: location.lat,
+          current_lng: location.lng,
+          last_updated: new Date().toISOString()
+        };
+        
+        setDeliveryAgent(updatedAgent);
+        setAgentLocation([location.lat, location.lng]);
+        
+        console.log('🛰️ Real GPS tracking activated for customer view');
+      }
+    };
+    
+    // Listen for both event types
     window.addEventListener('locationUpdate', handleLocationUpdate as EventListener);
+    window.addEventListener('trackingStarted', handleTrackingStarted as EventListener);
     
     // Fetch latest agent location every 3 seconds from database
     intervalRef.current = setInterval(async () => {
@@ -233,38 +257,12 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
         } catch (error) {
           console.error('Failed to fetch agent location:', error);
         }
-      } else if (deliveryAgent && customerLocation) {
-        // Simulate movement for demo agents only
-        const currentLat = deliveryAgent.current_lat;
-        const currentLng = deliveryAgent.current_lng;
-        const targetLat = customerLocation[0];
-        const targetLng = customerLocation[1];
-        
-        // Move agent towards customer (8% closer each update)
-        const newLat = currentLat + (targetLat - currentLat) * 0.08;
-        const newLng = currentLng + (targetLng - currentLng) * 0.08;
-        
-        const updatedAgent = {
-          ...deliveryAgent,
-          current_lat: newLat,
-          current_lng: newLng,
-          last_updated: new Date().toISOString()
-        };
-        
-        setDeliveryAgent(updatedAgent);
-        setAgentLocation([newLat, newLng]);
-        
-        console.log('🔄 Demo agent movement:', [newLat, newLng]);
-        
-        // Update estimated time
-        const distance = calculateDistance([newLat, newLng], customerLocation);
-        const estimatedMinutes = Math.max(1, Math.round(distance * 2));
-        setEstimatedTime(`${estimatedMinutes} minutes`);
       }
     }, 3000); // Update every 3 seconds
     
     return () => {
       window.removeEventListener('locationUpdate', handleLocationUpdate as EventListener);
+      window.removeEventListener('trackingStarted', handleTrackingStarted as EventListener);
     };
   };
 

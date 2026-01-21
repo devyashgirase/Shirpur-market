@@ -345,33 +345,70 @@ const DeliveryTracking = () => {
                   console.log('🚀 Opening Google Maps URL:', mapsUrl);
                   window.open(mapsUrl, '_blank');
                   
-                  // Start continuous GPS tracking with enhanced updates
+                  // FORCE REAL GPS TRACKING when delivery starts
                   if (navigator.geolocation) {
                     const agentId = localStorage.getItem('deliveryAgentId') || localStorage.getItem('agentPhone') || 'current_agent';
                     
-                    // Start enhanced GPS tracking
-                    LocationService.startTracking(agentId, currentOrder.orderId);
-                    
-                    const trackingInterval = setInterval(async () => {
-                      const currentLocation = await LocationService.getCurrentLocation();
-                      if (currentLocation) {
-                        // Update real-time location for customers with enhanced data
-                        window.dispatchEvent(new CustomEvent('trackingStarted', {
-                          detail: { 
-                            orderId: currentOrder.orderId, 
-                            location: currentLocation,
-                            agentId: agentId,
-                            agentName: 'Delivery Agent',
-                            status: 'out_for_delivery',
-                            accuracy: currentLocation.accuracy,
-                            timestamp: new Date().toISOString()
-                          }
-                        }));
-                      }
-                    }, 8000); // Update every 8 seconds
-                    
-                    // Store interval ID to clear later
-                    localStorage.setItem('trackingInterval', trackingInterval.toString());
+                    // Get immediate GPS location and start tracking
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                      const realGPS = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                      };
+                      
+                      console.log('🛰️ DELIVERY STARTED - Real GPS:', realGPS);
+                      
+                      // Update database immediately with real location
+                      await supabaseApi.updateAgentLocation(agentId, realGPS.lat, realGPS.lng, currentOrder.orderId);
+                      
+                      // Start continuous GPS tracking
+                      LocationService.startTracking(agentId, currentOrder.orderId);
+                      
+                      // Broadcast to all customers immediately
+                      window.dispatchEvent(new CustomEvent('trackingStarted', {
+                        detail: { 
+                          orderId: currentOrder.orderId, 
+                          location: realGPS,
+                          agentId: agentId,
+                          agentName: 'Delivery Agent',
+                          status: 'out_for_delivery',
+                          accuracy: realGPS.accuracy,
+                          timestamp: new Date().toISOString(),
+                          isRealGPS: true
+                        }
+                      }));
+                      
+                      // Continue tracking every 5 seconds
+                      const trackingInterval = setInterval(async () => {
+                        const currentLocation = await LocationService.getCurrentLocation();
+                        if (currentLocation) {
+                          await supabaseApi.updateAgentLocation(agentId, currentLocation.lat, currentLocation.lng, currentOrder.orderId);
+                          
+                          window.dispatchEvent(new CustomEvent('trackingStarted', {
+                            detail: { 
+                              orderId: currentOrder.orderId, 
+                              location: currentLocation,
+                              agentId: agentId,
+                              agentName: 'Delivery Agent',
+                              status: 'out_for_delivery',
+                              accuracy: currentLocation.accuracy,
+                              timestamp: new Date().toISOString(),
+                              isRealGPS: true
+                            }
+                          }));
+                        }
+                      }, 5000);
+                      
+                      localStorage.setItem('trackingInterval', trackingInterval.toString());
+                    }, (error) => {
+                      console.error('GPS Error:', error);
+                      alert('GPS permission required for real-time tracking!');
+                    }, {
+                      enableHighAccuracy: true,
+                      timeout: 5000,
+                      maximumAge: 0
+                    });
                   }
                   
                   alert('🚀 Live delivery started! Google Maps opened with navigation.');
