@@ -56,17 +56,32 @@ const AdminLiveTracking = () => {
       );
       setActiveOrders(trackableOrders);
       
-      // Load delivery agents
+      // Load delivery agents from Supabase
       const agents = await supabaseApi.getDeliveryAgents();
-      const agentsWithLocation = agents.map(agent => ({
-        ...agent,
-        current_address: generateStreetAddress(agent.current_lat, agent.current_lng),
-        status: getAgentStatus(agent.id, trackableOrders)
-      }));
-      setDeliveryAgents(agentsWithLocation);
+      const agentsWithDetails = agents.map(agent => {
+        // Generate realistic address if coordinates exist
+        const address = (agent.current_lat && agent.current_lng) 
+          ? generateStreetAddress(agent.current_lat, agent.current_lng)
+          : 'Location not available';
+          
+        return {
+          ...agent,
+          current_address: address,
+          status: getAgentStatus(agent.id, trackableOrders)
+        };
+      });
+      setDeliveryAgents(agentsWithDetails);
+      
+      console.log('📍 Loaded real data:', {
+        orders: trackableOrders.length,
+        agents: agentsWithDetails.length
+      });
       
     } catch (error) {
       console.error('Failed to load tracking data:', error);
+      // Fallback to empty arrays if Supabase fails
+      setActiveOrders([]);
+      setDeliveryAgents([]);
     } finally {
       setLoading(false);
     }

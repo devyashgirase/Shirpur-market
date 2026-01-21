@@ -110,70 +110,55 @@ const DeliveryTracking = () => {
     deliveryCoordinationService.subscribe('liveLocationUpdate', handleLocationUpdate);
 
     // Get real GPS location and update continuously
-    const startRealGPSTracking = () => {
-      if (navigator.geolocation) {
-        // Get initial location
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const newLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            setAgentLocation(newLocation);
-            setRoute(prev => [...prev, [newLocation.lat, newLocation.lng]]);
-            reverseGeocode(newLocation.lat, newLocation.lng);
-          },
-          (error) => {
-            console.error('GPS Error:', error);
-            setAgentLocationName('GPS not available');
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-        );
+    const startRealGPSTracking = async () => {
+      // Request location permission first
+      const hasPermission = await LocationService.requestLocationPermission();
+      if (!hasPermission) {
+        setAgentLocationName('📍 Location permission denied');
+        return;
+      }
+      
+      // Start continuous GPS tracking
+      const agentId = localStorage.getItem('deliveryAgentId') || 'agent_001';
+      const trackingStarted = await LocationService.startTracking(agentId, order.orderId);
+      
+      if (trackingStarted) {
+        console.log('📍 GPS tracking started successfully');
+        setAgentLocationName('📍 GPS tracking active');
         
-        // Watch position changes
-        const watchId = navigator.geolocation.watchPosition(
-          (position) => {
-            const newLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            setAgentLocation(newLocation);
-            setRoute(prev => [...prev, [newLocation.lat, newLocation.lng]]);
-            reverseGeocode(newLocation.lat, newLocation.lng);
-            
-            // Send real-time location to customers
-            if (currentOrder?.orderId) {
-              const locationUpdate = {
-                ...newLocation,
-                timestamp: new Date().toISOString()
-              };
-              
-              // Store location history
-              const existingTracking = JSON.parse(localStorage.getItem(`tracking_${currentOrder.orderId}`) || '[]');
-              existingTracking.push(locationUpdate);
-              localStorage.setItem(`tracking_${currentOrder.orderId}`, JSON.stringify(existingTracking));
-              
-              // Trigger real-time update for customers
-              window.dispatchEvent(new CustomEvent('trackingStarted', {
-                detail: { 
-                  orderId: currentOrder.orderId, 
-                  location: newLocation,
-                  agentId: 'current_agent',
-                  agentName: 'Delivery Agent',
-                  status: 'out_for_delivery'
-                }
-              }));
-            }
-          },
-          (error) => {
-            console.error('GPS Watch Error:', error);
-          },
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 30000 }
-        );
+        // Listen for location updates
+        const handleLocationUpdate = (event: CustomEvent) => {
+          const { latitude, longitude } = event.detail;
+          const newLocation = { lat: latitude, lng: longitude };
+          
+          setAgentLocation(newLocation);
+          setRoute(prev => [...prev, [latitude, longitude]]);
+          
+          // Update location name
+          reverseGeocode(latitude, longitude);
+          
+          // Send real-time update to customers
+          if (currentOrder?.orderId) {
+            window.dispatchEvent(new CustomEvent('trackingStarted', {
+              detail: { 
+                orderId: currentOrder.orderId, 
+                location: newLocation,
+                agentId: agentId,
+                agentName: 'Delivery Agent',
+                status: 'out_for_delivery'
+              }
+            }));
+          }
+        };
         
-        return () => navigator.geolocation.clearWatch(watchId);
+        window.addEventListener('locationUpdate', handleLocationUpdate as EventListener);
+        
+        return () => {
+          LocationService.stopTracking();
+          window.removeEventListener('locationUpdate', handleLocationUpdate as EventListener);
+        };
       } else {
-        setAgentLocationName('GPS not supported');
+        setAgentLocationName('📍 GPS tracking failed to start');
       }
     };
     
@@ -198,6 +183,8 @@ const DeliveryTracking = () => {
       setShowOTPVerification(false);
       
       // Stop GPS tracking
+      LocationService.stopTracking();
+      
       const trackingInterval = localStorage.getItem('trackingInterval');
       if (trackingInterval) {
         clearInterval(parseInt(trackingInterval));

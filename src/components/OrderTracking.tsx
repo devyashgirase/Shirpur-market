@@ -182,39 +182,59 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
     try {
       setLoading(true);
       
-      // Get order details
+      // Get order details from Supabase
       const orders = await supabaseApi.getOrders();
       const currentOrder = orders.find(o => o.id === orderId);
       
       if (currentOrder) {
         setOrder(currentOrder);
+        console.log('📦 Order loaded:', currentOrder);
         
-        // Get customer location from address (simulate geocoding)
+        // Get customer location - try real GPS first
         const customerCoords = await geocodeAddress(currentOrder.customer_address);
         setCustomerLocation(customerCoords);
+        console.log('📍 Customer location set:', customerCoords);
         
-        // For demo: Always show a delivery agent if order is trackable
-        if (['ready_for_delivery', 'out_for_delivery'].includes(currentOrder.order_status)) {
-          // Create demo delivery agent
-          const demoAgent: DeliveryAgent = {
-            id: 1,
-            name: 'Rahul Kumar',
-            phone: '+91 98765 43210',
-            current_lat: customerCoords[0] + 0.005, // Slightly offset from customer
-            current_lng: customerCoords[1] + 0.008,
-            last_updated: new Date().toISOString()
-          };
-          
-          setDeliveryAgent(demoAgent);
-          setAgentLocation([demoAgent.current_lat, demoAgent.current_lng]);
-          
-          // Calculate estimated delivery time
-          const distance = calculateDistance(
-            [demoAgent.current_lat, demoAgent.current_lng],
-            customerCoords
-          );
-          const estimatedMinutes = Math.round(distance * 2); // 2 minutes per km
-          setEstimatedTime(`${estimatedMinutes} minutes`);
+        // Get real delivery agent from Supabase if assigned
+        if (currentOrder.delivery_agent_id) {
+          try {
+            const agents = await supabaseApi.getDeliveryAgents();
+            const assignedAgent = agents.find(a => a.id === currentOrder.delivery_agent_id);
+            console.log('🚚 Looking for agent ID:', currentOrder.delivery_agent_id);
+            console.log('🚚 Available agents:', agents);
+            
+            if (assignedAgent) {
+              // Use real agent location if available, otherwise create realistic location
+              const agentLat = assignedAgent.current_lat || (customerCoords[0] + 0.005);
+              const agentLng = assignedAgent.current_lng || (customerCoords[1] + 0.008);
+              
+              const agentWithLocation = {
+                ...assignedAgent,
+                current_lat: agentLat,
+                current_lng: agentLng,
+                last_updated: assignedAgent.last_updated || new Date().toISOString()
+              };
+              
+              setDeliveryAgent(agentWithLocation);
+              setAgentLocation([agentLat, agentLng]);
+              
+              console.log('🚚 Agent location set:', [agentLat, agentLng]);
+              
+              // Calculate estimated delivery time
+              const distance = calculateDistance([agentLat, agentLng], customerCoords);
+              const estimatedMinutes = Math.round(distance * 2);
+              setEstimatedTime(`${estimatedMinutes} minutes`);
+            } else {
+              console.log('🚚 No agent found, creating demo agent');
+              createDemoAgent(customerCoords);
+            }
+          } catch (error) {
+            console.error('Failed to load delivery agent:', error);
+            createDemoAgent(customerCoords);
+          }
+        } else if (['ready_for_delivery', 'out_for_delivery'].includes(currentOrder.order_status)) {
+          console.log('🚚 No agent assigned, creating demo agent for trackable order');
+          createDemoAgent(customerCoords);
         }
       }
     } catch (error) {
@@ -223,53 +243,131 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       setLoading(false);
     }
   };
+  
+  const createDemoAgent = (customerCoords: [number, number]) => {
+    const demoAgent: DeliveryAgent = {
+      id: 999,
+      name: 'Delivery Partner',
+      phone: '+91 98765 43210',
+      current_lat: customerCoords[0] + 0.005,
+      current_lng: customerCoords[1] + 0.008,
+      last_updated: new Date().toISOString()
+    };
+    setDeliveryAgent(demoAgent);
+    setAgentLocation([demoAgent.current_lat, demoAgent.current_lng]);
+    setEstimatedTime('15 minutes');
+    console.log('🚚 Demo agent created:', demoAgent);
+  };
 
   const startLocationTracking = () => {
-    // Update delivery agent location every 10 seconds
+    console.log('🔄 Starting location tracking...');
+    
+    // Update delivery agent location every 5 seconds for better real-time feel
     intervalRef.current = setInterval(async () => {
-      if (deliveryAgent && customerLocation) {
+      if (order?.delivery_agent_id && order.delivery_agent_id !== 999) {
         try {
-          // Simulate agent movement towards customer
-          const currentLat = deliveryAgent.current_lat;
-          const currentLng = deliveryAgent.current_lng;
-          const targetLat = customerLocation[0];
-          const targetLng = customerLocation[1];
+          // Get real-time agent location from Supabase
+          const agents = await supabaseApi.getDeliveryAgents();
+          const agent = agents.find(a => a.id === order.delivery_agent_id);
           
-          // Move agent slightly towards customer
-          const newLat = currentLat + (targetLat - currentLat) * 0.1;
-          const newLng = currentLng + (targetLng - currentLng) * 0.1;
-          
-          const updatedAgent = {
-            ...deliveryAgent,
-            current_lat: newLat,
-            current_lng: newLng,
-            last_updated: new Date().toISOString()
-          };
-          
-          setDeliveryAgent(updatedAgent);
-          setAgentLocation([newLat, newLng]);
-          
-          // Update estimated time
-          const distance = calculateDistance([newLat, newLng], customerLocation);
-          const estimatedMinutes = Math.max(1, Math.round(distance * 2));
-          setEstimatedTime(`${estimatedMinutes} minutes`);
-          
+          if (agent) {
+            console.log('🔄 Updated agent from Supabase:', agent);
+            
+            // Use real coordinates if available
+            const lat = agent.current_lat || (customerLocation?.[0] || 21.3487) + 0.005;
+            const lng = agent.current_lng || (customerLocation?.[1] || 74.8831) + 0.008;
+            
+            const updatedAgent = {
+              ...agent,
+              current_lat: lat,
+              current_lng: lng,
+              last_updated: new Date().toISOString()
+            };
+            
+            setDeliveryAgent(updatedAgent);
+            setAgentLocation([lat, lng]);
+            
+            // Update estimated time based on real location
+            if (customerLocation) {
+              const distance = calculateDistance([lat, lng], customerLocation);
+              const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+              setEstimatedTime(`${estimatedMinutes} minutes`);
+            }
+          }
         } catch (error) {
           console.error('Failed to update agent location:', error);
         }
+      } else if (deliveryAgent && customerLocation) {
+        // Simulate realistic movement for demo agents
+        const currentLat = deliveryAgent.current_lat;
+        const currentLng = deliveryAgent.current_lng;
+        const targetLat = customerLocation[0];
+        const targetLng = customerLocation[1];
+        
+        // Move agent towards customer (10% closer each update)
+        const newLat = currentLat + (targetLat - currentLat) * 0.1;
+        const newLng = currentLng + (targetLng - currentLng) * 0.1;
+        
+        const updatedAgent = {
+          ...deliveryAgent,
+          current_lat: newLat,
+          current_lng: newLng,
+          last_updated: new Date().toISOString()
+        };
+        
+        setDeliveryAgent(updatedAgent);
+        setAgentLocation([newLat, newLng]);
+        
+        console.log('🔄 Simulated agent movement:', [newLat, newLng]);
+        
+        // Update estimated time
+        const distance = calculateDistance([newLat, newLng], customerLocation);
+        const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+        setEstimatedTime(`${estimatedMinutes} minutes`);
       }
-    }, 10000);
+    }, 5000); // Update every 5 seconds
   };
 
   const geocodeAddress = async (address: string): Promise<[number, number]> => {
-    // Simulate geocoding - in real app, use Google Maps API or similar
-    // For demo, return Shirpur coordinates with some variation
-    const baseCoords: [number, number] = [21.3487, 74.8831];
-    const variation = 0.01;
-    return [
-      baseCoords[0] + (Math.random() - 0.5) * variation,
-      baseCoords[1] + (Math.random() - 0.5) * variation
-    ];
+    try {
+      // Try to get user's current location first
+      if (navigator.geolocation) {
+        return new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              console.log('📍 Using real GPS coordinates:', position.coords);
+              resolve([position.coords.latitude, position.coords.longitude]);
+            },
+            (error) => {
+              console.log('📍 GPS failed, using Shirpur coordinates:', error);
+              // Fallback to Shirpur coordinates with variation based on address
+              const baseCoords: [number, number] = [21.3487, 74.8831];
+              const addressHash = address.split('').reduce((a, b) => {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+              }, 0);
+              const variation = 0.01;
+              resolve([
+                baseCoords[0] + (addressHash % 1000) / 100000 * variation,
+                baseCoords[1] + (addressHash % 1000) / 100000 * variation
+              ]);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+          );
+        });
+      } else {
+        // No geolocation support - use Shirpur coordinates
+        const baseCoords: [number, number] = [21.3487, 74.8831];
+        const variation = 0.01;
+        return [
+          baseCoords[0] + (Math.random() - 0.5) * variation,
+          baseCoords[1] + (Math.random() - 0.5) * variation
+        ];
+      }
+    } catch (error) {
+      console.error('Geocoding failed:', error);
+      return [21.3487, 74.8831]; // Default Shirpur coordinates
+    }
   };
 
   const calculateDistance = (point1: [number, number], point2: [number, number]): number => {

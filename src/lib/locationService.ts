@@ -1,39 +1,98 @@
-// Enhanced location service with detailed address
+import { supabaseApi } from './supabase';
+
 export class LocationService {
-  static async getCurrentLocationWithDetails() {
-    return new Promise((resolve, reject) => {
+  private static watchId: number | null = null;
+  private static isTracking = false;
+  
+  // Start tracking delivery agent location
+  static async startTracking(agentId: string, orderId?: string) {
+    if (this.isTracking) {
+      console.log('📍 Location tracking already active');
+      return;
+    }
+    
+    if (!navigator.geolocation) {
+      console.error('❌ Geolocation not supported');
+      return false;
+    }
+    
+    console.log('📍 Starting GPS tracking for agent:', agentId);
+    this.isTracking = true;
+    
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 30000 // 30 seconds
+    };
+    
+    this.watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log('📍 GPS Update:', { latitude, longitude, accuracy: position.coords.accuracy });
+        
+        try {
+          // Update agent location in Supabase
+          await supabaseApi.updateAgentLocation(agentId, latitude, longitude, orderId);
+          console.log('✅ Location updated in database');
+          
+          // Dispatch event for real-time UI updates
+          window.dispatchEvent(new CustomEvent('locationUpdate', {
+            detail: { agentId, latitude, longitude, timestamp: new Date().toISOString() }
+          }));
+          
+        } catch (error) {
+          console.error('❌ Failed to update location:', error);
+        }
+      },
+      (error) => {
+        console.error('❌ GPS Error:', error.message);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            console.error('Location access denied by user');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            console.error('Location information unavailable');
+            break;
+          case error.TIMEOUT:
+            console.error('Location request timeout');
+            break;
+        }
+      },
+      options
+    );
+    
+    return true;
+  }
+  
+  // Stop tracking location
+  static stopTracking() {
+    if (this.watchId !== null) {
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId = null;
+      this.isTracking = false;
+      console.log('📍 GPS tracking stopped');
+    }
+  }
+  
+  // Get current location once
+  static async getCurrentLocation(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
       if (!navigator.geolocation) {
-        reject(new Error('Geolocation not supported'));
+        resolve(null);
         return;
       }
-
+      
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          try {
-            // Get detailed address using reverse geocoding
-            const address = await this.reverseGeocode(latitude, longitude);
-            
-            resolve({
-              lat: latitude,
-              lng: longitude,
-              accuracy: position.coords.accuracy,
-              address: address,
-              timestamp: new Date().toISOString()
-            });
-          } catch (error) {
-            // Fallback with basic coordinates
-            resolve({
-              lat: latitude,
-              lng: longitude,
-              accuracy: position.coords.accuracy,
-              address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-              timestamp: new Date().toISOString()
-            });
-          }
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
         },
-        (error) => reject(error),
+        (error) => {
+          console.error('Failed to get current location:', error);
+          resolve(null);
+        },
         {
           enableHighAccuracy: true,
           timeout: 10000,
@@ -42,79 +101,43 @@ export class LocationService {
       );
     });
   }
-
-  static async reverseGeocode(lat: number, lng: number): Promise<string> {
-    try {
-      // Using Nominatim (free OpenStreetMap service)
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'Shirpur-Market-App'
-          }
-        }
-      );
-      
-      if (!response.ok) throw new Error('Geocoding failed');
-      
-      const data = await response.json();
-      
-      if (data && data.address) {
-        const addr = data.address;
-        const parts = [];
-        
-        // Building details
-        if (addr.house_number) parts.push(addr.house_number);
-        if (addr.building) parts.push(addr.building);
-        if (addr.shop) parts.push(addr.shop);
-        if (addr.office) parts.push(addr.office);
-        
-        // Street details
-        if (addr.road) parts.push(addr.road);
-        if (addr.neighbourhood) parts.push(addr.neighbourhood);
-        if (addr.suburb) parts.push(addr.suburb);
-        
-        // Area details
-        if (addr.city || addr.town || addr.village) {
-          parts.push(addr.city || addr.town || addr.village);
-        }
-        if (addr.state) parts.push(addr.state);
-        if (addr.postcode) parts.push(addr.postcode);
-        
-        return parts.join(', ') || data.display_name;
-      }
-      
-      return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    } catch (error) {
-      console.error('Reverse geocoding failed:', error);
-      return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    }
+  
+  // Calculate distance between two points
+  static calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
-
-  static async searchAddress(query: string) {
+  
+  // Check if location services are available
+  static isLocationAvailable(): boolean {
+    return 'geolocation' in navigator;
+  }
+  
+  // Request location permission
+  static async requestLocationPermission(): Promise<boolean> {
+    if (!this.isLocationAvailable()) {
+      return false;
+    }
+    
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'Shirpur-Market-App'
-          }
-        }
-      );
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000
+        });
+      });
       
-      if (!response.ok) throw new Error('Address search failed');
-      
-      const data = await response.json();
-      
-      return data.map((item: any) => ({
-        display_name: item.display_name,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-        address: item.address
-      }));
+      console.log('📍 Location permission granted');
+      return true;
     } catch (error) {
-      console.error('Address search failed:', error);
-      return [];
+      console.error('📍 Location permission denied:', error);
+      return false;
     }
   }
 }
