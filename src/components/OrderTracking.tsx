@@ -378,7 +378,7 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
                 </Card>
               )}
 
-      {/* Live Map */}
+              {/* Live Map */}
               {customerLocation && (
                 <Card>
                   <CardHeader>
@@ -442,7 +442,7 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-blue-700">
                             <div>
                               <span className="font-medium">Distance:</span><br />
-                              <span>{agentLocation ? calculateDistance(agentLocation, customerLocation).toFixed(2)} km</span>
+                              <span>{agentLocation ? calculateDistance(agentLocation, customerLocation).toFixed(2) : '0'} km</span>
                             </div>
                             <div>
                               <span className="font-medium">ETA:</span><br />
