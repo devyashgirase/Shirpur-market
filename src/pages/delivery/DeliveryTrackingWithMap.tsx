@@ -94,7 +94,7 @@ const DeliveryTrackingWithMap = () => {
         // Update database with real location
         await supabaseApi.updateAgentLocation(agentId, location.lat, location.lng, currentOrder.orderId);
 
-        // Broadcast to customers
+        // Broadcast to customers with real GPS data
         window.dispatchEvent(new CustomEvent('trackingStarted', {
           detail: {
             orderId: currentOrder.orderId,
@@ -103,8 +103,17 @@ const DeliveryTrackingWithMap = () => {
             agentName: 'Delivery Agent',
             status: 'out_for_delivery',
             accuracy: location.accuracy,
-            timestamp: new Date().toISOString(),
-            isRealGPS: true
+            timestamp: new Date().toISOString()
+          }
+        }));
+        
+        // Also dispatch location updates for real-time tracking
+        window.dispatchEvent(new CustomEvent('locationUpdate', {
+          detail: {
+            agentId: agentId,
+            latitude: location.lat,
+            longitude: location.lng,
+            timestamp: new Date().toISOString()
           }
         }));
 

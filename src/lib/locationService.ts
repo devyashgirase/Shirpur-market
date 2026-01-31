@@ -155,17 +155,18 @@ export class LocationService {
     return R * c;
   }
   
-  // Enhanced reverse geocoding with detailed address
+  // Enhanced reverse geocoding with CORS proxy
   static async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      );
+      // Use CORS proxy for production
+      const proxyUrl = 'https://api.allorigins.win/raw?url=';
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      
+      const response = await fetch(proxyUrl + encodeURIComponent(nominatimUrl));
       
       if (response.ok) {
         const data = await response.json();
         if (data && data.display_name) {
-          // Extract meaningful parts of the address
           const address = data.address || {};
           const parts = [];
           

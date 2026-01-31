@@ -122,12 +122,13 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
   const loadDeliveryAgent = async (agentId: number, customerCoords: [number, number]) => {
     try {
       const agents = await supabaseApi.getDeliveryAgents();
-      const assignedAgent = agents.find(a => a.id === agentId);
-      console.log('🚚 Looking for agent ID:', agentId);
-      console.log('🚚 Available agents:', agents);
+      console.log('🚚 All agents from database:', agents);
+      
+      // Find agent by ID
+      let assignedAgent = agents.find(a => a.id === agentId);
       
       if (assignedAgent && assignedAgent.current_lat && assignedAgent.current_lng) {
-        console.log('🛰️ Using real agent GPS coordinates');
+        console.log('🛰️ Real agent GPS found:', assignedAgent);
         const agentWithLocation = {
           ...assignedAgent,
           current_lat: assignedAgent.current_lat,
@@ -140,15 +141,15 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
         
         console.log('🚚 Real agent location set:', [assignedAgent.current_lat, assignedAgent.current_lng]);
         
-        // Calculate real distance and ETA
+        // Calculate distance and ETA
         const distance = calculateDistance([assignedAgent.current_lat, assignedAgent.current_lng], customerCoords);
         const estimatedMinutes = Math.max(1, Math.round(distance * 2));
         setEstimatedTime(`${estimatedMinutes} minutes`);
       } else {
-        console.log('❌ No real GPS data available for agent');
-        // Don't show anything if no real GPS data
+        console.log('❌ No real GPS data for assigned agent');
         setDeliveryAgent(null);
         setAgentLocation(null);
+        setEstimatedTime('Waiting for agent location...');
       }
     } catch (error) {
       console.error('Failed to load delivery agent:', error);
@@ -158,11 +159,11 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
   };
   
   const createDemoAgent = (customerCoords: [number, number]) => {
-    // Remove demo agent creation - only show real GPS data
-    console.log('❌ Demo agents disabled - only real GPS data allowed');
+    // No demo agents - only real GPS tracking
+    console.log('❌ No demo agents - waiting for real delivery agent GPS');
     setDeliveryAgent(null);
     setAgentLocation(null);
-    setEstimatedTime('');
+    setEstimatedTime('Waiting for delivery agent...');
   };
 
   const startLocationTracking = () => {
@@ -170,51 +171,42 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
     
     // Listen for real-time location updates from delivery agents
     const handleLocationUpdate = (event: CustomEvent) => {
-      const { agentId, latitude, longitude, timestamp, isRealGPS } = event.detail;
-      console.log('📍 Real-time location update:', { agentId, latitude, longitude, isRealGPS });
+      const { agentId, latitude, longitude, timestamp } = event.detail;
+      console.log('📍 Real-time location update:', { agentId, latitude, longitude });
       
-      // Only process real GPS data
-      if (!isRealGPS) {
-        console.log('❌ Ignoring demo data - only real GPS allowed');
-        return;
-      }
-      
-      if (deliveryAgent && (agentId === deliveryAgent.id || agentId === deliveryAgent.user_id || agentId === 'current_agent')) {
+      // Update agent location if it matches current order's agent
+      if (deliveryAgent && String(agentId) === String(deliveryAgent.id)) {
         const updatedAgent = {
           ...deliveryAgent,
           current_lat: latitude,
           current_lng: longitude,
-          last_updated: timestamp,
-          id: 'real_gps' // Mark as real GPS
+          last_updated: timestamp
         };
         
         setDeliveryAgent(updatedAgent);
         setAgentLocation([latitude, longitude]);
         
-        // Update estimated time based on real location
+        // Update estimated time
         if (customerLocation) {
           const distance = calculateDistance([latitude, longitude], customerLocation);
           const estimatedMinutes = Math.max(1, Math.round(distance * 2));
           setEstimatedTime(`${estimatedMinutes} minutes`);
         }
+        
+        console.log('🛰️ Customer tracking updated with real GPS');
       }
     };
     
     // Listen for trackingStarted events (from delivery agent)
     const handleTrackingStarted = (event: CustomEvent) => {
-      const { orderId, location, agentId, isRealGPS } = event.detail;
-      console.log('🚀 Tracking started event:', { orderId, location, agentId, isRealGPS });
+      const { orderId, location, agentId, agentName } = event.detail;
+      console.log('🚀 Tracking started event:', { orderId, location, agentId, agentName });
       
-      // Only process real GPS data
-      if (!isRealGPS) {
-        console.log('❌ Ignoring demo tracking - only real GPS allowed');
-        return;
-      }
-      
-      if (orderId === order?.id || orderId === order?.orderId) {
+      // Check if this tracking is for current order
+      if (String(orderId) === String(order?.id)) {
         const updatedAgent = {
-          id: 'real_gps',
-          name: 'Delivery Agent',
+          id: agentId,
+          name: agentName || 'Delivery Agent',
           phone: '+91 98765 43210',
           current_lat: location.lat,
           current_lng: location.lng,
@@ -224,7 +216,14 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
         setDeliveryAgent(updatedAgent);
         setAgentLocation([location.lat, location.lng]);
         
-        console.log('🛰️ Real GPS tracking activated for customer view');
+        // Calculate ETA
+        if (customerLocation) {
+          const distance = calculateDistance([location.lat, location.lng], customerLocation);
+          const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+          setEstimatedTime(`${estimatedMinutes} minutes`);
+        }
+        
+        console.log('🛰️ Real GPS tracking activated for customer');
       }
     };
     
