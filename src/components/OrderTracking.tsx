@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Phone, MessageCircle, Navigation, Clock, MapPin, Truck, X } from 'lucide-react';
 import { supabaseApi } from '@/lib/supabase';
-import OpenStreetMap from '@/components/OpenStreetMap';
+import LeafletMap from '@/components/LeafletMap';
 import GPSDataVerification from '@/components/GPSDataVerification';
 
 interface OrderTrackingProps {
@@ -31,19 +31,22 @@ interface Order {
   estimated_delivery: string;
 }
 
-// OpenStreetMap container component
-const MapContainer = ({ customerLocation, agentLocation, deliveryAgent, userType = 'customer' }: {
+// Leaflet Map container component
+const MapContainer = ({ customerLocation, agentLocation, deliveryAgent, userType = 'customer', order }: {
   customerLocation: [number, number];
   agentLocation?: [number, number];
   deliveryAgent?: DeliveryAgent;
   userType?: 'customer' | 'admin';
+  order?: any;
 }) => {
   return (
-    <OpenStreetMap 
+    <LeafletMap 
       customerLocation={customerLocation}
+      customerAddress={order?.customer_address || 'Delivery Address'}
       agentLocation={agentLocation}
       deliveryAgent={deliveryAgent}
       userType={userType}
+      orderId={order?.id || order?.orderId}
     />
   );
 };
@@ -123,55 +126,43 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       console.log('🚚 Looking for agent ID:', agentId);
       console.log('🚚 Available agents:', agents);
       
-      if (assignedAgent) {
-        // Use real agent GPS coordinates if available
-        const hasRealLocation = assignedAgent.current_lat && assignedAgent.current_lng;
+      if (assignedAgent && assignedAgent.current_lat && assignedAgent.current_lng) {
+        console.log('🛰️ Using real agent GPS coordinates');
+        const agentWithLocation = {
+          ...assignedAgent,
+          current_lat: assignedAgent.current_lat,
+          current_lng: assignedAgent.current_lng,
+          last_updated: assignedAgent.last_location_update || assignedAgent.last_updated || new Date().toISOString()
+        };
         
-        if (hasRealLocation) {
-          console.log('🛰️ Using real agent GPS coordinates');
-          const agentWithLocation = {
-            ...assignedAgent,
-            current_lat: assignedAgent.current_lat,
-            current_lng: assignedAgent.current_lng,
-            last_updated: assignedAgent.last_location_update || assignedAgent.last_updated || new Date().toISOString()
-          };
-          
-          setDeliveryAgent(agentWithLocation);
-          setAgentLocation([assignedAgent.current_lat, assignedAgent.current_lng]);
-          
-          console.log('🚚 Real agent location set:', [assignedAgent.current_lat, assignedAgent.current_lng]);
-          
-          // Calculate real distance and ETA
-          const distance = calculateDistance([assignedAgent.current_lat, assignedAgent.current_lng], customerCoords);
-          const estimatedMinutes = Math.max(1, Math.round(distance * 2));
-          setEstimatedTime(`${estimatedMinutes} minutes`);
-        } else {
-          console.log('📍 No real GPS, creating demo location near customer');
-          createDemoAgent(customerCoords);
-        }
+        setDeliveryAgent(agentWithLocation);
+        setAgentLocation([assignedAgent.current_lat, assignedAgent.current_lng]);
+        
+        console.log('🚚 Real agent location set:', [assignedAgent.current_lat, assignedAgent.current_lng]);
+        
+        // Calculate real distance and ETA
+        const distance = calculateDistance([assignedAgent.current_lat, assignedAgent.current_lng], customerCoords);
+        const estimatedMinutes = Math.max(1, Math.round(distance * 2));
+        setEstimatedTime(`${estimatedMinutes} minutes`);
       } else {
-        console.log('🚚 No agent found, creating demo agent');
-        createDemoAgent(customerCoords);
+        console.log('❌ No real GPS data available for agent');
+        // Don't show anything if no real GPS data
+        setDeliveryAgent(null);
+        setAgentLocation(null);
       }
     } catch (error) {
       console.error('Failed to load delivery agent:', error);
-      createDemoAgent(customerCoords);
+      setDeliveryAgent(null);
+      setAgentLocation(null);
     }
   };
   
   const createDemoAgent = (customerCoords: [number, number]) => {
-    const demoAgent: DeliveryAgent = {
-      id: 999,
-      name: 'Delivery Partner',
-      phone: '+91 98765 43210',
-      current_lat: customerCoords[0] + 0.005,
-      current_lng: customerCoords[1] + 0.008,
-      last_updated: new Date().toISOString()
-    };
-    setDeliveryAgent(demoAgent);
-    setAgentLocation([demoAgent.current_lat, demoAgent.current_lng]);
-    setEstimatedTime('15 minutes');
-    console.log('🚚 Demo agent created:', demoAgent);
+    // Remove demo agent creation - only show real GPS data
+    console.log('❌ Demo agents disabled - only real GPS data allowed');
+    setDeliveryAgent(null);
+    setAgentLocation(null);
+    setEstimatedTime('');
   };
 
   const startLocationTracking = () => {
@@ -182,13 +173,19 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       const { agentId, latitude, longitude, timestamp, isRealGPS } = event.detail;
       console.log('📍 Real-time location update:', { agentId, latitude, longitude, isRealGPS });
       
+      // Only process real GPS data
+      if (!isRealGPS) {
+        console.log('❌ Ignoring demo data - only real GPS allowed');
+        return;
+      }
+      
       if (deliveryAgent && (agentId === deliveryAgent.id || agentId === deliveryAgent.user_id || agentId === 'current_agent')) {
         const updatedAgent = {
           ...deliveryAgent,
           current_lat: latitude,
           current_lng: longitude,
           last_updated: timestamp,
-          id: isRealGPS ? 'real_gps' : deliveryAgent.id // Mark as real GPS
+          id: 'real_gps' // Mark as real GPS
         };
         
         setDeliveryAgent(updatedAgent);
@@ -208,9 +205,15 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
       const { orderId, location, agentId, isRealGPS } = event.detail;
       console.log('🚀 Tracking started event:', { orderId, location, agentId, isRealGPS });
       
+      // Only process real GPS data
+      if (!isRealGPS) {
+        console.log('❌ Ignoring demo tracking - only real GPS allowed');
+        return;
+      }
+      
       if (orderId === order?.id || orderId === order?.orderId) {
         const updatedAgent = {
-          id: isRealGPS ? 'real_gps' : 999,
+          id: 'real_gps',
           name: 'Delivery Agent',
           phone: '+91 98765 43210',
           current_lat: location.lat,
@@ -229,14 +232,14 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
     window.addEventListener('locationUpdate', handleLocationUpdate as EventListener);
     window.addEventListener('trackingStarted', handleTrackingStarted as EventListener);
     
-    // Fetch latest agent location every 3 seconds from database
+    // Fetch latest agent location every 3 seconds from database - only real GPS
     intervalRef.current = setInterval(async () => {
-      if (order?.delivery_agent_id && order.delivery_agent_id !== 999) {
+      if (order?.delivery_agent_id) {
         try {
           const agents = await supabaseApi.getDeliveryAgents();
           const agent = agents.find(a => a.id === order.delivery_agent_id);
           
-          if (agent && (agent.current_lat && agent.current_lng)) {
+          if (agent && agent.current_lat && agent.current_lng) {
             console.log('🔄 Database location update:', agent);
             
             const updatedAgent = {
@@ -421,6 +424,7 @@ const OrderTracking = ({ orderId, isOpen, onClose, userType = 'customer' }: Orde
                       agentLocation={agentLocation}
                       deliveryAgent={deliveryAgent}
                       userType={userType}
+                      order={order}
                     />
                     
                     <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
