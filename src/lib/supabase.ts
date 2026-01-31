@@ -125,6 +125,21 @@ export const supabaseApi = {
       
       const result = await api.patch('orders', updateData, `id=eq.${orderId}`);
       console.log('✅ Order status updated:', result);
+      
+      // Send OTP when order goes out for delivery
+      if (status === 'out_for_delivery' && result && result.length > 0) {
+        const order = result[0];
+        console.log('📨 Sending delivery OTP for order:', order);
+        
+        // Import OTPService dynamically
+        const { OTPService } = await import('./otpService');
+        await OTPService.sendDeliveryOTP(
+          orderId, 
+          order.customer_phone, 
+          order.customer_name || 'Customer'
+        );
+      }
+      
       return result;
     } catch (error) {
       console.error('Order update failed:', error);
@@ -539,6 +554,39 @@ export const supabaseApi = {
       return result;
     } catch (error) {
       console.error('❌ Failed to delete product:', error);
+      return null;
+    }
+  },
+
+  // OTP functions for delivery verification
+  async createDeliveryOTP(otpData: any) {
+    try {
+      const result = await api.post('delivery_otps', otpData);
+      console.log('✅ Delivery OTP created:', result);
+      return result[0] || result;
+    } catch (error) {
+      console.error('❌ Failed to create delivery OTP:', error);
+      return null;
+    }
+  },
+
+  async getDeliveryOTP(orderId: string) {
+    try {
+      const otps = await api.get('delivery_otps', `order_id=eq.${orderId}&order=created_at.desc&limit=1`);
+      return otps?.[0] || null;
+    } catch (error) {
+      console.error('❌ Failed to get delivery OTP:', error);
+      return null;
+    }
+  },
+
+  async updateDeliveryOTP(orderId: string, updates: any) {
+    try {
+      const result = await api.patch('delivery_otps', updates, `order_id=eq.${orderId}`);
+      console.log('✅ Delivery OTP updated:', result);
+      return result[0] || result;
+    } catch (error) {
+      console.error('❌ Failed to update delivery OTP:', error);
       return null;
     }
   }
